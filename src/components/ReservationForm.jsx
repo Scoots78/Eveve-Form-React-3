@@ -192,7 +192,9 @@ export default function ReservationForm() {
   return (
     <div className="p-6 max-w-xl mx-auto bg-white shadow-xl rounded-lg space-y-6">
       <h1 className="text-3xl font-bold text-center text-gray-800">
-        {appConfig?.estFull || (appConfig?.lng?.bookTable ? appConfig.lng.bookTable.replace('${fullName}', appConfig.estName || est) : 'Book Your Table')}
+        {appConfig?.estFull
+          ? `Make a Booking at ${appConfig.estFull}`
+          : (appConfig?.lng?.bookTable ? appConfig.lng.bookTable.replace('${fullName}', appConfig.estName || est) : 'Make a Booking')}
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
