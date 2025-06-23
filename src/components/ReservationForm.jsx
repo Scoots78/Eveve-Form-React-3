@@ -50,20 +50,28 @@ export default function ReservationForm() {
         const config = await loadAppConfig(est);
         setAppConfig(config);
         console.log("App Config Loaded:", config); // For verification
-        // Example: Access a loaded config variable
-        if (config && config.estName) {
-          console.log("Restaurant Name from Config:", config.estName);
+
+        if (config && !config.estFull) {
+          console.error("Essential configuration missing: estFull is not defined in the loaded config.", config);
+          setConfigError(config?.lng?.errorB || "Essential restaurant information (name) is missing. Unable to proceed.");
+          // No need to setIsConfigLoading(false) here as it's done in finally, but ensure form doesn't render.
+        } else if (config) {
+            // Example: Access a loaded config variable
+            if (config.estName) {
+              console.log("Restaurant Name from Config:", config.estName);
+            }
+            if (config.partyMin) {
+                console.log("Min Guests from Config:", config.partyMin);
+            }
+            if (config.partyMax) {
+                 console.log("Max Guests from Config:", config.partyMax);
+            }
         }
-        if (config && config.minGuests) { // Assuming MIN_GUESTS is partyMin in JS
-            // This would be used to set initial guest count or validate
-            console.log("Min Guests from Config:", config.partyMin);
-        }
-        if (config && config.maxGuests) { // Assuming MAX_GUESTS is partyMax in JS
-             console.log("Max Guests from Config:", config.partyMax);
-        }
+        // If config itself is null/undefined (error caught by catch block), configError will already be set.
       } catch (error) {
         console.error("Failed to load app configuration:", error);
-        setConfigError(error.message || "Failed to load application configuration.");
+        // Use a generic error message or one from lng if appConfig was partially loaded or defaults exist
+        setConfigError(error.message || (appConfig?.lng?.errorB || "Failed to load application configuration."));
       } finally {
         setIsConfigLoading(false);
       }
@@ -72,7 +80,7 @@ export default function ReservationForm() {
     if (est) {
       fetchConfig();
     }
-  }, [est]); // Re-run if est changes
+  }, [est, appConfig?.lng?.errorB]); // Added appConfig.lng.errorB to deps for stable error message
 
   const handleDateChange = (dates) => {
     if (dates && dates.length > 0) {
@@ -192,9 +200,8 @@ export default function ReservationForm() {
   return (
     <div className="p-6 max-w-xl mx-auto bg-white shadow-xl rounded-lg space-y-6">
       <h1 className="text-3xl font-bold text-center text-gray-800">
-        {appConfig?.estFull
-          ? `Make a Booking at ${appConfig.estFull}`
-          : (appConfig?.lng?.bookTable ? appConfig.lng.bookTable.replace('${fullName}', appConfig.estName || est) : 'Make a Booking')}
+        {/* Simplified: If we reach here, appConfig and appConfig.estFull must exist due to checks above */}
+        {`Make a Booking at ${appConfig.estFull}`}
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
