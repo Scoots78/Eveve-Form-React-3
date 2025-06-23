@@ -29,7 +29,7 @@ const formatDecimalTime = (decimalTime, timeFormat = 12) => { // timeFormat defa
 
 export default function ReservationForm() {
   const urlParams = new URLSearchParams(window.location.search);
-  const est = urlParams.get("est") || "testnza"; // fallback
+  const est = urlParams.get("est"); // Removed fallback to "testnza"
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [guests, setGuests] = useState(''); // Initial state: empty string for placeholder
@@ -44,6 +44,13 @@ export default function ReservationForm() {
 
   useEffect(() => {
     const fetchConfig = async () => {
+      // Check if est is present before trying to load config
+      if (!est) {
+        setConfigError("No restaurant ID (est) provided in the URL.");
+        setIsConfigLoading(false);
+        return;
+      }
+
       try {
         setIsConfigLoading(true);
         setConfigError(null);
