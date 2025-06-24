@@ -306,21 +306,23 @@ const AddonSelection = ({
               // Note: Min/max for menu quantity not defined in new spec, assuming no hard limit other than reasonable UI.
               // The addon's own min/max are for guest count visibility.
 
-              // Disable + if total quantity would exceed guest count
-              const plusButtonDisabled = numericGuestCount > 0 && currentTotalMenuUsage2Quantity >= numericGuestCount && (!selectedMenu || currentQuantity === (selectedMenu?.quantity || 0) );
-              // A more precise check for disabling increment: if this item is already at max possible contribution or total is met
               let effectivePlusDisabled = false;
-              if (numericGuestCount > 0) {
-                if (currentTotalMenuUsage2Quantity >= numericGuestCount) {
-                    // If the item is not selected (qty 0), it cannot be incremented if total is already full.
-                    // If it is selected, it also cannot be incremented further if total is full.
-                    effectivePlusDisabled = true;
+              // Rule 1: Sum of quantities <= guestCount
+              if (numericGuestCount > 0 && currentTotalMenuUsage2Quantity >= numericGuestCount) {
+                effectivePlusDisabled = true;
+              }
+
+              // Rule 2: Number of distinct menu types <= maxMenuTypesAllowed
+              const maxMenuTypesAllowed = selectedShiftTime?.maxMenuTypes;
+              if (!effectivePlusDisabled && maxMenuTypesAllowed > 0 && currentQuantity === 0) { // Only apply if trying to select a NEW distinct menu
+                const distinctSelectedMenuTypesCount = new Set(selectedAddons.menus.filter(m => m.quantity > 0).map(m => m.uid)).size;
+                if (distinctSelectedMenuTypesCount >= maxMenuTypesAllowed) {
+                  effectivePlusDisabled = true;
                 }
               }
 
-
               return (
-                <div key={addon.uid} className="addon-item usage2-item p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-gray-50 transition-colors">
+                <div key={addon.uid} className={`addon-item usage2-item p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-gray-50 transition-colors ${effectivePlusDisabled && currentQuantity === 0 ? 'opacity-60 cursor-not-allowed' : ''}`}>
                   <div className="addon-info mb-2 sm:mb-0 sm:mr-4 flex-grow">
                     <span className="addon-name font-medium text-gray-800">{addon.name}</span>
                     {addon.price >= 0 && <span className="addon-price text-sm text-gray-600 ml-2">({getAddonPriceString(addon)})</span>}
@@ -422,8 +424,8 @@ const AddonSelection = ({
       if (option.parent === -1) {
         return true; // Always valid if guest count is in range (already filtered by finalOptionAddons)
       }
-      // Check if the parent menu (by originalIndex) is selected
-      return selectedAddons.menus.some(selectedMenu => selectedMenu.originalIndex === option.parent);
+      // Check if the parent menu (by originalIndexInShift) is selected
+      return selectedAddons.menus.some(selectedMenu => selectedMenu.originalIndexInShift === option.parent);
     });
 
     if (visibleOptions.length === 0) {
@@ -466,10 +468,33 @@ const AddonSelection = ({
 
             const maxAllowedByGuestCount = numericGuestCount > 0 ? numericGuestCount : Infinity; // If no guests, no limit based on guests
 
-            const effectiveMaxQty = Math.min(optionMaxQty, maxAllowedByGuestCount);
+            let maxByParentQty = Infinity;
+            if (addon.parent !== -1) {
+                const parentMenu = selectedAddons.menus.find(m => m.originalIndexInShift === addon.parent);
+                if (parentMenu) {
+                    // If parent menu is usage 1 or 3 (selected, not quantity based for itself), option cap is 1
+                    // If parent menu is usage 2, option cap is parent's quantity
+                    maxByParentQty = (parentMenu.quantity !== undefined) ? parentMenu.quantity : 1;
+                } else {
+                    maxByParentQty = 0; // Parent not selected, so option quantity derived from it must be 0
+                }
+            }
+
+            const effectiveMaxQty = Math.min(optionMaxQty, maxAllowedByGuestCount, maxByParentQty);
 
             const canIncrement = currentQuantity < effectiveMaxQty;
-            const canDecrement = currentQuantity > 0 && currentQuantity > optionMinQty; // Can only decrement if current > 0 and current > defined min for option
+            // Decrement is possible if currentQuantity > 0. Min check is for setting, not for button enabling if already > 0.
+            // However, if currentQuantity is already below optionMinQty (e.g. parent qty reduced), then can't decrement further.
+            const canDecrement = currentQuantity > 0 && currentQuantity >= optionMinQty ;
+            // More precise: can decrement if currentQuantity > optionMinQty. If currentQuantity === optionMinQty, cannot decrement.
+            // But if optionMinQty is 0, then can decrement as long as currentQuantity > 0.
+            // So, if optionMinQty > 0, then currentQuantity > optionMinQty. If optionMinQty = 0, then currentQuantity > 0.
+            // This simplifies to: currentQuantity > optionMinQty (if optionMinQty = 0, this means currentQuantity > 0)
+            // Let's stick to: currentQuantity > 0, and the handler will ensure it doesn't go below optionMinQty.
+            // The button should disable if currentQuantity IS optionMinQty (and optionMinQty > 0)
+            // Or if currentQuantity is 0.
+            const minusButtonDisabled = currentQuantity === 0 || (optionMinQty > 0 && currentQuantity <= optionMinQty);
+
 
             return (
               <div key={addon.uid} className="addon-item option-item p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-gray-50 transition-colors">
@@ -482,7 +507,7 @@ const AddonSelection = ({
                   <button
                     type="button"
                     onClick={() => commonOptionChangeHandler(addon, currentQuantity - 1)}
-                    disabled={!canDecrement}
+                    disabled={minusButtonDisabled}
                     className="qty-btn minus-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     -

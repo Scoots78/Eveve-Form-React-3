@@ -173,16 +173,12 @@ export default function ReservationForm() {
     let rawAddons = timeObject?.addons || shift?.addons || [];
     const usagePolicyForShift = timeObject?.usage !== undefined ? timeObject.usage : shift?.usage;
 
-    // Augment Menu addons with originalIndex
-    let menuOriginalIndexCounter = 0;
-    const processedAddons = rawAddons.map(addon => {
-      if (addon.type === "Menu") {
-        return { ...addon, originalIndex: menuOriginalIndexCounter++ };
-      }
-      return addon;
+    // Augment all addons with originalIndexInShift
+    const processedAddons = rawAddons.map((addon, index) => {
+      return { ...addon, originalIndexInShift: index };
     });
 
-    console.log("Processed addons for selected shift/time (with originalIndex for Menus):", processedAddons);
+    console.log("Processed addons for selected shift/time (with originalIndexInShift):", processedAddons);
     console.log("Usage policy for selected shift/time (applies to Menus):", usagePolicyForShift);
 
     setCurrentShiftAddons(processedAddons);
@@ -210,25 +206,37 @@ export default function ReservationForm() {
           }
         } else if (menuUsagePolicy === 2) { // Quantity selectors for Menus
           const newProposedQuantity = parseInt(value, 10);
-          const oldQuantity = prev.menus[menuIndex]?.quantity || 0;
+          const oldQuantity = prev.menus.find(m => m.uid === addonData.uid)?.quantity || 0; // Ensure we get old quantity correctly even if menuIndex is -1 for new item
 
           if (newProposedQuantity > oldQuantity) { // Incrementing
             const numericGuests = parseInt(guests, 10) || 0;
+
+            // Rule 1: Sum of quantities constraint (already implemented)
             if (numericGuests > 0) {
               const currentTotalMenuUsage2Quantity = prev.menus.reduce((sum, menu) => {
-                // Exclude the item being changed if it's already in the list, its new quantity will be added
-                if (menu.uid === addonData.uid) return sum;
+                if (menu.uid === addonData.uid) return sum; // Exclude current item's old quantity
                 return sum + (menu.quantity || 0);
               }, 0);
-
               if (currentTotalMenuUsage2Quantity + newProposedQuantity > numericGuests) {
-                console.warn(`Usage 2 Menu: Cannot increment quantity for ${addonData.name}. Total quantity would exceed guest count.`);
-                return prev; // Revert to previous state, do not apply change
+                console.warn(`Usage 2 Menu (Sum Limit): Cannot increment ${addonData.name}. Total quantity ${currentTotalMenuUsage2Quantity + newProposedQuantity} would exceed guest count ${numericGuests}.`);
+                return prev;
               }
+            }
+
+            // Rule 2: maxMenuTypes constraint (only if adding a new distinct menu type)
+            if (oldQuantity === 0 && newProposedQuantity > 0) { // This means we are selecting a new distinct menu type
+                const maxMenuTypesAllowed = selectedShiftTime?.maxMenuTypes;
+                if (maxMenuTypesAllowed > 0) {
+                    const distinctSelectedMenuTypesCount = new Set(prev.menus.filter(m => m.quantity > 0).map(m => m.uid)).size;
+                    if (distinctSelectedMenuTypesCount >= maxMenuTypesAllowed) {
+                        console.warn(`Usage 2 Menu (Max Types): Cannot select new menu type ${addonData.name}. Max ${maxMenuTypesAllowed} distinct menu types already selected.`);
+                        return prev;
+                    }
+                }
             }
           }
 
-          // Proceed with quantity update if not blocked by the sum constraint
+          // Proceed with quantity update if not blocked by the constraints
           if (newProposedQuantity > 0) {
             if (menuIndex > -1) {
               newSelected.menus[menuIndex].quantity = newProposedQuantity;
@@ -271,16 +279,37 @@ export default function ReservationForm() {
         const optionMaxQty = (typeof addonData.max === 'number' && !isNaN(addonData.max)) ? addonData.max : Infinity;
         const maxAllowedByGuestCount = numericGuests > 0 ? numericGuests : Infinity;
 
-        const effectiveMaxQty = Math.min(optionMaxQty, maxAllowedByGuestCount);
+        let maxByParentQty = Infinity;
+        if (addonData.parent !== -1) {
+            const parentMenu = prev.menus.find(m => m.originalIndexInShift === addonData.parent);
+            if (parentMenu) {
+                // Determine parent menu's "effective" selected quantity for capping the option
+                // If parentMenu is usage:2, its quantity is parentMenu.quantity
+                // If parentMenu is usage:1 or usage:3, it's selected (effectively quantity 1 for this rule)
+                maxByParentQty = (parentMenu.quantity !== undefined) ? parentMenu.quantity : 1;
+            } else {
+                maxByParentQty = 0; // Parent not selected, option quantity effectively capped at 0 by parent
+            }
+        }
+
+        const effectiveMaxQty = Math.min(optionMaxQty, maxAllowedByGuestCount, maxByParentQty);
 
         if (quantity > 0 && quantity >= optionMinQty && quantity <= effectiveMaxQty) {
           newSelected.options[addonData.uid] = quantity;
-        } else if (quantity <= 0 || quantity < optionMinQty) { // Also remove if below explicit min for option
+        } else if (quantity <= 0 || quantity < optionMinQty) { // Also remove if below explicit min for option (or if parent made it 0)
+             // If quantity becomes 0 due to parent cap (maxByParentQty=0), it should be deleted
             delete newSelected.options[addonData.uid];
         } else if (quantity > effectiveMaxQty) {
-            // Quantity exceeds max allowed, clamp it to max (UI should prevent this, but good safeguard)
-            newSelected.options[addonData.uid] = effectiveMaxQty;
-            console.warn(`Quantity for option ${addonData.name} clamped to ${effectiveMaxQty}.`);
+            // Quantity exceeds max allowed (could be due to option's own max, guest count, or parent quantity)
+            // Clamp it to the calculated effectiveMaxQty.
+            // If effectiveMaxQty is 0 (e.g. parent not selected), this means it will be deleted in the next condition.
+            if (effectiveMaxQty > 0 && effectiveMaxQty >= optionMinQty) {
+                 newSelected.options[addonData.uid] = effectiveMaxQty;
+                 console.warn(`Quantity for option ${addonData.name} clamped to ${effectiveMaxQty}.`);
+            } else { // effectiveMaxQty is less than optionMinQty (or 0), so delete
+                 delete newSelected.options[addonData.uid];
+                 console.warn(`Option ${addonData.name} removed as its quantity constraints could not be met (max: ${effectiveMaxQty}, min: ${optionMinQty}).`);
+            }
         }
       }
       console.log("Updated selectedAddons:", newSelected);
