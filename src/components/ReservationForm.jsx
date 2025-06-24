@@ -3,28 +3,8 @@ import GuestSelector from "./guestSelector";
 import CalendarPicker from "./CalendarPicker";
 import { format } from 'date-fns';
 import { loadAppConfig } from "../config/configLoader"; // Import the config loader
-
-// Updated Helper function to format decimal time
-const formatDecimalTime = (decimalTime, timeFormat = 12) => { // timeFormat defaults to 12hr
-  if (typeof decimalTime !== 'number') return '';
-  let hours = Math.floor(decimalTime);
-  const minutes = Math.round((decimalTime - hours) * 60);
-  const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
-
-  if (timeFormat === 24) {
-    const h = hours < 10 ? `0${hours}` : hours;
-    return `${h}:${formattedMinutes}`;
-  }
-
-  // Default to 12-hour format with AM/PM
-  const ampm = hours >= 12 && hours < 24 ? 'PM' : 'AM';
-  if (hours === 0) { // Midnight case
-    hours = 12;
-  } else if (hours > 12 && hours < 24) { // PM times
-    hours -= 12;
-  }
-  return `${hours}:${formattedMinutes} ${ampm}`;
-};
+import { formatDecimalTime } from "../utils/time"; // Import the utility function
+import { useDebounce } from "../hooks/useDebounce"; // Import the custom hook
 
 
 export default function ReservationForm() {
@@ -105,21 +85,6 @@ export default function ReservationForm() {
     setApiError(null);
   };
 
-  // Debounce utility
-  const debounce = (func, delay) => {
-    let timeoutId;
-    const debouncedFunc = (...args) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        func.apply(this, args);
-      }, delay);
-    };
-    debouncedFunc.clear = () => { // Add a method to clear the timeout
-      clearTimeout(timeoutId);
-    };
-    return debouncedFunc;
-  };
-
   const fetchAvailability = useCallback(async (date, numGuests) => {
     if (!date || typeof numGuests !== 'number' || numGuests < 1 || !appConfig) {
       setAvailabilityData(null);
@@ -158,8 +123,7 @@ export default function ReservationForm() {
     }
   }, [est, appConfig]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debouncedFetchAvailability = useCallback(debounce(fetchAvailability, 800), [fetchAvailability]);
+  const [debouncedFetchAvailability, clearDebouncedFetchAvailability] = useDebounce(fetchAvailability, 800);
 
   useEffect(() => {
     const numericGuests = parseInt(guests, 10);
@@ -167,16 +131,16 @@ export default function ReservationForm() {
       debouncedFetchAvailability(selectedDate, numericGuests);
     } else {
       // If inputs are invalid (e.g. guests cleared), clear data, errors, and pending calls.
-      debouncedFetchAvailability.clear();
+      clearDebouncedFetchAvailability();
       setAvailabilityData(null);
       setApiError(null);
       setIsLoading(false);
     }
     // Cleanup function to clear timeout if component unmounts or dependencies change
     return () => {
-      debouncedFetchAvailability.clear();
+      clearDebouncedFetchAvailability();
     };
-  }, [selectedDate, guests, debouncedFetchAvailability]);
+  }, [selectedDate, guests, debouncedFetchAvailability, clearDebouncedFetchAvailability]);
 
   if (isConfigLoading) {
     return (
