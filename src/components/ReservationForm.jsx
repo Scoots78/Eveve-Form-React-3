@@ -2,36 +2,92 @@ import React, { useState, useEffect, useCallback } from "react";
 import GuestSelector from "./guestSelector";
 import CalendarPicker from "./CalendarPicker";
 import { format } from 'date-fns';
+import { loadAppConfig } from "../config/configLoader"; // Import the config loader
 
-// Helper function to format decimal time (e.g., 12.00, 14.5) to AM/PM string
-const formatDecimalTime = (decimalTime) => {
+// Updated Helper function to format decimal time
+const formatDecimalTime = (decimalTime, timeFormat = 12) => { // timeFormat defaults to 12hr
   if (typeof decimalTime !== 'number') return '';
   let hours = Math.floor(decimalTime);
   const minutes = Math.round((decimalTime - hours) * 60);
-  const ampm = hours >= 12 && hours < 24 ? 'PM' : 'AM'; // Handle 24h case for midnight AM
+  const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
 
+  if (timeFormat === 24) {
+    const h = hours < 10 ? `0${hours}` : hours;
+    return `${h}:${formattedMinutes}`;
+  }
+
+  // Default to 12-hour format with AM/PM
+  const ampm = hours >= 12 && hours < 24 ? 'PM' : 'AM';
   if (hours === 0) { // Midnight case
     hours = 12;
   } else if (hours > 12 && hours < 24) { // PM times
     hours -= 12;
   }
-  // hours remains as is for AM times e.g. 10.00 is 10 AM
-
-  const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
   return `${hours}:${formattedMinutes} ${ampm}`;
 };
 
 
 export default function ReservationForm() {
   const urlParams = new URLSearchParams(window.location.search);
-  const est = urlParams.get("est") || "testnza"; // fallback
+  const est = urlParams.get("est"); // Removed fallback to "testnza"
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [guests, setGuests] = useState(''); // Initial state: empty string for placeholder
 
+  const [appConfig, setAppConfig] = useState(null);
+  const [isConfigLoading, setIsConfigLoading] = useState(true);
+  const [configError, setConfigError] = useState(null);
+
   const [availabilityData, setAvailabilityData] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [apiError, setApiError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false); // For availability loading
+  const [apiError, setApiError] = useState(null); // For availability API errors
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      // Check if est is present before trying to load config
+      if (!est) {
+        setConfigError("No restaurant ID (est) provided in the URL.");
+        setIsConfigLoading(false);
+        return;
+      }
+
+      try {
+        setIsConfigLoading(true);
+        setConfigError(null);
+        const config = await loadAppConfig(est);
+        setAppConfig(config);
+        console.log("App Config Loaded:", config); // For verification
+
+        if (config && !config.estFull) {
+          console.error("Essential configuration missing: estFull is not defined in the loaded config.", config);
+          setConfigError(config?.lng?.errorB || "Essential restaurant information (name) is missing. Unable to proceed.");
+          // No need to setIsConfigLoading(false) here as it's done in finally, but ensure form doesn't render.
+        } else if (config) {
+            // Example: Access a loaded config variable
+            if (config.estName) {
+              console.log("Restaurant Name from Config:", config.estName);
+            }
+            if (config.partyMin) {
+                console.log("Min Guests from Config:", config.partyMin);
+            }
+            if (config.partyMax) {
+                 console.log("Max Guests from Config:", config.partyMax);
+            }
+        }
+        // If config itself is null/undefined (error caught by catch block), configError will already be set.
+      } catch (error) {
+        console.error("Failed to load app configuration:", error);
+        // Use a generic error message or one from lng if appConfig was partially loaded or defaults exist
+        setConfigError(error.message || (appConfig?.lng?.errorB || "Failed to load application configuration."));
+      } finally {
+        setIsConfigLoading(false);
+      }
+    };
+
+    if (est) {
+      fetchConfig();
+    }
+  }, [est, appConfig?.lng?.errorB]); // Added appConfig.lng.errorB to deps for stable error message
 
   const handleDateChange = (dates) => {
     if (dates && dates.length > 0) {
@@ -65,7 +121,7 @@ export default function ReservationForm() {
   };
 
   const fetchAvailability = useCallback(async (date, numGuests) => {
-    if (!date || typeof numGuests !== 'number' || numGuests < 1) {
+    if (!date || typeof numGuests !== 'number' || numGuests < 1 || !appConfig) {
       setAvailabilityData(null);
       setApiError(null);
       setIsLoading(false);
@@ -75,7 +131,10 @@ export default function ReservationForm() {
     setIsLoading(true);
     setApiError(null);
     const formattedDate = format(date, 'yyyy-MM-dd');
-    const apiUrl = `https://nz6.eveve.com/web/day-avail?est=${est}&covers=${numGuests}&date=${formattedDate}`;
+
+    // Use dapi from config if available, otherwise fallback to hardcoded domain
+    const baseApiUrl = appConfig.dapi || "https://nz6.eveve.com";
+    const apiUrl = `${baseApiUrl}/web/day-avail?est=${est}&covers=${numGuests}&date=${formattedDate}`;
     console.log(`Fetching: ${apiUrl}`);
 
     try {
@@ -83,21 +142,21 @@ export default function ReservationForm() {
       if (!response.ok) {
          const errorText = await response.text();
          console.error("API Error Response Text:", errorText);
-        throw new Error(`No availability or error fetching data. Status: ${response.status}.`);
+        throw new Error(appConfig?.lng?.noAvailRange || `No availability or error fetching data. Status: ${response.status}.`);
       }
       const data = await response.json();
       setAvailabilityData(data);
       if ((!data.shifts || data.shifts.length === 0) && !data.message) {
-        setApiError("No availability found for the selected date and guest count.");
+        setApiError(appConfig?.lng?.legendUnavail || "No availability found for the selected date and guest count.");
       }
     } catch (error) {
       console.error("Error fetching availability:", error);
-      setApiError(error.message || "Failed to fetch availability. Please check your connection or try again.");
+      setApiError(error.message || (appConfig?.lng?.eventPax || "Failed to fetch availability. Please check your connection or try again."));
       setAvailabilityData(null);
     } finally {
       setIsLoading(false);
     }
-  }, [est]);
+  }, [est, appConfig]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedFetchAvailability = useCallback(debounce(fetchAvailability, 800), [fetchAvailability]);
@@ -119,24 +178,66 @@ export default function ReservationForm() {
     };
   }, [selectedDate, guests, debouncedFetchAvailability]);
 
+  if (isConfigLoading) {
+    return (
+      <div className="p-6 max-w-xl mx-auto bg-white shadow-xl rounded-lg space-y-6 text-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mx-auto"></div>
+        <p className="text-xl text-blue-600 mt-4">
+          {appConfig?.lng?.loading || 'Loading configuration...'}
+        </p>
+      </div>
+    );
+  }
 
+  if (configError) {
+    return (
+      <div className="p-6 max-w-xl mx-auto bg-red-100 shadow-xl rounded-lg space-y-4 text-center border border-red-400">
+        <h2 className="text-2xl font-bold text-red-700">
+          {appConfig?.lng?.errorB || 'Configuration Error'}
+        </h2>
+        <p className="text-red-600">{configError}</p>
+        <p className="text-sm text-gray-600">
+          {appConfig?.lng?.invPhone || 'Please ensure the \'est\' parameter in the URL is correct or try again later.'}
+        </p>
+      </div>
+    );
+  }
+
+  // Render form only if config is loaded and no errors
   return (
     <div className="p-6 max-w-xl mx-auto bg-white shadow-xl rounded-lg space-y-6">
-      <h1 className="text-3xl font-bold text-center text-gray-800">Book Your Table</h1>
+      <h1 className="text-3xl font-bold text-center text-gray-800">
+        {/* Simplified: If we reach here, appConfig and appConfig.estFull must exist due to checks above */}
+        {`Make a Booking at ${appConfig.estFull}`}
+      </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <CalendarPicker date={selectedDate} onChange={handleDateChange} />
-        <GuestSelector value={guests} onChange={handleGuestsChange} />
+        <CalendarPicker
+          date={selectedDate}
+          onChange={handleDateChange}
+          dateFormat={appConfig?.dateFormat} // Pass dateFormat from config
+          disablePast={appConfig?.disablePast === 'true' || appConfig?.disablePast === true} // Pass disablePast from config
+        />
+        <GuestSelector
+          value={guests}
+          onChange={handleGuestsChange}
+          minGuests={appConfig?.partyMin || 1}
+          maxGuests={appConfig?.partyMax || 10}
+          guestLabel={appConfig?.lng?.guest}
+          guestsLabel={appConfig?.lng?.guests || appConfig?.lng?.partySize}
+        />
       </div>
 
-      {isLoading && (
+      {isLoading && ( // This is for availability loading
         <div className="flex justify-center items-center py-6">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          <p className="ml-3 text-blue-500">Loading availability...</p>
+          <p className="ml-3 text-blue-500">
+            {appConfig?.lng?.loading || 'Loading availability...'}
+          </p>
         </div>
       )}
 
-      {apiError && !isLoading && (
+      {apiError && !isLoading && ( // This is for availability API error
         <div className="my-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-md shadow-sm" role="alert">
           <strong className="font-bold">Oops! </strong>
           <span>{apiError}</span>
@@ -147,7 +248,8 @@ export default function ReservationForm() {
         <div className="mt-6 space-y-5">
           <div className="p-4 bg-gray-50 rounded-lg shadow">
             <h3 className="text-2xl font-semibold text-gray-700 mb-2">
-              {availabilityData.estFull || availabilityData.est}
+              {/* Prefer estFull from appConfig if available, then from availabilityData, then fallback */}
+              {appConfig?.estFull || availabilityData.estFull || availabilityData.est}
             </h3>
             {availabilityData.message && (
               <p className="text-sm p-3 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded-md">
@@ -165,7 +267,7 @@ export default function ReservationForm() {
                     <span className="text-sm font-normal text-gray-500 ml-2">({shift.type})</span>
                   </h5>
                   <p className="text-sm text-gray-600 my-1">
-                    <span className="font-medium">Duration:</span> {formatDecimalTime(shift.start)} - {formatDecimalTime(shift.end)}
+                    <span className="font-medium">{appConfig?.lng?.time || 'Time'}:</span> {formatDecimalTime(shift.start, appConfig?.timeFormat)} - {formatDecimalTime(shift.end, appConfig?.timeFormat)}
                   </p>
                   {shift.description && (
                     <div
@@ -187,20 +289,24 @@ export default function ReservationForm() {
                             key={timeIndex}
                             className="px-3 py-1.5 bg-green-500 text-white text-sm font-medium rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors"
                           >
-                            {formatDecimalTime(time)}
+                            {formatDecimalTime(time, appConfig?.timeFormat)}
                           </button>
                         ))}
                       </div>
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500 mt-2 italic">No specific online booking times listed for this shift. Please contact us for details.</p>
+                    <p className="text-sm text-gray-500 mt-2 italic">
+                      {appConfig?.lng?.legendUnavail || 'No specific online booking times listed for this shift. Please contact us for details.'}
+                    </p>
                   )}
                 </div>
               ))}
             </div>
           ) : (
-             (!availabilityData.message && !apiError) && // Show only if no general message or API error already covers this
-            <p className="text-center text-gray-600 py-4 text-lg">No shifts currently available for the selected criteria.</p>
+             (!availabilityData.message && !apiError) &&
+            <p className="text-center text-gray-600 py-4 text-lg">
+              {appConfig?.lng?.legendClosed || 'No shifts currently available for the selected criteria.'}
+            </p>
           )}
         </div>
       )}
