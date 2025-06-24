@@ -217,8 +217,15 @@ export async function loadAppConfig(estId) {
 
     for (const varName of uniqueVariablesToExtract) {
       // 'lng' has special handling within extractVar, other complex objects rely on the general regex for now.
-      const value = extractVar(varName, configScriptContent);
+      let value = extractVar(varName, configScriptContent);
       if (value !== null) {
+        // Specifically decode currSym if it's a string
+        if (varName === 'currSym' && typeof value === 'string') {
+          value = value.replace(/&amp;#36;/g, '$').replace(/&#36;/g, '$');
+          // Add other common currency entities if needed, e.g., for Euro or Pound
+          value = value.replace(/&amp;euro;/g, '€').replace(/&euro;/g, '€');
+          value = value.replace(/&amp;pound;/g, '£').replace(/&pound;/g, '£');
+        }
         extractedConfigs[varName] = value;
       } else {
         console.warn(`Variable ${varName} could not be extracted.`);
