@@ -7,6 +7,7 @@ import { formatDecimalTime } from "../utils/time"; // Import the utility functio
 import { useDebounce } from "../hooks/useDebounce"; // Import the custom hook
 import AddonSelection from "./AddonSelection"; // Import the new component
 import SelectedAddonsSummary from "./SelectedAddonsSummary"; // Import the summary component
+import { formatSelectedAddonsForApi } from "../utils/apiFormatter"; // Import the formatter
 
 
 export default function ReservationForm() {
@@ -23,8 +24,6 @@ export default function ReservationForm() {
   const [availabilityData, setAvailabilityData] = useState(null);
   const [isLoading, setIsLoading] = useState(false); // For availability loading
   const [apiError, setApiError] = useState(null); // For availability API errors
-
-import { formatSelectedAddonsForApi } from "../utils/apiFormatter"; // Import the formatter
 
   // State for addon selection
   const [selectedShiftTime, setSelectedShiftTime] = useState(null);
