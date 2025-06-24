@@ -106,38 +106,44 @@ const SelectedAddonsSummary = ({ selectedAddons, currencySymbol, languageStrings
       // --- END TEMPORARY ---
 
       // For now, to make it runnable, we'll just list UIDs and quantities for options
-      // This will be improved when `currentShiftAddons` is available here or `selectedAddons.options` stores more detail.
-      // itemsDetails.push(`Option (UID: ${optionUid}) x${quantity}`);
-      // totalAddonCost += ... ; // Cannot calculate cost without price and 'per' info
-      // This means the total cost will only reflect menus until options details are properly accessed.
       const optionAddon = findAddonByUid(optionUid);
       if (optionAddon) {
-        const detail = getIndividualAddonPriceString(optionAddon, quantity); // Use quantity for cost calc
+        const detail = getIndividualAddonPriceString(optionAddon, quantity); // detail.cost is total for this option line
 
-        let displayText = optionAddon.name;
+        let nameStr = optionAddon.name;
         if (quantity > 1) {
-            displayText = `${optionAddon.name} x${quantity}`;
+          nameStr = `${optionAddon.name} x${quantity}`;
         }
 
-        let pricePortion = "";
-        if (optionAddon.price === 0) {
-            pricePortion = `(${languageStrings?.free || "Free"})`;
-        } else if (optionAddon.price > 0) {
-            const unitPriceString = `${displaySymbol}${(optionAddon.price / 100).toFixed(2)}`;
-            let perWhat = "";
-            if (optionAddon.per === 'Guest') { // Though options typically aren't per Guest in the same way as menus
-                perWhat = ` ${languageStrings?.perPerson || 'per Person'}`;
+        let priceStr = "";
+        if (optionAddon.price === 0 && !(optionAddon.per === "Guest")) { // Avoid "$0.00 per Person" for free non-guest items
+            priceStr = `(${languageStrings?.free || "Free"})`;
+        } else if (typeof optionAddon.price === 'number') {
+            const unitPrice = `${displaySymbol}${(optionAddon.price / 100).toFixed(2)}`;
+            let perText = "";
+            if (optionAddon.per === 'Guest') {
+                perText = ` ${languageStrings?.perPerson || 'per Person'}`;
             } else if (optionAddon.per) {
-                perWhat = ` ${languageStrings?.per || 'per'} ${optionAddon.per}`;
-            } else {
-                perWhat = ` ${languageStrings?.perItem || 'per Item'}`;
+                perText = ` ${languageStrings?.per || 'per'} ${optionAddon.per}`;
+            } else { // Default if addon.per is undefined or null
+                perText = ` ${languageStrings?.perItem || 'per Item'}`;
             }
-            pricePortion = `(${unitPriceString}${perWhat})`;
+            priceStr = `(${unitPrice}${perText})`;
         }
-        itemsDetails.push(`${displayText} ${pricePortion}`);
+
+        // Include description if available
+        let descStr = "";
+        if (optionAddon.desc) {
+            // Using a simple text separator for description in summary.
+            // For actual italics, would need to return JSX or handle HTML.
+            // For now, keeping it as a plain string.
+            descStr = ` - ${optionAddon.desc}`;
+        }
+
+        itemsDetails.push(`${nameStr} ${priceStr}${descStr}`);
         totalAddonCost += detail.cost;
       } else {
-        // Fallback if option details are somehow not found (should not happen ideally)
+        // Fallback if option details are somehow not found
         itemsDetails.push(`Option (UID: ${optionUid}) x${quantity} - Details Missing`);
       }
     }
