@@ -493,7 +493,9 @@ const AddonSelection = ({
             // Let's stick to: currentQuantity > 0, and the handler will ensure it doesn't go below optionMinQty.
             // The button should disable if currentQuantity IS optionMinQty (and optionMinQty > 0)
             // Or if currentQuantity is 0.
-            const minusButtonDisabled = currentQuantity === 0 || (optionMinQty > 0 && currentQuantity <= optionMinQty);
+            // const minusButtonDisabled = currentQuantity === 0 || (optionMinQty > 0 && currentQuantity <= optionMinQty);
+            // CORRECTED LOGIC: Minus button only disabled if quantity is already 0.
+            const minusButtonDisabled = currentQuantity === 0;
 
 
             return (
