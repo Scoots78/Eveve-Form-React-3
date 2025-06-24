@@ -133,12 +133,14 @@ const SelectedAddonsSummary = ({ selectedAddons, currencySymbol, languageStrings
 
         // Include description if available
         let descStr = "";
-        if (optionAddon.desc) {
+        if (optionAddon.desc && String(optionAddon.desc).trim() !== "") {
             // Using a simple text separator for description in summary.
             // For actual italics, would need to return JSX or handle HTML.
             // For now, keeping it as a plain string.
-            descStr = ` - ${optionAddon.desc}`;
+            descStr = ` - ${String(optionAddon.desc).trim()}`;
         }
+        // console.log('Summarizing Option:', optionAddon.uid, 'Name:', optionAddon.name, 'Desc:', optionAddon.desc);
+        // console.log('descStr for', optionAddon.uid, 'is:', descStr);
 
         itemsDetails.push(`${nameStr} ${priceStr}${descStr}`);
         totalAddonCost += detail.cost;
