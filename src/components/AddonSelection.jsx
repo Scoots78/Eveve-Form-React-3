@@ -295,6 +295,9 @@ const AddonSelection = ({
         break;
 
       case 2: // Quantity selectors for Menus
+        const currentTotalMenuUsage2Quantity = selectedAddons.menus.reduce((sum, menu) => sum + (menu.quantity || 0), 0);
+        const canIncrementAnyMenuUsage2 = numericGuestCount === 0 || currentTotalMenuUsage2Quantity < numericGuestCount;
+
         menuContent = (
           <div className="space-y-3">
             {finalMenuAddons.map(addon => {
@@ -302,6 +305,20 @@ const AddonSelection = ({
               const currentQuantity = selectedMenu ? selectedMenu.quantity : 0;
               // Note: Min/max for menu quantity not defined in new spec, assuming no hard limit other than reasonable UI.
               // The addon's own min/max are for guest count visibility.
+
+              // Disable + if total quantity would exceed guest count
+              const plusButtonDisabled = numericGuestCount > 0 && currentTotalMenuUsage2Quantity >= numericGuestCount && (!selectedMenu || currentQuantity === (selectedMenu?.quantity || 0) );
+              // A more precise check for disabling increment: if this item is already at max possible contribution or total is met
+              let effectivePlusDisabled = false;
+              if (numericGuestCount > 0) {
+                if (currentTotalMenuUsage2Quantity >= numericGuestCount) {
+                    // If the item is not selected (qty 0), it cannot be incremented if total is already full.
+                    // If it is selected, it also cannot be incremented further if total is full.
+                    effectivePlusDisabled = true;
+                }
+              }
+
+
               return (
                 <div key={addon.uid} className="addon-item usage2-item p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-gray-50 transition-colors">
                   <div className="addon-info mb-2 sm:mb-0 sm:mr-4 flex-grow">
@@ -327,8 +344,8 @@ const AddonSelection = ({
                     <button
                       type="button"
                       onClick={() => commonMenuChangeHandler(addon, currentQuantity + 1, 'quantity')}
-                      // No explicit upper limit mentioned for menu quantities in new spec for usage:2
-                      className="qty-btn plus-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+                      disabled={effectivePlusDisabled}
+                      className="qty-btn plus-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       +
                     </button>
@@ -336,12 +353,17 @@ const AddonSelection = ({
                 </div>
               );
             })}
+            {numericGuestCount > 0 && finalMenuAddons.length > 0 && (
+              <p className="text-xs text-gray-500 mt-1">
+                {languageStrings?.menuUsage2TotalQuantityNote || `Total quantity of all selected menus cannot exceed guest count (${numericGuestCount}).`} ({currentTotalMenuUsage2Quantity}/{numericGuestCount} total quantity selected)
+              </p>
+            )}
           </div>
         );
         break;
 
       case 3: // Checkboxes for Menus
-        const maxSelections = selectedShiftTime?.maxMenuTypes > 0 ? selectedShiftTime.maxMenuTypes : numericGuestCount > 0 ? numericGuestCount : (finalMenuAddons.length > 0 ? 1: 0) ;
+        const maxSelections = selectedShiftTime?.maxMenuTypes > 0 ? selectedShiftTime.maxMenuTypes : numericGuestCount > 0 ? numericGuestCount : (finalMenuAddons.length > 0 ? 1 : 0) ;
         const currentSelectionsCount = selectedAddons.menus.length;
         const canSelectMoreMenus = currentSelectionsCount < maxSelections;
 

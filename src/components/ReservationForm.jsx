@@ -209,12 +209,33 @@ export default function ReservationForm() {
             newSelected.menus = [];
           }
         } else if (menuUsagePolicy === 2) { // Quantity selectors for Menus
-          const quantity = parseInt(value, 10);
-          if (quantity > 0) {
+          const newProposedQuantity = parseInt(value, 10);
+          const oldQuantity = prev.menus[menuIndex]?.quantity || 0;
+
+          if (newProposedQuantity > oldQuantity) { // Incrementing
+            const numericGuests = parseInt(guests, 10) || 0;
+            if (numericGuests > 0) {
+              const currentTotalMenuUsage2Quantity = prev.menus.reduce((sum, menu) => {
+                // Exclude the item being changed if it's already in the list, its new quantity will be added
+                if (menu.uid === addonData.uid) return sum;
+                return sum + (menu.quantity || 0);
+              }, 0);
+
+              if (currentTotalMenuUsage2Quantity + newProposedQuantity > numericGuests) {
+                console.warn(`Usage 2 Menu: Cannot increment quantity for ${addonData.name}. Total quantity would exceed guest count.`);
+                return prev; // Revert to previous state, do not apply change
+              }
+            }
+          }
+
+          // Proceed with quantity update if not blocked by the sum constraint
+          if (newProposedQuantity > 0) {
             if (menuIndex > -1) {
-              newSelected.menus[menuIndex].quantity = quantity;
+              newSelected.menus[menuIndex].quantity = newProposedQuantity;
             } else {
-              newSelected.menus.push({ ...addonData, quantity });
+              // This case (adding a new menu item under usage:2) should also respect the total quantity check above for its first unit.
+              // The logic above handles it if numericGuests > 0.
+              newSelected.menus.push({ ...addonData, quantity: newProposedQuantity });
             }
           } else { // Quantity is 0 or less
             if (menuIndex > -1) {
