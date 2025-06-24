@@ -29,9 +29,9 @@ export default function ReservationForm() {
 
   // State for addon selection
   const [selectedShiftTime, setSelectedShiftTime] = useState(null);
-  const [selectedAddons, setSelectedAddons] = useState({ usage1: null, usage2: [], usage3: [] });
+  const [selectedAddons, setSelectedAddons] = useState({ menus: [], options: {} }); // Refactored state
   const [currentShiftAddons, setCurrentShiftAddons] = useState([]);
-  const [currentShiftUsagePolicy, setCurrentShiftUsagePolicy] = useState(null);
+  const [currentShiftUsagePolicy, setCurrentShiftUsagePolicy] = useState(null); // Applies to Menus
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -170,77 +170,100 @@ export default function ReservationForm() {
     // Extract addons and usage policy from the shift or specific time slot
     // The README suggests addons and usage are typically on the shift object.
     // If a time slot can override this, timeObject might contain its own addons/usage.
-    const addonsForShift = timeObject?.addons || shift?.addons || [];
+    let rawAddons = timeObject?.addons || shift?.addons || [];
     const usagePolicyForShift = timeObject?.usage !== undefined ? timeObject.usage : shift?.usage;
 
-    console.log("Addons for selected shift/time:", addonsForShift);
-    console.log("Usage policy for selected shift/time:", usagePolicyForShift);
+    // Augment Menu addons with originalIndex
+    let menuOriginalIndexCounter = 0;
+    const processedAddons = rawAddons.map(addon => {
+      if (addon.type === "Menu") {
+        return { ...addon, originalIndex: menuOriginalIndexCounter++ };
+      }
+      return addon;
+    });
 
-    setCurrentShiftAddons(addonsForShift);
+    console.log("Processed addons for selected shift/time (with originalIndex for Menus):", processedAddons);
+    console.log("Usage policy for selected shift/time (applies to Menus):", usagePolicyForShift);
+
+    setCurrentShiftAddons(processedAddons);
     setCurrentShiftUsagePolicy(usagePolicyForShift === undefined ? null : Number(usagePolicyForShift)); // Ensure it's a number or null
 
     // Reset any previously selected addons
-    setSelectedAddons({ usage1: null, usage2: [], usage3: [] });
+    setSelectedAddons({ menus: [], options: {} }); // Reset to new structure
 
     // Future: Scroll to addon section or make it prominent
   };
 
-  const handleAddonSelectionChange = (usagePolicyType, addonData, value) => {
-    setSelectedAddons(prevSelectedAddons => {
-      const newSelectedAddons = JSON.parse(JSON.stringify(prevSelectedAddons)); // Deep copy
+  const handleAddonSelectionChange = (addonType, addonData, value, eventType, menuUsagePolicy) => {
+    setSelectedAddons(prev => {
+      const newSelected = JSON.parse(JSON.stringify(prev)); // Deep copy
 
-      switch (usagePolicyType) {
-        case 'usage1':
-          if (value) { // value is true if checked/selected, false if unchecked (for single checkbox mode)
-            newSelectedAddons.usage1 = { ...addonData };
+      if (addonType === 'menu') {
+        const menuIndex = newSelected.menus.findIndex(m => m.uid === addonData.uid);
+
+        if (menuUsagePolicy === 1) { // Radio buttons for Menus
+          if (value) { // value is true if selected
+            newSelected.menus = [{ ...addonData }]; // Replace with the single selected menu
           } else {
-            // This case is mainly for when a single checkbox (not radio) is unchecked.
-            // For radio buttons, another radio being selected implicitly deselects others.
-            // If multiple addons are rendered as radios, selecting one will trigger this with value=true.
-            // If it's a single addon as a checkbox, unchecking it comes here.
-            newSelectedAddons.usage1 = null;
+            // Should not happen with radios if one is always selected, but as safeguard:
+            newSelected.menus = [];
           }
-          break;
-
-        case 'usage2':
-          const quantity = parseInt(value, 10); // value is the new quantity
-          const index = newSelectedAddons.usage2.findIndex(item => item.uid === addonData.uid);
-
+        } else if (menuUsagePolicy === 2) { // Quantity selectors for Menus
+          const quantity = parseInt(value, 10);
           if (quantity > 0) {
-            if (index > -1) {
-              newSelectedAddons.usage2[index].quantity = quantity;
+            if (menuIndex > -1) {
+              newSelected.menus[menuIndex].quantity = quantity;
             } else {
-              newSelectedAddons.usage2.push({ ...addonData, quantity });
+              newSelected.menus.push({ ...addonData, quantity });
             }
-          } else {
-            if (index > -1) {
-              newSelectedAddons.usage2.splice(index, 1);
+          } else { // Quantity is 0 or less
+            if (menuIndex > -1) {
+              newSelected.menus.splice(menuIndex, 1);
             }
           }
-          // Constraint: Total quantity of usage 2 addons should not exceed guest count.
-          // This constraint is partially handled by disabling buttons in AddonSelection.
-          // Here, we could add a final check if needed, though UI should prevent invalid states.
-          // For example, if guest count is suddenly reduced after selection, this logic might need to adjust.
-          // However, the current setup re-filters addons if guest count changes, which should reset selections or hide invalid ones.
-          break;
+        } else if (menuUsagePolicy === 3) { // Checkboxes for Menus
+          const numericGuests = parseInt(guests, 10) || 0;
+          const maxSelections = selectedShiftTime?.maxMenuTypes > 0
+                                ? selectedShiftTime.maxMenuTypes
+                                : numericGuests > 0 ? numericGuests : 1;
 
-        case 'usage3': // Also handles usage0/default
-          const existingIndex = newSelectedAddons.usage3.findIndex(item => item.uid === addonData.uid);
-          if (value) { // value is true if checked
-            if (existingIndex === -1) {
-              newSelectedAddons.usage3.push({ ...addonData });
+          if (value) { // Checkbox is checked
+            if (menuIndex === -1 && newSelected.menus.length < maxSelections) {
+              newSelected.menus.push({ ...addonData });
+            } else if (menuIndex === -1 && newSelected.menus.length >= maxSelections) {
+              // Attempted to select more than allowed, do nothing or alert user (UI should prevent this)
+              console.warn(`Cannot select more than ${maxSelections} menu(s).`);
+              return prev; // Revert to previous state
             }
-          } else { // value is false if unchecked
-            if (existingIndex > -1) {
-              newSelectedAddons.usage3.splice(existingIndex, 1);
+          } else { // Checkbox is unchecked
+            if (menuIndex > -1) {
+              newSelected.menus.splice(menuIndex, 1);
             }
           }
-          break;
-        default:
-          console.warn("Unknown usage policy type:", usagePolicyType);
+        }
+      } else if (addonType === 'option') {
+        const quantity = parseInt(value, 10);
+        const numericGuests = parseInt(guests, 10) || 0;
+
+        // Validate quantity against option's own min/max and guest count
+        const optionMinQty = (typeof addonData.min === 'number' && !isNaN(addonData.min)) ? addonData.min : 0;
+        const optionMaxQty = (typeof addonData.max === 'number' && !isNaN(addonData.max)) ? addonData.max : Infinity;
+        const maxAllowedByGuestCount = numericGuests > 0 ? numericGuests : Infinity;
+
+        const effectiveMaxQty = Math.min(optionMaxQty, maxAllowedByGuestCount);
+
+        if (quantity > 0 && quantity >= optionMinQty && quantity <= effectiveMaxQty) {
+          newSelected.options[addonData.uid] = quantity;
+        } else if (quantity <= 0 || quantity < optionMinQty) { // Also remove if below explicit min for option
+            delete newSelected.options[addonData.uid];
+        } else if (quantity > effectiveMaxQty) {
+            // Quantity exceeds max allowed, clamp it to max (UI should prevent this, but good safeguard)
+            newSelected.options[addonData.uid] = effectiveMaxQty;
+            console.warn(`Quantity for option ${addonData.name} clamped to ${effectiveMaxQty}.`);
+        }
       }
-      console.log("Updated selectedAddons:", newSelectedAddons);
-      return newSelectedAddons;
+      console.log("Updated selectedAddons:", newSelected);
+      return newSelected;
     });
   };
 
@@ -434,6 +457,7 @@ export default function ReservationForm() {
           guestCount={guests} // Pass guest count for filtering and usage policy 2 logic
           currencySymbol={EFFECTIVE_CURRENCY_SYMBOL} // Pass hardcoded currency symbol
           languageStrings={appConfig?.lng} // Pass language strings
+          selectedShiftTime={selectedShiftTime} // Pass full selectedShiftTime object for maxMenuTypes etc.
         />
       )}
 
@@ -443,6 +467,7 @@ export default function ReservationForm() {
           currencySymbol={EFFECTIVE_CURRENCY_SYMBOL} // Pass hardcoded currency symbol
           languageStrings={appConfig?.lng}
           guestCount={guests}
+          currentShiftAddons={currentShiftAddons} // Pass current shift addons for option details lookup
         />
       )}
 

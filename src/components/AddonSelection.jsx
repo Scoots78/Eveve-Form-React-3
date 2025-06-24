@@ -7,32 +7,45 @@ const AddonSelection = ({
   onAddonChange, // This will be implemented in ReservationForm.jsx later
   guestCount,
   currencySymbol,
-  languageStrings // For labels like "Quantity" or other addon related texts
+  languageStrings, // For labels like "Quantity" or other addon related texts
+  selectedShiftTime // Needed for shift.maxMenuTypes
 }) => {
 
-  if (!currentShiftAddons || currentShiftAddons.length === 0 || currentShiftUsagePolicy === null) {
-    return null; // Don't render anything if no addons or policy
-  }
-
-  // Filter addons based on guest count (min/max covers)
   const numericGuestCount = parseInt(guestCount, 10) || 0;
-  const filteredAddons = currentShiftAddons.filter(addon => {
-    const minCovers = (typeof addon.min === 'number' && !isNaN(addon.min)) ? addon.min : 1;
-    const maxCovers = (typeof addon.max === 'number' && !isNaN(addon.max)) ? addon.max : Infinity;
-    return numericGuestCount >= minCovers && numericGuestCount <= maxCovers;
-  });
 
-  if (filteredAddons.length === 0 && numericGuestCount > 0) { // numericGuestCount > 0 ensures we don't show this before guests are selected
-    return (
-      <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-md">
-        <p>{languageStrings?.noAddonsAvailableGuests || 'No addons currently available for the selected number of guests.'}</p>
-      </div>
-    );
+  // 1. Separate addons by type
+  const menuAddonsFromShift = currentShiftAddons.filter(addon => addon.type === "Menu");
+  const optionAddonsFromShift = currentShiftAddons.filter(addon => addon.type === "Option");
+
+  // 2. Apply global guest count filtering for visibility
+  const filterByGuestCount = (addon) => {
+    if (numericGuestCount === 0) return true; // Show all if guest count is 0, specific limits apply later
+    const minGuests = (typeof addon.min === 'number' && !isNaN(addon.min)) ? addon.min : 1;
+    const maxGuests = (typeof addon.max === 'number' && !isNaN(addon.max)) ? addon.max : Infinity;
+    return numericGuestCount >= minGuests && numericGuestCount <= maxGuests;
+  };
+
+  const finalMenuAddons = menuAddonsFromShift.filter(filterByGuestCount);
+  const finalOptionAddons = optionAddonsFromShift.filter(filterByGuestCount);
+
+  // Determine if there's anything to render for menus based on usage policy
+  const shouldRenderMenus = !(currentShiftUsagePolicy === 0 && finalMenuAddons.length > 0);
+
+
+  // Early exit if nothing to display
+  // Options visibility also depends on parent linking, which is handled during their rendering.
+  // So, we check if there are potential menus (unless usage is 0) or potential options.
+  if ((!shouldRenderMenus || finalMenuAddons.length === 0) && finalOptionAddons.length === 0) {
+    if (numericGuestCount > 0 && currentShiftAddons.length > 0) { // Only show this if addons existed before filtering
+       return (
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-md">
+          <p>{languageStrings?.noAddonsAvailableGuests || 'No addons currently available for the selected number of guests.'}</p>
+        </div>
+      );
+    }
+    return null; // Nothing to render at all
   }
 
-  if (filteredAddons.length === 0) { // General case if no addons passed filtering for other reasons
-      return null;
-  }
 
   const getAddonPriceString = (addon) => {
     if (typeof addon.price !== 'number' || addon.price < 0) return ''; // No price or invalid price
@@ -213,29 +226,279 @@ const AddonSelection = ({
     );
   };
 
-  let content;
-  switch (currentShiftUsagePolicy) {
-    case 1:
-      content = renderUsagePolicy1();
-      break;
-    case 2:
-      content = renderUsagePolicy2();
-      break;
-    case 3:
-      content = renderUsagePolicy3Or0();
-      break;
-    case 0: // Default/Generic
-    default:
-      content = renderUsagePolicy3Or0(); // Same as usage 3 according to README
-      break;
-  }
+  // --- Render Menu Addons ---
+  const renderMenuAddons = () => {
+    if (!shouldRenderMenus || finalMenuAddons.length === 0) {
+      if (currentShiftUsagePolicy !== 0 && numericGuestCount > 0 && menuAddonsFromShift.length > 0) {
+        // This case means menus would normally be shown, but none are available after guest filtering for this specific guest count
+        return (
+          <div className="mb-4">
+            <h5 className="text-md font-semibold text-gray-600 mb-1">
+              {languageStrings?.menusTitle || 'Menus'}
+            </h5>
+            <p className="text-sm text-gray-500 italic">
+              {languageStrings?.noMenusAvailableGuests || 'No menus available for the current guest count.'}
+            </p>
+          </div>
+        );
+      }
+      return null; // No menus to render or usage is 0
+    }
+
+    let menuContent;
+    const commonMenuChangeHandler = (addon, value, typeOverride = null) => {
+      // 'typeOverride' can be 'radio', 'checkbox', 'quantity' to guide handler
+      const eventType = typeOverride || (currentShiftUsagePolicy === 1 ? 'radio' : (currentShiftUsagePolicy === 3 ? 'checkbox' : 'quantity'));
+      onAddonChange('menu', addon, value, eventType, currentShiftUsagePolicy);
+    };
+
+
+    switch (currentShiftUsagePolicy) {
+      case 0: // No menu required - hide all Menu addons
+        return (
+            <div className="mb-4">
+                <h5 className="text-md font-semibold text-gray-600 mb-1">
+                    {languageStrings?.menusTitle || 'Menus'}
+                </h5>
+                <p className="text-sm text-gray-500 italic">{languageStrings?.noMenuRequired || 'No menu selection is required for this time.'}</p>
+            </div>
+        );
+
+      case 1: // Radio buttons for Menus
+        menuContent = (
+          <div className="addon-radio-group space-y-2">
+            {finalMenuAddons.map(addon => {
+              const isChecked = selectedAddons.menus.length > 0 && selectedAddons.menus[0].uid === addon.uid;
+              return (
+                <div key={addon.uid} className="addon-item usage1-radio p-2 border rounded-md hover:bg-gray-50 transition-colors">
+                  <label htmlFor={`menu-${addon.uid}`} className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      id={`menu-${addon.uid}`}
+                      name="menu_addons_usage1"
+                      value={addon.uid}
+                      checked={isChecked}
+                      onChange={(e) => commonMenuChangeHandler(addon, e.target.checked, 'radio')}
+                      className="form-radio h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    />
+                    <div className="flex-grow">
+                      <span className="addon-name font-medium text-gray-800">{addon.name}</span>
+                      {addon.price >= 0 && <span className="addon-price text-sm text-gray-600 ml-2">({getAddonPriceString(addon)})</span>}
+                      {addon.desc && <p className="text-xs text-gray-500 mt-1">{addon.desc}</p>}
+                    </div>
+                  </label>
+                </div>
+              );
+            })}
+          </div>
+        );
+        break;
+
+      case 2: // Quantity selectors for Menus
+        menuContent = (
+          <div className="space-y-3">
+            {finalMenuAddons.map(addon => {
+              const selectedMenu = selectedAddons.menus.find(m => m.uid === addon.uid);
+              const currentQuantity = selectedMenu ? selectedMenu.quantity : 0;
+              // Note: Min/max for menu quantity not defined in new spec, assuming no hard limit other than reasonable UI.
+              // The addon's own min/max are for guest count visibility.
+              return (
+                <div key={addon.uid} className="addon-item usage2-item p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-gray-50 transition-colors">
+                  <div className="addon-info mb-2 sm:mb-0 sm:mr-4 flex-grow">
+                    <span className="addon-name font-medium text-gray-800">{addon.name}</span>
+                    {addon.price >= 0 && <span className="addon-price text-sm text-gray-600 ml-2">({getAddonPriceString(addon)})</span>}
+                    {addon.desc && <p className="text-xs text-gray-500 mt-1">{addon.desc}</p>}
+                  </div>
+                  <div className="addon-quantity-selector flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => commonMenuChangeHandler(addon, currentQuantity - 1, 'quantity')}
+                      disabled={currentQuantity === 0}
+                      className="qty-btn minus-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="text"
+                      className="qty-input w-12 text-center border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      value={currentQuantity}
+                      readOnly
+                    />
+                    <button
+                      type="button"
+                      onClick={() => commonMenuChangeHandler(addon, currentQuantity + 1, 'quantity')}
+                      // No explicit upper limit mentioned for menu quantities in new spec for usage:2
+                      className="qty-btn plus-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+        break;
+
+      case 3: // Checkboxes for Menus
+        const maxSelections = selectedShiftTime?.maxMenuTypes > 0 ? selectedShiftTime.maxMenuTypes : numericGuestCount > 0 ? numericGuestCount : (finalMenuAddons.length > 0 ? 1: 0) ;
+        const currentSelectionsCount = selectedAddons.menus.length;
+        const canSelectMoreMenus = currentSelectionsCount < maxSelections;
+
+        menuContent = (
+          <div className="space-y-2">
+            {finalMenuAddons.map(addon => {
+              const isChecked = selectedAddons.menus.some(m => m.uid === addon.uid);
+              const isDisabled = !isChecked && !canSelectMoreMenus;
+              return (
+                <div key={addon.uid} className={`addon-item usage3-item p-2 border rounded-md hover:bg-gray-50 transition-colors ${isDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}>
+                  <label htmlFor={`menu-${addon.uid}`} className={`flex items-center space-x-3 ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
+                    <input
+                      type="checkbox"
+                      id={`menu-${addon.uid}`}
+                      value={addon.uid}
+                      checked={isChecked}
+                      disabled={isDisabled}
+                      onChange={(e) => commonMenuChangeHandler(addon, e.target.checked, 'checkbox')}
+                      className="form-checkbox h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                    />
+                     <div className="flex-grow">
+                      <span className="addon-name font-medium text-gray-800">{addon.name}</span>
+                      {addon.price >= 0 && <span className="addon-price text-sm text-gray-600 ml-2">({getAddonPriceString(addon)})</span>}
+                      {addon.desc && <p className="text-xs text-gray-500 mt-1">{addon.desc}</p>}
+                    </div>
+                  </label>
+                </div>
+              );
+            })}
+            {maxSelections > 0 && maxSelections < Infinity && (
+              <p className="text-xs text-gray-500 mt-1">
+                {languageStrings?.maxMenuSelectionNote || `Select up to ${maxSelections} menu(s).`} ({currentSelectionsCount}/{maxSelections} selected)
+              </p>
+            )}
+          </div>
+        );
+        break;
+      default: // Should ideally not happen if currentShiftUsagePolicy is validated upstream
+        menuContent = <p className="text-sm text-red-500">{languageStrings?.invalidMenuUsage || 'Invalid menu configuration.'}</p>;
+    }
+
+    return (
+      <div className="mb-6">
+        <h4 className="text-lg font-semibold text-gray-700 mb-3">
+          {languageStrings?.menusTitle || 'Menus'}
+        </h4>
+        {menuContent}
+      </div>
+    );
+  };
+
+
+  // --- Render Option Addons ---
+  const renderOptionAddons = () => {
+    const visibleOptions = finalOptionAddons.filter(option => {
+      if (option.parent === -1) {
+        return true; // Always valid if guest count is in range (already filtered by finalOptionAddons)
+      }
+      // Check if the parent menu (by originalIndex) is selected
+      return selectedAddons.menus.some(selectedMenu => selectedMenu.originalIndex === option.parent);
+    });
+
+    if (visibleOptions.length === 0) {
+      // Show message if options exist but none are visible due to parent linking or if all options were filtered by guest count initially
+      if (finalOptionAddons.length > 0 || (optionAddonsFromShift.length > 0 && numericGuestCount > 0)) {
+         return (
+            <div className="mt-4">
+                <h4 className="text-lg font-semibold text-gray-700 mb-3 border-t pt-4 mt-4">
+                    {languageStrings?.optionsTitle || 'Optional Add-ons'}
+                </h4>
+                <p className="text-sm text-gray-500 italic">
+                    {selectedAddons.menus.length === 0 && currentShiftUsagePolicy !==0 && finalMenuAddons.length > 0 && optionAddonsFromShift.some(o => o.parent !== -1) ?
+                     (languageStrings?.selectMenuForOptions || 'Please select a menu to see available options.') :
+                     (languageStrings?.noOptionsAvailable || 'No optional add-ons currently available.')}
+                </p>
+            </div>
+         );
+      }
+      return null; // No options to render at all
+    }
+
+    const commonOptionChangeHandler = (addon, newQuantity) => {
+      onAddonChange('option', addon, newQuantity);
+    };
+
+    return (
+      <div className="mt-4">
+        <h4 className="text-lg font-semibold text-gray-700 mb-3 border-t pt-4 mt-4">
+          {languageStrings?.optionsTitle || 'Optional Add-ons'}
+        </h4>
+        <div className="space-y-3">
+          {visibleOptions.map(addon => {
+            const currentQuantity = selectedAddons.options[addon.uid] || 0;
+
+            // Quantity constraints for options:
+            // 1. Between addon's own min & max (these are quantity bounds for options)
+            // 2. Not exceeding guestCount
+            const optionMinQty = (typeof addon.min === 'number' && !isNaN(addon.min)) ? addon.min : 0; // Default min quantity is 0 if not specified
+            const optionMaxQty = (typeof addon.max === 'number' && !isNaN(addon.max)) ? addon.max : Infinity; // Default max quantity is Infinity
+
+            const maxAllowedByGuestCount = numericGuestCount > 0 ? numericGuestCount : Infinity; // If no guests, no limit based on guests
+
+            const effectiveMaxQty = Math.min(optionMaxQty, maxAllowedByGuestCount);
+
+            const canIncrement = currentQuantity < effectiveMaxQty;
+            const canDecrement = currentQuantity > 0 && currentQuantity > optionMinQty; // Can only decrement if current > 0 and current > defined min for option
+
+            return (
+              <div key={addon.uid} className="addon-item option-item p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-gray-50 transition-colors">
+                <div className="addon-info mb-2 sm:mb-0 sm:mr-4 flex-grow">
+                  <span className="addon-name font-medium text-gray-800">{addon.name}</span>
+                  {addon.price >= 0 && <span className="addon-price text-sm text-gray-600 ml-2">({getAddonPriceString(addon)})</span>}
+                  {addon.desc && <p className="text-xs text-gray-500 mt-1">{addon.desc}</p>}
+                </div>
+                <div className="addon-quantity-selector flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => commonOptionChangeHandler(addon, currentQuantity - 1)}
+                    disabled={!canDecrement}
+                    className="qty-btn minus-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    -
+                  </button>
+                  <input
+                    type="text"
+                    className="qty-input w-12 text-center border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    value={currentQuantity}
+                    readOnly
+                  />
+                  <button
+                    type="button"
+                    onClick={() => commonOptionChangeHandler(addon, currentQuantity + 1)}
+                    disabled={!canIncrement}
+                    className="qty-btn plus-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+           {/* Helper text for option quantity rules if needed */}
+           {visibleOptions.length > 0 && (
+            <p className="text-xs text-gray-500 mt-1">
+              {languageStrings?.optionQuantityNote || `Quantities for options are per item and cannot exceed guest count. Each option may also have its own min/max quantity limits.`}
+            </p>
+           )}
+        </div>
+      </div>
+    );
+  };
+
 
   return (
     <div className="mt-6 p-4 border border-gray-200 rounded-lg shadow bg-white">
-      <h4 className="text-lg font-semibold text-gray-700 mb-3">
-        {languageStrings?.availableAddons || 'Available Addons'}
-      </h4>
-      {content}
+      {renderMenuAddons()}
+      {renderOptionAddons()}
     </div>
   );
 };

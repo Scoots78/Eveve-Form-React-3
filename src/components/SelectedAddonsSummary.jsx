@@ -1,8 +1,13 @@
 import React from 'react';
 
-const SelectedAddonsSummary = ({ selectedAddons, currencySymbol, languageStrings, guestCount }) => {
+const SelectedAddonsSummary = ({ selectedAddons, currencySymbol, languageStrings, guestCount, currentShiftAddons }) => {
   const numericGuestCount = parseInt(guestCount, 10) || 1; // Default to 1 if guestCount is not valid, for per-guest calculation
   const displaySymbol = currencySymbol || '$';
+
+  const findAddonByUid = (uid) => {
+    if (!currentShiftAddons) return null;
+    return currentShiftAddons.find(a => a.uid === uid);
+  };
 
   const getIndividualAddonPriceString = (addon, quantity = 1) => {
     if (typeof addon.price !== 'number') return { text: addon.name, cost: 0 };
@@ -44,55 +49,111 @@ const SelectedAddonsSummary = ({ selectedAddons, currencySymbol, languageStrings
   const itemsDetails = [];
   let totalAddonCost = 0;
 
-  // Usage 1
-  if (selectedAddons.usage1) {
-    const addon = selectedAddons.usage1;
-    const detail = getIndividualAddonPriceString(addon);
-    itemsDetails.push(detail.text);
-    totalAddonCost += detail.cost;
-  }
+  // Process Menus
+  selectedAddons.menus.forEach(menu => {
+    const quantity = menu.quantity || 1; // Default to 1 if no quantity (e.g., usage 1 or 3)
+    const detail = getIndividualAddonPriceString(menu, quantity); // Pass quantity for correct cost calculation if per Guest
 
-  // Usage 2
-  selectedAddons.usage2.forEach(addon => {
-    // For usage 2, the price is per item, and quantity is specified.
-    const itemUnitCost = addon.price;
-    const itemTotalCost = itemUnitCost * addon.quantity;
-    const displayItemUnitCost = `${displaySymbol}${(itemUnitCost / 100).toFixed(2)}`;
-    let perWhat = languageStrings?.perItem || 'per Item';
-      if (addon.per && addon.per !== 'Guest') {
-        perWhat = `${languageStrings?.per || 'per'} ${addon.per}`;
-      } else if (addon.per === 'Guest') {
-        // This is tricky for usage 2. If price is per item, but also per guest for that item.
-        // The current model in ADDONS_README implies usage 2 quantity is the primary driver.
-        // If a usage 2 item's base price itself is "per Guest", then itemUnitCost * guestCount * quantity.
-        // For now, assume usage 2 addon.price is fixed per unit of the addon.
-        perWhat = languageStrings?.perPerson || 'per Person'; // This would make it itemUnitCost * guestCount * quantity
-        // To avoid double counting or confusion, let's stick to the simpler model for Usage 2:
-        // price is per unit of the addon, quantity is selected.
-        // If a Usage 2 item IS per guest, it should be handled by its base price reflecting that, or be a Usage 1/3 type.
-        // Reverting to simpler perItem for usage 2 as 'per Guest' is complex here.
-         perWhat = languageStrings?.perItem || 'per Item';
-         if (addon.per && addon.per !== 'Guest') {
-            perWhat = `${languageStrings?.per || 'per'} ${addon.per}`;
-         }
-
+    let displayText = menu.name;
+    if (menu.quantity) { // Typically for usage:2 menus
+      displayText = `${menu.name} x${menu.quantity}`;
     }
 
+    let pricePortion = "";
+    if (menu.price === 0) {
+        pricePortion = `(${languageStrings?.free || "Free"})`
+    } else if (menu.price > 0) {
+        const unitPriceString = `${displaySymbol}${(menu.price / 100).toFixed(2)}`;
+        let perWhat = "";
+        if (menu.per === 'Guest') {
+            perWhat = ` ${languageStrings?.perPerson || 'per Person'}`;
+        } else if (menu.per) {
+            perWhat = ` ${languageStrings?.per || 'per'} ${menu.per}`;
+        } else {
+            perWhat = ` ${languageStrings?.perItem || 'per Item'}`;
+        }
+        pricePortion = `(${unitPriceString}${perWhat})`;
+    }
 
-    itemsDetails.push(`${addon.name} x${addon.quantity} (${displayItemUnitCost} ${perWhat}) - Total: ${displaySymbol}${(itemTotalCost / 100).toFixed(2)}`);
-    totalAddonCost += itemTotalCost;
+    itemsDetails.push(`${displayText} ${pricePortion}`);
+    totalAddonCost += detail.cost; // detail.cost already considers quantity for "per Guest" items
   });
 
-  // Usage 3 (and 0)
-  selectedAddons.usage3.forEach(addon => {
-    const detail = getIndividualAddonPriceString(addon);
-    itemsDetails.push(detail.text);
-    totalAddonCost += detail.cost;
-  });
+  // Process Options
+  for (const optionUid in selectedAddons.options) {
+    const quantity = selectedAddons.options[optionUid];
+    if (quantity > 0) {
+      // Find the full option addon object from currentShiftAddons (passed as prop, or need to get it)
+      // This part is tricky: SelectedAddonsSummary might not have access to the full addon objects easily.
+      // For now, let's assume we can retrieve it or that critical info (name, price, per) is stored with selection.
+      // The current `selectedAddons.options` only stores UID and quantity.
+      // This implies `getIndividualAddonPriceString` needs the full addon object.
+      // This will require a change in how options are stored or passed to summary.
+
+      // --- TEMPORARY: Assuming option details are somehow available ---
+      // This will need to be addressed by passing currentShiftAddons to SelectedAddonsSummary
+      // or by storing more option data in selectedAddons.options.
+      // For now, this part of the summary will be incomplete for options.
+      // Let's assume we have the option object:
+      // const optionAddon = findOptionByUid(optionUid); // Placeholder function
+      // if (optionAddon) {
+      //   const detail = getIndividualAddonPriceString(optionAddon, quantity);
+      //   itemsDetails.push(`${optionAddon.name} x${quantity} (${(detail.cost / quantity / 100).toFixed(2)} per...)`); // Simplified
+      //   totalAddonCost += detail.cost;
+      // } else {
+      //    itemsDetails.push(`Option UID: ${optionUid} x${quantity} (Details unavailable)`);
+      // }
+      // --- END TEMPORARY ---
+
+      // For now, to make it runnable, we'll just list UIDs and quantities for options
+      // This will be improved when `currentShiftAddons` is available here or `selectedAddons.options` stores more detail.
+      // itemsDetails.push(`Option (UID: ${optionUid}) x${quantity}`);
+      // totalAddonCost += ... ; // Cannot calculate cost without price and 'per' info
+      // This means the total cost will only reflect menus until options details are properly accessed.
+      const optionAddon = findAddonByUid(optionUid);
+      if (optionAddon) {
+        const detail = getIndividualAddonPriceString(optionAddon, quantity); // Use quantity for cost calc
+
+        let displayText = optionAddon.name;
+        if (quantity > 1) {
+            displayText = `${optionAddon.name} x${quantity}`;
+        }
+
+        let pricePortion = "";
+        if (optionAddon.price === 0) {
+            pricePortion = `(${languageStrings?.free || "Free"})`;
+        } else if (optionAddon.price > 0) {
+            const unitPriceString = `${displaySymbol}${(optionAddon.price / 100).toFixed(2)}`;
+            let perWhat = "";
+            if (optionAddon.per === 'Guest') { // Though options typically aren't per Guest in the same way as menus
+                perWhat = ` ${languageStrings?.perPerson || 'per Person'}`;
+            } else if (optionAddon.per) {
+                perWhat = ` ${languageStrings?.per || 'per'} ${optionAddon.per}`;
+            } else {
+                perWhat = ` ${languageStrings?.perItem || 'per Item'}`;
+            }
+            pricePortion = `(${unitPriceString}${perWhat})`;
+        }
+        itemsDetails.push(`${displayText} ${pricePortion}`);
+        totalAddonCost += detail.cost;
+      } else {
+        // Fallback if option details are somehow not found (should not happen ideally)
+        itemsDetails.push(`Option (UID: ${optionUid}) x${quantity} - Details Missing`);
+      }
+    }
+  }
+
 
   if (itemsDetails.length === 0) {
     return null; // Don't render if no addons are selected
   }
+
+  // Helper to find full addon object (needs currentShiftAddons to be passed to this component)
+  // const findAddonByUid = (uid, allAddons) => allAddons.find(a => a.uid === uid); // Moved to top
+
+  // Recalculate total cost more robustly if full addon objects are accessible
+  // For now, the totalAddonCost is primarily from menus.
+  // This section needs to be completed once option details are fully available in summary.
 
   return (
     <div className="mt-6 p-4 border border-blue-200 rounded-lg shadow bg-blue-50">

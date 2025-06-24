@@ -6,34 +6,38 @@
  *   Expected structure: { usage1: object|null, usage2: array, usage3: array }
  * @returns {string} A comma-separated string of selected addon UIDs and quantities.
  */
-export function formatSelectedAddonsForApi(addonsObject) {
-  if (!addonsObject) {
+export function formatSelectedAddonsForApi(selectedAddons) {
+  if (!selectedAddons || (!selectedAddons.menus?.length && !Object.keys(selectedAddons.options || {}).length)) {
     return "";
   }
 
   const apiParams = [];
 
-  // Usage Policy 1 (single selection: checkbox or radio)
-  if (addonsObject.usage1 && addonsObject.usage1.uid) {
-    apiParams.push(addonsObject.usage1.uid);
-  }
-
-  // Usage Policy 2 (incremental quantity)
-  if (addonsObject.usage2 && addonsObject.usage2.length > 0) {
-    addonsObject.usage2.forEach(addon => {
-      if (addon.uid && addon.quantity > 0) {
-        apiParams.push(`${addon.uid}:${addon.quantity}`);
+  // Process selected menus
+  if (selectedAddons.menus && selectedAddons.menus.length > 0) {
+    selectedAddons.menus.forEach(menu => {
+      if (menu.uid) {
+        if (typeof menu.quantity === 'number' && menu.quantity > 0) {
+          // This case is for menus selected under usage:2 (quantity selectors)
+          apiParams.push(`${menu.uid}:${menu.quantity}`);
+        } else {
+          // This case is for menus selected under usage:1 (radio) or usage:3 (checkbox)
+          // or usage:2 menus with quantity 0 that somehow didn't get removed (shouldn't happen with current logic)
+          // For simplicity, if quantity is not present or not > 0, just send UID.
+          apiParams.push(menu.uid);
+        }
       }
     });
   }
 
-  // Usage Policy 3 & Default/Generic (multiple checkboxes)
-  if (addonsObject.usage3 && addonsObject.usage3.length > 0) {
-    addonsObject.usage3.forEach(addon => {
-      if (addon.uid) {
-        apiParams.push(addon.uid);
+  // Process selected options
+  if (selectedAddons.options && Object.keys(selectedAddons.options).length > 0) {
+    for (const optionUid in selectedAddons.options) {
+      const quantity = selectedAddons.options[optionUid];
+      if (quantity > 0) { // Ensure only options with quantity > 0 are included
+        apiParams.push(`${optionUid}:${quantity}`);
       }
-    });
+    }
   }
 
   return apiParams.join(',');
