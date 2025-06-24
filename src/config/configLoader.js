@@ -219,19 +219,8 @@ export async function loadAppConfig(estId) {
       // 'lng' has special handling within extractVar, other complex objects rely on the general regex for now.
       let value = extractVar(varName, configScriptContent);
       if (value !== null) {
-        // Specifically decode currSym if it's a string
-        if (varName === 'currSym' && typeof value === 'string') {
-          // Handle potential double encoding first
-          value = value.replace(/&amp;#36;/g, '$');
-          // Handle single encoding
-          value = value.replace(/&#36;/g, '$');
-
-          // Add other common currency entities if needed, ensuring to handle double encoding first if applicable
-          value = value.replace(/&amp;euro;/g, '€').replace(/&euro;/g, '€');
-          value = value.replace(/&amp;pound;/g, '£').replace(/&pound;/g, '£');
-          // Add any other specific entities you might encounter
-          // value = value.replace(/&nbsp;/g, ' '); // Example for non-breaking space
-        }
+        // currSym will be extracted as is, without special decoding here.
+        // Other variables like 'lng' might have their own complex parsing if needed.
         extractedConfigs[varName] = value;
       } else {
         console.warn(`Variable ${varName} could not be extracted.`);

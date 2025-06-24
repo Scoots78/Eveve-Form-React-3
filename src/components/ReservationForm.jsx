@@ -11,6 +11,8 @@ import { formatSelectedAddonsForApi } from "../utils/apiFormatter"; // Import th
 
 
 export default function ReservationForm() {
+  const EFFECTIVE_CURRENCY_SYMBOL = '$'; // Hardcoded currency symbol
+
   const urlParams = new URLSearchParams(window.location.search);
   const est = urlParams.get("est"); // Removed fallback to "testnza"
 
@@ -430,7 +432,7 @@ export default function ReservationForm() {
           selectedAddons={selectedAddons}
           onAddonChange={handleAddonSelectionChange} // This function will be created in the next step
           guestCount={guests} // Pass guest count for filtering and usage policy 2 logic
-          currencySymbol={appConfig?.currSym || '$'} // Pass currency symbol
+          currencySymbol={EFFECTIVE_CURRENCY_SYMBOL} // Pass hardcoded currency symbol
           languageStrings={appConfig?.lng} // Pass language strings
         />
       )}
@@ -438,7 +440,7 @@ export default function ReservationForm() {
       {selectedShiftTime && (
         <SelectedAddonsSummary
           selectedAddons={selectedAddons}
-          currencySymbol={appConfig?.currSym || '$'}
+          currencySymbol={EFFECTIVE_CURRENCY_SYMBOL} // Pass hardcoded currency symbol
           languageStrings={appConfig?.lng}
           guestCount={guests}
         />
