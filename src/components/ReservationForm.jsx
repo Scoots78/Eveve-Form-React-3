@@ -5,6 +5,8 @@ import { format } from 'date-fns';
 import { loadAppConfig } from "../config/configLoader"; // Import the config loader
 import { formatDecimalTime } from "../utils/time"; // Import the utility function
 import { useDebounce } from "../hooks/useDebounce"; // Import the custom hook
+import AddonSelection from "./AddonSelection"; // Import the new component
+import SelectedAddonsSummary from "./SelectedAddonsSummary"; // Import the summary component
 
 
 export default function ReservationForm() {
@@ -21,6 +23,14 @@ export default function ReservationForm() {
   const [availabilityData, setAvailabilityData] = useState(null);
   const [isLoading, setIsLoading] = useState(false); // For availability loading
   const [apiError, setApiError] = useState(null); // For availability API errors
+
+import { formatSelectedAddonsForApi } from "../utils/apiFormatter"; // Import the formatter
+
+  // State for addon selection
+  const [selectedShiftTime, setSelectedShiftTime] = useState(null);
+  const [selectedAddons, setSelectedAddons] = useState({ usage1: null, usage2: [], usage3: [] });
+  const [currentShiftAddons, setCurrentShiftAddons] = useState([]);
+  const [currentShiftUsagePolicy, setCurrentShiftUsagePolicy] = useState(null);
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -142,6 +152,144 @@ export default function ReservationForm() {
     };
   }, [selectedDate, guests, debouncedFetchAvailability, clearDebouncedFetchAvailability]);
 
+  const handleTimeSelection = (shift, timeObject) => {
+    // Assuming timeObject could be just the decimal time, or an object containing the time
+    const actualTime = typeof timeObject === 'object' ? timeObject.time : timeObject;
+    console.log("Selected Shift:", shift);
+    console.log("Selected Time Object:", timeObject);
+
+    setSelectedShiftTime({
+      ...shift, // Spread shift properties
+      selectedTime: actualTime, // Add the specific time selected
+      // If timeObject has its own addons/usage, prioritize them, else use shift's
+      addons: timeObject?.addons || shift?.addons || [],
+      usage: timeObject?.usage !== undefined ? timeObject.usage : shift?.usage
+    });
+
+    // Extract addons and usage policy from the shift or specific time slot
+    // The README suggests addons and usage are typically on the shift object.
+    // If a time slot can override this, timeObject might contain its own addons/usage.
+    const addonsForShift = timeObject?.addons || shift?.addons || [];
+    const usagePolicyForShift = timeObject?.usage !== undefined ? timeObject.usage : shift?.usage;
+
+    console.log("Addons for selected shift/time:", addonsForShift);
+    console.log("Usage policy for selected shift/time:", usagePolicyForShift);
+
+    setCurrentShiftAddons(addonsForShift);
+    setCurrentShiftUsagePolicy(usagePolicyForShift === undefined ? null : Number(usagePolicyForShift)); // Ensure it's a number or null
+
+    // Reset any previously selected addons
+    setSelectedAddons({ usage1: null, usage2: [], usage3: [] });
+
+    // Future: Scroll to addon section or make it prominent
+  };
+
+  const handleAddonSelectionChange = (usagePolicyType, addonData, value) => {
+    setSelectedAddons(prevSelectedAddons => {
+      const newSelectedAddons = JSON.parse(JSON.stringify(prevSelectedAddons)); // Deep copy
+
+      switch (usagePolicyType) {
+        case 'usage1':
+          if (value) { // value is true if checked/selected, false if unchecked (for single checkbox mode)
+            newSelectedAddons.usage1 = { ...addonData };
+          } else {
+            // This case is mainly for when a single checkbox (not radio) is unchecked.
+            // For radio buttons, another radio being selected implicitly deselects others.
+            // If multiple addons are rendered as radios, selecting one will trigger this with value=true.
+            // If it's a single addon as a checkbox, unchecking it comes here.
+            newSelectedAddons.usage1 = null;
+          }
+          break;
+
+        case 'usage2':
+          const quantity = parseInt(value, 10); // value is the new quantity
+          const index = newSelectedAddons.usage2.findIndex(item => item.uid === addonData.uid);
+
+          if (quantity > 0) {
+            if (index > -1) {
+              newSelectedAddons.usage2[index].quantity = quantity;
+            } else {
+              newSelectedAddons.usage2.push({ ...addonData, quantity });
+            }
+          } else {
+            if (index > -1) {
+              newSelectedAddons.usage2.splice(index, 1);
+            }
+          }
+          // Constraint: Total quantity of usage 2 addons should not exceed guest count.
+          // This constraint is partially handled by disabling buttons in AddonSelection.
+          // Here, we could add a final check if needed, though UI should prevent invalid states.
+          // For example, if guest count is suddenly reduced after selection, this logic might need to adjust.
+          // However, the current setup re-filters addons if guest count changes, which should reset selections or hide invalid ones.
+          break;
+
+        case 'usage3': // Also handles usage0/default
+          const existingIndex = newSelectedAddons.usage3.findIndex(item => item.uid === addonData.uid);
+          if (value) { // value is true if checked
+            if (existingIndex === -1) {
+              newSelectedAddons.usage3.push({ ...addonData });
+            }
+          } else { // value is false if unchecked
+            if (existingIndex > -1) {
+              newSelectedAddons.usage3.splice(existingIndex, 1);
+            }
+          }
+          break;
+        default:
+          console.warn("Unknown usage policy type:", usagePolicyType);
+      }
+      console.log("Updated selectedAddons:", newSelectedAddons);
+      return newSelectedAddons;
+    });
+  };
+
+  const handleProceedToBooking = () => {
+    if (!selectedDate || !guests || !selectedShiftTime || !selectedShiftTime.selectedTime) {
+      alert(appConfig?.lng?.fillAllFields || "Please select date, guests, and a time before proceeding.");
+      return;
+    }
+
+    const numericGuests = parseInt(guests, 10);
+    const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+    const formattedTime = selectedShiftTime.selectedTime; // This is already in decimal format like 12.25
+    const formattedAddons = formatSelectedAddonsForApi(selectedAddons);
+
+    const bookingDataForHold = {
+      est: est, // From URL params
+      lng: appConfig?.usrLang || 'en', // From appConfig
+      covers: numericGuests,
+      date: formattedDate,
+      time: formattedTime,
+      addons: formattedAddons, // May be an empty string if no addons selected
+      // Potentially other details from appConfig or selectedShiftTime if needed by hold API
+      // e.g., shiftUid: selectedShiftTime.uid,
+    };
+
+    console.log("Proceeding to Booking (Hold API Call Placeholder)");
+    console.log("Booking Data for Hold:", bookingDataForHold);
+    alert(`Hold Request Data (see console for details):\nDate: ${formattedDate}\nTime: ${formatDecimalTime(formattedTime, appConfig?.timeFormat)}\nGuests: ${numericGuests}\nAddons: ${formattedAddons || 'None'}`);
+
+    // In a real scenario, this would be an API call:
+    // try {
+    //   const response = await fetch(`https://nz6.eveve.com/web/hold`, {
+    //     method: 'POST', // Or GET, depending on API spec for hold with addons
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify(bookingDataForHold),
+    //   });
+    //   const result = await response.json();
+    //   if (result.ok) {
+    //     console.log("Hold successful:", result);
+    //     // Navigate to next step, e.g., customer details form, passing result.uid
+    //   } else {
+    //     console.error("Hold failed:", result);
+    //     setApiError(result.message || appConfig?.lng?.errorHold || "Failed to hold booking.");
+    //   }
+    // } catch (error) {
+    //   console.error("Error during hold booking:", error);
+    //   setApiError(appConfig?.lng?.errorServer || "Server error during hold booking.");
+    // }
+  };
+
   if (isConfigLoading) {
     return (
       <div className="p-6 max-w-xl mx-auto bg-white shadow-xl rounded-lg space-y-6 text-center">
@@ -248,12 +396,13 @@ export default function ReservationForm() {
                     <div className="mt-3">
                       <p className="text-sm font-semibold text-gray-800 mb-2">Available Booking Times:</p>
                       <div className="flex flex-wrap gap-2">
-                        {shift.times.map((time, timeIndex) => (
+                        {shift.times.map((timeObj, timeIndex) => ( // Assuming time is an object { time: decimal, ...any other props } or just decimal
                           <button
                             key={timeIndex}
+                            onClick={() => handleTimeSelection(shift, timeObj)} // timeObj might just be the decimal time
                             className="px-3 py-1.5 bg-green-500 text-white text-sm font-medium rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors"
                           >
-                            {formatDecimalTime(time, appConfig?.timeFormat)}
+                            {formatDecimalTime(typeof timeObj === 'object' ? timeObj.time : timeObj, appConfig?.timeFormat)}
                           </button>
                         ))}
                       </div>
@@ -272,6 +421,38 @@ export default function ReservationForm() {
               {appConfig?.lng?.legendClosed || 'No shifts currently available for the selected criteria.'}
             </p>
           )}
+        </div>
+      )}
+
+      {selectedShiftTime && currentShiftAddons && currentShiftAddons.length > 0 && !isLoading && !apiError && (
+        <AddonSelection
+          currentShiftAddons={currentShiftAddons}
+          currentShiftUsagePolicy={currentShiftUsagePolicy}
+          selectedAddons={selectedAddons}
+          onAddonChange={handleAddonSelectionChange} // This function will be created in the next step
+          guestCount={guests} // Pass guest count for filtering and usage policy 2 logic
+          currencySymbol={appConfig?.currSym || '$'} // Pass currency symbol
+          languageStrings={appConfig?.lng} // Pass language strings
+        />
+      )}
+
+      {selectedShiftTime && (
+        <SelectedAddonsSummary
+          selectedAddons={selectedAddons}
+          currencySymbol={appConfig?.currSym || '$'}
+          languageStrings={appConfig?.lng}
+          guestCount={guests}
+        />
+      )}
+
+      {selectedShiftTime && (
+        <div className="mt-8 text-center">
+          <button
+            onClick={handleProceedToBooking}
+            className="px-6 py-3 bg-purple-600 text-white text-lg font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-all duration-150 ease-in-out"
+          >
+            {appConfig?.lng?.proceedToBookingBtn || "Proceed to Booking (Placeholder)"}
+          </button>
         </div>
       )}
     </div>
