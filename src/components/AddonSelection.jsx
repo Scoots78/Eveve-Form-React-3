@@ -34,9 +34,25 @@ const AddonSelection = ({
       return null;
   }
 
-  const formatPrice = (price) => {
-    if (typeof price !== 'number') return '';
-    return `${currencySymbol}${(price / 100).toFixed(2)}`;
+  const getAddonPriceString = (addon) => {
+    if (typeof addon.price !== 'number' || addon.price < 0) return ''; // No price or invalid price
+
+    const displaySymbol = currencySymbol || '$';
+    const priceInDollars = (addon.price / 100).toFixed(2);
+    let priceString = `${displaySymbol}${priceInDollars}`;
+
+    if (addon.price === 0 && !(addon.per === "Guest")) { // For free items not per guest, just show free or no price string
+        return languageStrings?.free || "Free"; // Or return "" if you don't want to show "Free"
+    }
+
+    if (addon.per === 'Guest') {
+      priceString += ` ${languageStrings?.perPerson || 'per Person'}`;
+    } else if (addon.per) { // Could be "Item", "Party", etc.
+      priceString += ` ${languageStrings?.per || 'per'} ${addon.per}`;
+    } else { // Default if addon.per is undefined or null
+      priceString += ` ${languageStrings?.perItem || 'per Item'}`;
+    }
+    return priceString;
   };
 
   const renderUsagePolicy1 = () => {
@@ -63,7 +79,7 @@ const AddonSelection = ({
             />
             <div className="flex-grow">
               <span className="addon-name font-medium text-gray-800">{addon.name}</span>
-              {addon.price > 0 && <span className="addon-price text-sm text-gray-600 ml-2">({formatPrice(addon.price)})</span>}
+              {addon.price >= 0 && <span className="addon-price text-sm text-gray-600 ml-2">({getAddonPriceString(addon)})</span>}
               {addon.desc && <p className="text-xs text-gray-500 mt-1">{addon.desc}</p>}
             </div>
           </label>
@@ -95,7 +111,7 @@ const AddonSelection = ({
                   />
                   <div className="flex-grow">
                     <span className="addon-name font-medium text-gray-800">{addon.name}</span>
-                    {addon.price > 0 && <span className="addon-price text-sm text-gray-600 ml-2">({formatPrice(addon.price)})</span>}
+                    {addon.price >= 0 && <span className="addon-price text-sm text-gray-600 ml-2">({getAddonPriceString(addon)})</span>}
                     {addon.desc && <p className="text-xs text-gray-500 mt-1">{addon.desc}</p>}
                   </div>
                 </label>
@@ -122,7 +138,7 @@ const AddonSelection = ({
             <div key={addon.uid} className="addon-item usage2-item p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-gray-50 transition-colors">
               <div className="addon-info mb-2 sm:mb-0 sm:mr-4 flex-grow">
                 <span className="addon-name font-medium text-gray-800">{addon.name}</span>
-                {addon.price > 0 && <span className="addon-price text-sm text-gray-600 ml-2">({formatPrice(addon.price)})</span>}
+                {addon.price >= 0 && <span className="addon-price text-sm text-gray-600 ml-2">({getAddonPriceString(addon)})</span>}
                 {addon.desc && <p className="text-xs text-gray-500 mt-1">{addon.desc}</p>}
               </div>
               <div className="addon-quantity-selector flex items-center space-x-2">
@@ -186,7 +202,7 @@ const AddonSelection = ({
                 />
                 <div className="flex-grow">
                   <span className="addon-name font-medium text-gray-800">{addon.name}</span>
-                  {addon.price > 0 && <span className="addon-price text-sm text-gray-600 ml-2">({formatPrice(addon.price)})</span>}
+                  {addon.price >= 0 && <span className="addon-price text-sm text-gray-600 ml-2">({getAddonPriceString(addon)})</span>}
                   {addon.desc && <p className="text-xs text-gray-500 mt-1">{addon.desc}</p>}
                 </div>
               </label>
