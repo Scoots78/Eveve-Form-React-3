@@ -4,9 +4,9 @@ const SelectedAddonsSummary = ({ selectedAddons, currencySymbol, languageStrings
   const numericGuestCount = parseInt(guestCount, 10) || 1; // Default to 1 if guestCount is not valid, for per-guest calculation
   const displaySymbol = currencySymbol || '$';
 
-  const findAddonByUid = (uid) => {
+  const findAddonByUid = (uid) => { // uid here is optionUid from the loop, which is a string
     if (!currentShiftAddons) return null;
-    return currentShiftAddons.find(a => a.uid === uid);
+    return currentShiftAddons.find(a => String(a.uid) === uid); // Compare as strings
   };
 
   const getIndividualAddonPriceString = (addon, quantity = 1) => {
@@ -139,9 +139,6 @@ const SelectedAddonsSummary = ({ selectedAddons, currencySymbol, languageStrings
             // For now, keeping it as a plain string.
             descStr = ` - ${String(optionAddon.desc).trim()}`;
         }
-        // console.log('Summarizing Option:', optionAddon.uid, 'Name:', optionAddon.name, 'Desc:', optionAddon.desc);
-        // console.log('descStr for', optionAddon.uid, 'is:', descStr);
-
         itemsDetails.push(`${nameStr} ${priceStr}${descStr}`);
         totalAddonCost += detail.cost;
       } else {
