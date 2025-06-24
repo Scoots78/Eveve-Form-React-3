@@ -221,10 +221,16 @@ export async function loadAppConfig(estId) {
       if (value !== null) {
         // Specifically decode currSym if it's a string
         if (varName === 'currSym' && typeof value === 'string') {
-          value = value.replace(/&amp;#36;/g, '$').replace(/&#36;/g, '$');
-          // Add other common currency entities if needed, e.g., for Euro or Pound
+          // Handle potential double encoding first
+          value = value.replace(/&amp;#36;/g, '$');
+          // Handle single encoding
+          value = value.replace(/&#36;/g, '$');
+
+          // Add other common currency entities if needed, ensuring to handle double encoding first if applicable
           value = value.replace(/&amp;euro;/g, '€').replace(/&euro;/g, '€');
           value = value.replace(/&amp;pound;/g, '£').replace(/&pound;/g, '£');
+          // Add any other specific entities you might encounter
+          // value = value.replace(/&nbsp;/g, ' '); // Example for non-breaking space
         }
         extractedConfigs[varName] = value;
       } else {

@@ -46,7 +46,6 @@ export default function ReservationForm() {
         const config = await loadAppConfig(est);
         setAppConfig(config);
         console.log("App Config Loaded:", config); // For verification
-        console.log('Raw currSym from appConfig:', config?.currSym); // INSPECT currSym
 
         if (config && !config.estFull) {
           console.error("Essential configuration missing: estFull is not defined in the loaded config.", config);
