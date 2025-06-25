@@ -217,8 +217,10 @@ export async function loadAppConfig(estId) {
 
     for (const varName of uniqueVariablesToExtract) {
       // 'lng' has special handling within extractVar, other complex objects rely on the general regex for now.
-      const value = extractVar(varName, configScriptContent);
+      let value = extractVar(varName, configScriptContent);
       if (value !== null) {
+        // currSym will be extracted as is, without special decoding here.
+        // Other variables like 'lng' might have their own complex parsing if needed.
         extractedConfigs[varName] = value;
       } else {
         console.warn(`Variable ${varName} could not be extracted.`);

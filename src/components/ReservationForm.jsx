@@ -3,31 +3,16 @@ import GuestSelector from "./guestSelector";
 import CalendarPicker from "./CalendarPicker";
 import { format } from 'date-fns';
 import { loadAppConfig } from "../config/configLoader"; // Import the config loader
-
-// Updated Helper function to format decimal time
-const formatDecimalTime = (decimalTime, timeFormat = 12) => { // timeFormat defaults to 12hr
-  if (typeof decimalTime !== 'number') return '';
-  let hours = Math.floor(decimalTime);
-  const minutes = Math.round((decimalTime - hours) * 60);
-  const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
-
-  if (timeFormat === 24) {
-    const h = hours < 10 ? `0${hours}` : hours;
-    return `${h}:${formattedMinutes}`;
-  }
-
-  // Default to 12-hour format with AM/PM
-  const ampm = hours >= 12 && hours < 24 ? 'PM' : 'AM';
-  if (hours === 0) { // Midnight case
-    hours = 12;
-  } else if (hours > 12 && hours < 24) { // PM times
-    hours -= 12;
-  }
-  return `${hours}:${formattedMinutes} ${ampm}`;
-};
+import { formatDecimalTime } from "../utils/time"; // Import the utility function
+import { useDebounce } from "../hooks/useDebounce"; // Import the custom hook
+import AddonSelection from "./AddonSelection"; // Import the new component
+import SelectedAddonsSummary from "./SelectedAddonsSummary"; // Import the summary component
+import { formatSelectedAddonsForApi } from "../utils/apiFormatter"; // Import the formatter
 
 
 export default function ReservationForm() {
+  const EFFECTIVE_CURRENCY_SYMBOL = '$'; // Hardcoded currency symbol
+
   const urlParams = new URLSearchParams(window.location.search);
   const est = urlParams.get("est"); // Removed fallback to "testnza"
 
@@ -41,6 +26,12 @@ export default function ReservationForm() {
   const [availabilityData, setAvailabilityData] = useState(null);
   const [isLoading, setIsLoading] = useState(false); // For availability loading
   const [apiError, setApiError] = useState(null); // For availability API errors
+
+  // State for addon selection
+  const [selectedShiftTime, setSelectedShiftTime] = useState(null);
+  const [selectedAddons, setSelectedAddons] = useState({ menus: [], options: {} }); // Refactored state
+  const [currentShiftAddons, setCurrentShiftAddons] = useState([]);
+  const [currentShiftUsagePolicy, setCurrentShiftUsagePolicy] = useState(null); // Applies to Menus
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -105,21 +96,6 @@ export default function ReservationForm() {
     setApiError(null);
   };
 
-  // Debounce utility
-  const debounce = (func, delay) => {
-    let timeoutId;
-    const debouncedFunc = (...args) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        func.apply(this, args);
-      }, delay);
-    };
-    debouncedFunc.clear = () => { // Add a method to clear the timeout
-      clearTimeout(timeoutId);
-    };
-    return debouncedFunc;
-  };
-
   const fetchAvailability = useCallback(async (date, numGuests) => {
     if (!date || typeof numGuests !== 'number' || numGuests < 1 || !appConfig) {
       setAvailabilityData(null);
@@ -158,8 +134,7 @@ export default function ReservationForm() {
     }
   }, [est, appConfig]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debouncedFetchAvailability = useCallback(debounce(fetchAvailability, 800), [fetchAvailability]);
+  const [debouncedFetchAvailability, clearDebouncedFetchAvailability] = useDebounce(fetchAvailability, 800);
 
   useEffect(() => {
     const numericGuests = parseInt(guests, 10);
@@ -167,16 +142,227 @@ export default function ReservationForm() {
       debouncedFetchAvailability(selectedDate, numericGuests);
     } else {
       // If inputs are invalid (e.g. guests cleared), clear data, errors, and pending calls.
-      debouncedFetchAvailability.clear();
+      clearDebouncedFetchAvailability();
       setAvailabilityData(null);
       setApiError(null);
       setIsLoading(false);
     }
     // Cleanup function to clear timeout if component unmounts or dependencies change
     return () => {
-      debouncedFetchAvailability.clear();
+      clearDebouncedFetchAvailability();
     };
-  }, [selectedDate, guests, debouncedFetchAvailability]);
+  }, [selectedDate, guests, debouncedFetchAvailability, clearDebouncedFetchAvailability]);
+
+  const handleTimeSelection = (shift, timeObject) => {
+    // Assuming timeObject could be just the decimal time, or an object containing the time
+    const actualTime = typeof timeObject === 'object' ? timeObject.time : timeObject;
+    console.log("Selected Shift:", shift);
+    console.log("Selected Time Object:", timeObject);
+
+    setSelectedShiftTime({
+      ...shift, // Spread shift properties
+      selectedTime: actualTime, // Add the specific time selected
+      // If timeObject has its own addons/usage, prioritize them, else use shift's
+      addons: timeObject?.addons || shift?.addons || [],
+      usage: timeObject?.usage !== undefined ? timeObject.usage : shift?.usage
+    });
+
+    // Extract addons and usage policy from the shift or specific time slot
+    // The README suggests addons and usage are typically on the shift object.
+    // If a time slot can override this, timeObject might contain its own addons/usage.
+    let rawAddons = timeObject?.addons || shift?.addons || [];
+    const usagePolicyForShift = timeObject?.usage !== undefined ? timeObject.usage : shift?.usage;
+
+    // Augment all addons with originalIndexInShift
+    const processedAddons = rawAddons.map((addon, index) => {
+      return { ...addon, originalIndexInShift: index };
+    });
+
+    console.log("Processed addons for selected shift/time (with originalIndexInShift):", processedAddons);
+    console.log("Usage policy for selected shift/time (applies to Menus):", usagePolicyForShift);
+
+    setCurrentShiftAddons(processedAddons);
+    setCurrentShiftUsagePolicy(usagePolicyForShift === undefined ? null : Number(usagePolicyForShift)); // Ensure it's a number or null
+
+    // Reset any previously selected addons
+    setSelectedAddons({ menus: [], options: {} }); // Reset to new structure
+
+    // Future: Scroll to addon section or make it prominent
+  };
+
+  const handleAddonSelectionChange = (addonType, addonData, value, eventType, menuUsagePolicy) => {
+    setSelectedAddons(prev => {
+      const newSelected = JSON.parse(JSON.stringify(prev)); // Deep copy
+
+      if (addonType === 'menu') {
+        const menuIndex = newSelected.menus.findIndex(m => m.uid === addonData.uid);
+
+        if (menuUsagePolicy === 1) { // Radio buttons for Menus
+          if (value) { // value is true if selected
+            newSelected.menus = [{ ...addonData }]; // Replace with the single selected menu
+          } else {
+            // Should not happen with radios if one is always selected, but as safeguard:
+            newSelected.menus = [];
+          }
+        } else if (menuUsagePolicy === 2) { // Quantity selectors for Menus
+          const newProposedQuantity = parseInt(value, 10);
+          const oldQuantity = prev.menus.find(m => m.uid === addonData.uid)?.quantity || 0; // Ensure we get old quantity correctly even if menuIndex is -1 for new item
+
+          if (newProposedQuantity > oldQuantity) { // Incrementing
+            const numericGuests = parseInt(guests, 10) || 0;
+
+            // Rule 1: Sum of quantities constraint (already implemented)
+            if (numericGuests > 0) {
+              const currentTotalMenuUsage2Quantity = prev.menus.reduce((sum, menu) => {
+                if (menu.uid === addonData.uid) return sum; // Exclude current item's old quantity
+                return sum + (menu.quantity || 0);
+              }, 0);
+              if (currentTotalMenuUsage2Quantity + newProposedQuantity > numericGuests) {
+                console.warn(`Usage 2 Menu (Sum Limit): Cannot increment ${addonData.name}. Total quantity ${currentTotalMenuUsage2Quantity + newProposedQuantity} would exceed guest count ${numericGuests}.`);
+                return prev;
+              }
+            }
+
+            // Rule 2: maxMenuTypes constraint (only if adding a new distinct menu type)
+            if (oldQuantity === 0 && newProposedQuantity > 0) { // This means we are selecting a new distinct menu type
+                const maxMenuTypesAllowed = selectedShiftTime?.maxMenuTypes;
+                if (maxMenuTypesAllowed > 0) {
+                    const distinctSelectedMenuTypesCount = new Set(prev.menus.filter(m => m.quantity > 0).map(m => m.uid)).size;
+                    if (distinctSelectedMenuTypesCount >= maxMenuTypesAllowed) {
+                        console.warn(`Usage 2 Menu (Max Types): Cannot select new menu type ${addonData.name}. Max ${maxMenuTypesAllowed} distinct menu types already selected.`);
+                        return prev;
+                    }
+                }
+            }
+          }
+
+          // Proceed with quantity update if not blocked by the constraints
+          if (newProposedQuantity > 0) {
+            if (menuIndex > -1) {
+              newSelected.menus[menuIndex].quantity = newProposedQuantity;
+            } else {
+              // This case (adding a new menu item under usage:2) should also respect the total quantity check above for its first unit.
+              // The logic above handles it if numericGuests > 0.
+              newSelected.menus.push({ ...addonData, quantity: newProposedQuantity });
+            }
+          } else { // Quantity is 0 or less
+            if (menuIndex > -1) {
+              newSelected.menus.splice(menuIndex, 1);
+            }
+          }
+        } else if (menuUsagePolicy === 3) { // Checkboxes for Menus
+          const numericGuests = parseInt(guests, 10) || 0;
+          const maxSelections = selectedShiftTime?.maxMenuTypes > 0
+                                ? selectedShiftTime.maxMenuTypes
+                                : numericGuests > 0 ? numericGuests : 1;
+
+          if (value) { // Checkbox is checked
+            if (menuIndex === -1 && newSelected.menus.length < maxSelections) {
+              newSelected.menus.push({ ...addonData });
+            } else if (menuIndex === -1 && newSelected.menus.length >= maxSelections) {
+              // Attempted to select more than allowed, do nothing or alert user (UI should prevent this)
+              console.warn(`Cannot select more than ${maxSelections} menu(s).`);
+              return prev; // Revert to previous state
+            }
+          } else { // Checkbox is unchecked
+            if (menuIndex > -1) {
+              newSelected.menus.splice(menuIndex, 1);
+            }
+          }
+        }
+      } else if (addonType === 'option') {
+        const quantity = parseInt(value, 10);
+        const numericGuests = parseInt(guests, 10) || 0;
+
+        // Validate quantity against option's own min/max and guest count
+        const optionMinQty = (typeof addonData.min === 'number' && !isNaN(addonData.min)) ? addonData.min : 0;
+        const optionMaxQty = (typeof addonData.max === 'number' && !isNaN(addonData.max)) ? addonData.max : Infinity;
+        const maxAllowedByGuestCount = numericGuests > 0 ? numericGuests : Infinity;
+
+        let maxByParentQty = Infinity;
+        if (addonData.parent !== -1) {
+            const parentMenu = prev.menus.find(m => m.originalIndexInShift === addonData.parent);
+            if (parentMenu) {
+                // Determine parent menu's "effective" selected quantity for capping the option
+                // If parentMenu is usage:2, its quantity is parentMenu.quantity
+                // If parentMenu is usage:1 or usage:3, it's selected (effectively quantity 1 for this rule)
+                maxByParentQty = (parentMenu.quantity !== undefined) ? parentMenu.quantity : 1;
+            } else {
+                maxByParentQty = 0; // Parent not selected, option quantity effectively capped at 0 by parent
+            }
+        }
+
+        const effectiveMaxQty = Math.min(optionMaxQty, maxAllowedByGuestCount, maxByParentQty);
+
+        if (quantity > 0 && quantity >= optionMinQty && quantity <= effectiveMaxQty) {
+          newSelected.options[addonData.uid] = quantity;
+        } else if (quantity <= 0 || quantity < optionMinQty) { // Also remove if below explicit min for option (or if parent made it 0)
+             // If quantity becomes 0 due to parent cap (maxByParentQty=0), it should be deleted
+            delete newSelected.options[addonData.uid];
+        } else if (quantity > effectiveMaxQty) {
+            // Quantity exceeds max allowed (could be due to option's own max, guest count, or parent quantity)
+            // Clamp it to the calculated effectiveMaxQty.
+            // If effectiveMaxQty is 0 (e.g. parent not selected), this means it will be deleted in the next condition.
+            if (effectiveMaxQty > 0 && effectiveMaxQty >= optionMinQty) {
+                 newSelected.options[addonData.uid] = effectiveMaxQty;
+                 console.warn(`Quantity for option ${addonData.name} clamped to ${effectiveMaxQty}.`);
+            } else { // effectiveMaxQty is less than optionMinQty (or 0), so delete
+                 delete newSelected.options[addonData.uid];
+                 console.warn(`Option ${addonData.name} removed as its quantity constraints could not be met (max: ${effectiveMaxQty}, min: ${optionMinQty}).`);
+            }
+        }
+      }
+      console.log("Updated selectedAddons:", newSelected);
+      return newSelected;
+    });
+  };
+
+  const handleProceedToBooking = () => {
+    if (!selectedDate || !guests || !selectedShiftTime || !selectedShiftTime.selectedTime) {
+      alert(appConfig?.lng?.fillAllFields || "Please select date, guests, and a time before proceeding.");
+      return;
+    }
+
+    const numericGuests = parseInt(guests, 10);
+    const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+    const formattedTime = selectedShiftTime.selectedTime; // This is already in decimal format like 12.25
+    const formattedAddons = formatSelectedAddonsForApi(selectedAddons);
+
+    const bookingDataForHold = {
+      est: est, // From URL params
+      lng: appConfig?.usrLang || 'en', // From appConfig
+      covers: numericGuests,
+      date: formattedDate,
+      time: formattedTime,
+      addons: formattedAddons, // May be an empty string if no addons selected
+      // Potentially other details from appConfig or selectedShiftTime if needed by hold API
+      // e.g., shiftUid: selectedShiftTime.uid,
+    };
+
+    console.log("Proceeding to Booking (Hold API Call Placeholder)");
+    console.log("Booking Data for Hold:", bookingDataForHold);
+    alert(`Hold Request Data (see console for details):\nDate: ${formattedDate}\nTime: ${formatDecimalTime(formattedTime, appConfig?.timeFormat)}\nGuests: ${numericGuests}\nAddons: ${formattedAddons || 'None'}`);
+
+    // In a real scenario, this would be an API call:
+    // try {
+    //   const response = await fetch(`https://nz6.eveve.com/web/hold`, {
+    //     method: 'POST', // Or GET, depending on API spec for hold with addons
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify(bookingDataForHold),
+    //   });
+    //   const result = await response.json();
+    //   if (result.ok) {
+    //     console.log("Hold successful:", result);
+    //     // Navigate to next step, e.g., customer details form, passing result.uid
+    //   } else {
+    //     console.error("Hold failed:", result);
+    //     setApiError(result.message || appConfig?.lng?.errorHold || "Failed to hold booking.");
+    //   }
+    // } catch (error) {
+    //   console.error("Error during hold booking:", error);
+    //   setApiError(appConfig?.lng?.errorServer || "Server error during hold booking.");
+    // }
+  };
 
   if (isConfigLoading) {
     return (
@@ -284,12 +470,13 @@ export default function ReservationForm() {
                     <div className="mt-3">
                       <p className="text-sm font-semibold text-gray-800 mb-2">Available Booking Times:</p>
                       <div className="flex flex-wrap gap-2">
-                        {shift.times.map((time, timeIndex) => (
+                        {shift.times.map((timeObj, timeIndex) => ( // Assuming time is an object { time: decimal, ...any other props } or just decimal
                           <button
                             key={timeIndex}
+                            onClick={() => handleTimeSelection(shift, timeObj)} // timeObj might just be the decimal time
                             className="px-3 py-1.5 bg-green-500 text-white text-sm font-medium rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors"
                           >
-                            {formatDecimalTime(time, appConfig?.timeFormat)}
+                            {formatDecimalTime(typeof timeObj === 'object' ? timeObj.time : timeObj, appConfig?.timeFormat)}
                           </button>
                         ))}
                       </div>
@@ -308,6 +495,40 @@ export default function ReservationForm() {
               {appConfig?.lng?.legendClosed || 'No shifts currently available for the selected criteria.'}
             </p>
           )}
+        </div>
+      )}
+
+      {selectedShiftTime && currentShiftAddons && currentShiftAddons.length > 0 && !isLoading && !apiError && (
+        <AddonSelection
+          currentShiftAddons={currentShiftAddons}
+          currentShiftUsagePolicy={currentShiftUsagePolicy}
+          selectedAddons={selectedAddons}
+          onAddonChange={handleAddonSelectionChange} // This function will be created in the next step
+          guestCount={guests} // Pass guest count for filtering and usage policy 2 logic
+          currencySymbol={EFFECTIVE_CURRENCY_SYMBOL} // Pass hardcoded currency symbol
+          languageStrings={appConfig?.lng} // Pass language strings
+          selectedShiftTime={selectedShiftTime} // Pass full selectedShiftTime object for maxMenuTypes etc.
+        />
+      )}
+
+      {selectedShiftTime && (
+        <SelectedAddonsSummary
+          selectedAddons={selectedAddons}
+          currencySymbol={EFFECTIVE_CURRENCY_SYMBOL} // Pass hardcoded currency symbol
+          languageStrings={appConfig?.lng}
+          guestCount={guests}
+          currentShiftAddons={currentShiftAddons} // Pass current shift addons for option details lookup
+        />
+      )}
+
+      {selectedShiftTime && (
+        <div className="mt-8 text-center">
+          <button
+            onClick={handleProceedToBooking}
+            className="px-6 py-3 bg-purple-600 text-white text-lg font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-all duration-150 ease-in-out"
+          >
+            {appConfig?.lng?.proceedToBookingBtn || "Proceed to Booking (Placeholder)"}
+          </button>
         </div>
       )}
     </div>
