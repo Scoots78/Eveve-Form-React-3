@@ -27,8 +27,8 @@ export default function ReservationForm() {
   const [isLoading, setIsLoading] = useState(false); // For availability loading
   const [apiError, setApiError] = useState(null); // For availability API errors
 
-  // State for accordion
-  const [expandedShiftUid, setExpandedShiftUid] = useState(null);
+  // State for accordion: stores UID or index of the expanded shift
+  const [expandedShiftIdentifier, setExpandedShiftIdentifier] = useState(null);
 
   // State for addon selection
   const [selectedShiftTime, setSelectedShiftTime] = useState(null);
@@ -126,24 +126,30 @@ export default function ReservationForm() {
       const data = await response.json();
       setAvailabilityData(data);
 
-      // Accordion logic: set default expanded shift
+      // Accordion logic: set default expanded shift identifier (UID or index)
       if (data && data.shifts && data.shifts.length > 0) {
-        const dinnerShift = data.shifts.find(shift => shift.type === "Dinner" && shift.uid); // Ensure UID exists
-        if (dinnerShift) {
-          setExpandedShiftUid(dinnerShift.uid);
+        let defaultIdentifier = null;
+        const dinnerShiftIndex = data.shifts.findIndex(shift => shift.type === "Dinner");
+
+        if (dinnerShiftIndex !== -1) {
+          const dinnerShift = data.shifts[dinnerShiftIndex];
+          defaultIdentifier = dinnerShift.uid || dinnerShiftIndex;
         } else {
-          // Try to find the first shift that has a UID
-          const firstValidShift = data.shifts.find(s => s.uid);
-          if (firstValidShift) {
-            setExpandedShiftUid(firstValidShift.uid);
-          } else {
-            // Fallback if no shifts have UIDs. All will be closed.
-            setExpandedShiftUid(null);
-            console.warn("No shifts with valid UIDs found to set a default expanded shift. All shifts will be collapsed.");
-          }
+          // If no "Dinner" shift, expand the first shift (index 0)
+          // Prefer its UID if available, otherwise use its index (0)
+          const firstShift = data.shifts[0];
+          defaultIdentifier = firstShift.uid || 0;
         }
+        setExpandedShiftIdentifier(defaultIdentifier);
+        if (defaultIdentifier === null && data.shifts.length > 0) {
+            // This case should ideally not be reached if there are shifts,
+            // as index 0 would be used. Added for robustness.
+            console.warn("Could not determine a default shift to expand, using index 0 if available or null.");
+            setExpandedShiftIdentifier(data.shifts[0].uid || 0);
+        }
+
       } else {
-        setExpandedShiftUid(null); // No shifts, so nothing to expand
+        setExpandedShiftIdentifier(null); // No shifts, so nothing to expand
       }
 
       if ((!data.shifts || data.shifts.length === 0) && !data.message) {
@@ -170,7 +176,7 @@ export default function ReservationForm() {
       setAvailabilityData(null);
       setApiError(null);
       setIsLoading(false);
-      setExpandedShiftUid(null); // Also clear expanded shift
+-      setExpandedShiftIdentifier(null); // Also clear expanded shift
     }
     // Cleanup function to clear timeout if component unmounts or dependencies change
     return () => {
@@ -473,13 +479,14 @@ export default function ReservationForm() {
             <div className="space-y-4">
               <h4 className="text-xl font-semibold text-gray-700">Available Shifts:</h4>
               {availabilityData.shifts.map((shift, index) => {
-                const isExpanded = expandedShiftUid === shift.uid;
+                const currentShiftIdentifier = shift.uid || index;
+                const isExpanded = expandedShiftIdentifier === currentShiftIdentifier;
                 return (
-                  <div key={shift.uid || index} className="border border-gray-200 rounded-lg shadow-sm bg-white overflow-hidden">
+                  <div key={currentShiftIdentifier} className="border border-gray-200 rounded-lg shadow-sm bg-white overflow-hidden">
                     <button
                       type="button"
                       className="w-full p-4 text-left bg-gray-50 hover:bg-gray-100 focus:outline-none"
-                      onClick={() => setExpandedShiftUid(isExpanded ? null : shift.uid)}
+                      onClick={() => setExpandedShiftIdentifier(isExpanded ? null : currentShiftIdentifier)}
                     >
                       <div className="flex justify-between items-center">
                         <h5 className="text-lg font-bold text-blue-600">{shift.name}
