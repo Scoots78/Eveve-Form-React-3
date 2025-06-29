@@ -398,6 +398,117 @@ export default function ReservationForm() {
     // }
   };
 
+  const areAddonsValidForProceeding = () => {
+    if (!selectedShiftTime || !currentShiftAddons) {
+      // If no shift/time is selected, or no addons defined for it, then addon validation isn't strictly failing,
+      // but the button should be disabled due to lack of selected time anyway.
+      // For the purpose of this function, if there's nothing to validate, consider it "valid" from addon perspective.
+      // The overall button disable logic (!selectedShiftTime?.selectedTime || !areAddonsValidForProceeding()) will handle it.
+      return true;
+    }
+
+    const numericGuestCount = parseInt(guests, 10) || 0;
+
+    // Filter currentShiftAddons by guest count to get addons actually available to the user
+    const filterByGuestCount = (addon) => {
+      if (numericGuestCount === 0 && addon.type === "Menu" && currentShiftUsagePolicy === 2) return true; // Allow quantity selection for menus if guest count is 0
+      if (numericGuestCount === 0 && addon.type === "Option") return true; // Allow quantity selection for options if guest count is 0
+
+      // For menus under policy 2, if guest count is 0, min/max on addon are for visibility if item itself is fixed, not per guest.
+      // Let's assume for other cases, if guest count is 0, addons are generally not applicable unless explicitly stated.
+      // However, the original AddonSelection shows all if guest count is 0. Let's refine.
+      if (numericGuestCount === 0) return true; // Consistent with AddonSelection's initial filtering
+
+      const minGuests = (typeof addon.min === 'number' && !isNaN(addon.min)) ? addon.min : 1;
+      const maxGuests = (typeof addon.max === 'number' && !isNaN(addon.max)) ? addon.max : Infinity;
+      return numericGuestCount >= minGuests && numericGuestCount <= maxGuests;
+    };
+
+    const effectiveMenuAddons = currentShiftAddons.filter(addon => addon.type === "Menu" && filterByGuestCount(addon));
+    // Options are more complex due to parent linking, but their own min/max for quantity is checked later.
+    // Parent linking check: ensure selected options have their parent menu selected.
+    for (const optionUid in selectedAddons.options) {
+        if (selectedAddons.options[optionUid] > 0) {
+            const optionDetails = currentShiftAddons.find(a => String(a.uid) === optionUid);
+            if (optionDetails && optionDetails.parent !== -1) {
+                const parentMenuSelected = selectedAddons.menus.some(menu => menu.originalIndexInShift === optionDetails.parent);
+                if (!parentMenuSelected) {
+                    console.log(`Validation Fail: Option ${optionDetails.name} selected but parent menu is not.`);
+                    return false; // Parent menu for selected option is not selected
+                }
+            }
+        }
+    }
+
+
+    // Menu Validation
+    if (currentShiftUsagePolicy === 1) { // Radio Menu
+      if (effectiveMenuAddons.length > 0 && selectedAddons.menus.length !== 1) {
+        console.log("Validation Fail: Policy 1 - A menu must be selected.");
+        return false;
+      }
+    } else if (currentShiftUsagePolicy === 2) { // Quantity Menu
+      if (effectiveMenuAddons.length > 0 && numericGuestCount > 0) {
+        const totalMenuQuantity = selectedAddons.menus.reduce((sum, menu) => sum + (menu.quantity || 0), 0);
+        if (totalMenuQuantity !== numericGuestCount) {
+          console.log(`Validation Fail: Policy 2 - Total menu quantity (${totalMenuQuantity}) must equal guest count (${numericGuestCount}).`);
+          return false;
+        }
+        if (selectedShiftTime?.maxMenuTypes > 0) {
+          const distinctSelectedMenuTypes = new Set(selectedAddons.menus.filter(m => m.quantity > 0).map(m => m.uid)).size;
+          if (distinctSelectedMenuTypes > selectedShiftTime.maxMenuTypes) {
+            console.log(`Validation Fail: Policy 2 - Exceeded max menu types (${selectedShiftTime.maxMenuTypes}).`);
+            return false;
+          }
+        }
+      } else if (effectiveMenuAddons.length > 0 && numericGuestCount === 0) {
+        // If guest count is 0, policy 2 implies items are selected by quantity not tied to guests.
+        // We need to ensure at least one menu is selected if menus are available, as "0 guests" doesn't mean "0 menus selected".
+        // This might need specific business rule: e.g. must select at least one menu item if policy is 2 and guests are 0.
+        // For now, let's assume if menus are available, at least one must have quantity > 0.
+        const totalMenuQuantity = selectedAddons.menus.reduce((sum, menu) => sum + (menu.quantity || 0), 0);
+        if (totalMenuQuantity === 0) {
+            console.log("Validation Fail: Policy 2 (0 guests) - At least one menu item must be selected if available.");
+            return false;
+        }
+      }
+    } else if (currentShiftUsagePolicy === 3) { // Checkbox Menu
+      if (effectiveMenuAddons.length > 0) {
+        const selectedMenuCount = selectedAddons.menus.length;
+        // Common interpretation: if policy 3 and menus are available, at least one must be selected.
+        if (selectedMenuCount === 0) {
+          console.log("Validation Fail: Policy 3 - At least one menu selection is required if menus are available.");
+          return false;
+        }
+        const maxSelections = selectedShiftTime?.maxMenuTypes > 0 ? selectedShiftTime.maxMenuTypes : (numericGuestCount > 0 ? numericGuestCount : (effectiveMenuAddons.length > 0 ? 1: 0));
+         if (maxSelections > 0 && selectedMenuCount > maxSelections) { // maxSelections can be Infinity if not specified
+            console.log(`Validation Fail: Policy 3 - Selected menu count (${selectedMenuCount}) exceeds maximum allowed (${maxSelections}).`);
+            return false;
+        }
+      }
+    }
+    // Usage Policy 0 needs no specific menu validation here for proceeding.
+
+    // Option Validation (primarily for min quantity, as max and parent linking are handled by onAddonChange or above)
+    for (const optionUid in selectedAddons.options) {
+      const quantity = selectedAddons.options[optionUid];
+      if (quantity > 0) {
+        const optionDetails = currentShiftAddons.find(a => String(a.uid) === optionUid);
+        if (optionDetails) {
+          const optionMinQty = (typeof optionDetails.min === 'number' && !isNaN(optionDetails.min)) ? optionDetails.min : 0;
+          if (quantity < optionMinQty) {
+            console.log(`Validation Fail: Option ${optionDetails.name} quantity (${quantity}) is less than min required (${optionMinQty}).`);
+            return false;
+          }
+          // Max quantity check is mostly handled by onAddonChange, but double check against effectiveMaxQty if necessary.
+          // For now, min check is the primary concern for "proceed" validation not already handled during selection.
+        }
+      }
+    }
+    console.log("Addon validation passed.");
+    return true;
+  };
+
   if (isConfigLoading) {
     return (
       <div className="p-6 max-w-xl mx-auto bg-white shadow-xl rounded-lg space-y-6 text-center">
@@ -590,8 +701,7 @@ export default function ReservationForm() {
                           <div className="mt-6 text-center"> {/* Adjusted margin-top */}
                             <button
                               onClick={handleProceedToBooking}
-                              // Basic validation: enabled if a time is selected. Addon validation can be added here.
-                              disabled={!selectedShiftTime?.selectedTime}
+                              disabled={!selectedShiftTime?.selectedTime || !areAddonsValidForProceeding()}
                               className="px-6 py-3 bg-purple-600 text-white text-lg font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {appConfig?.lng?.proceedToBookingBtn || "Proceed to Booking"}
