@@ -128,11 +128,19 @@ export default function ReservationForm() {
 
       // Accordion logic: set default expanded shift
       if (data && data.shifts && data.shifts.length > 0) {
-        const dinnerShift = data.shifts.find(shift => shift.type === "Dinner");
+        const dinnerShift = data.shifts.find(shift => shift.type === "Dinner" && shift.uid); // Ensure UID exists
         if (dinnerShift) {
           setExpandedShiftUid(dinnerShift.uid);
         } else {
-          setExpandedShiftUid(data.shifts[0].uid); // Expand the first shift if no "Dinner" shift
+          // Try to find the first shift that has a UID
+          const firstValidShift = data.shifts.find(s => s.uid);
+          if (firstValidShift) {
+            setExpandedShiftUid(firstValidShift.uid);
+          } else {
+            // Fallback if no shifts have UIDs. All will be closed.
+            setExpandedShiftUid(null);
+            console.warn("No shifts with valid UIDs found to set a default expanded shift. All shifts will be collapsed.");
+          }
         }
       } else {
         setExpandedShiftUid(null); // No shifts, so nothing to expand
@@ -162,6 +170,7 @@ export default function ReservationForm() {
       setAvailabilityData(null);
       setApiError(null);
       setIsLoading(false);
+      setExpandedShiftUid(null); // Also clear expanded shift
     }
     // Cleanup function to clear timeout if component unmounts or dependencies change
     return () => {
