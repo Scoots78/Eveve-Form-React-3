@@ -31,6 +31,7 @@ export default function ReservationForm() {
   const [expandedShiftIdentifier, setExpandedShiftIdentifier] = useState(null);
 
   // State for addon selection
+  // selectedShiftTime will now also store originalIndexInAvailabilityData to help identify the shift context
   const [selectedShiftTime, setSelectedShiftTime] = useState(null);
   const [selectedAddons, setSelectedAddons] = useState({ menus: [], options: {} }); // Refactored state
   const [currentShiftAddons, setCurrentShiftAddons] = useState([]);
@@ -184,18 +185,20 @@ export default function ReservationForm() {
     };
   }, [selectedDate, guests, debouncedFetchAvailability, clearDebouncedFetchAvailability]);
 
-  const handleTimeSelection = (shift, timeObject) => {
+  const handleTimeSelection = (shift, timeObject, shiftIndexInAvailabilityData) => {
     // Assuming timeObject could be just the decimal time, or an object containing the time
     const actualTime = typeof timeObject === 'object' ? timeObject.time : timeObject;
-    console.log("Selected Shift:", shift);
+    console.log("Selected Shift (from availability data):", shift);
     console.log("Selected Time Object:", timeObject);
+    console.log("Original index of shift in availability data:", shiftIndexInAvailabilityData);
 
     setSelectedShiftTime({
-      ...shift, // Spread shift properties
+      ...shift, // Spread shift properties (like name, type, uid if present)
       selectedTime: actualTime, // Add the specific time selected
       // If timeObject has its own addons/usage, prioritize them, else use shift's
-      addons: timeObject?.addons || shift?.addons || [],
-      usage: timeObject?.usage !== undefined ? timeObject.usage : shift?.usage
+      addons: timeObject?.addons || shift?.addons || [], // These are the raw addons for this time/shift
+      usage: timeObject?.usage !== undefined ? timeObject.usage : shift?.usage, // Usage policy for menus
+      originalIndexInAvailabilityData: shiftIndexInAvailabilityData // Store original index
     });
 
     // Extract addons and usage policy from the shift or specific time slot
@@ -550,39 +553,161 @@ export default function ReservationForm() {
         </div>
       )}
 
-      {selectedShiftTime && currentShiftAddons && currentShiftAddons.length > 0 && !isLoading && !apiError && (
-        <AddonSelection
-          currentShiftAddons={currentShiftAddons}
-          currentShiftUsagePolicy={currentShiftUsagePolicy}
-          selectedAddons={selectedAddons}
-          onAddonChange={handleAddonSelectionChange} // This function will be created in the next step
-          guestCount={guests} // Pass guest count for filtering and usage policy 2 logic
-          currencySymbol={EFFECTIVE_CURRENCY_SYMBOL} // Pass hardcoded currency symbol
-          languageStrings={appConfig?.lng} // Pass language strings
-          selectedShiftTime={selectedShiftTime} // Pass full selectedShiftTime object for maxMenuTypes etc.
-        />
-      )}
+      {availabilityData && !isLoading && !apiError && (
+        <div className="mt-6 space-y-5">
+          {/* This div wrapping estFull and message is kept outside shifts mapping as it's general availability info */}
+          <div className="p-4 bg-gray-50 rounded-lg shadow">
+            <h3 className="text-2xl font-semibold text-gray-700 mb-2">
+              {appConfig?.estFull || availabilityData.estFull || availabilityData.est}
+            </h3>
+            {availabilityData.message && (
+              <p className="text-sm p-3 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded-md">
+                {availabilityData.message}
+              </p>
+            )}
+          </div>
 
-      {selectedShiftTime && (
-        <SelectedAddonsSummary
-          selectedAddons={selectedAddons}
-          currencySymbol={EFFECTIVE_CURRENCY_SYMBOL} // Pass hardcoded currency symbol
-          languageStrings={appConfig?.lng}
-          guestCount={guests}
-          currentShiftAddons={currentShiftAddons} // Pass current shift addons for option details lookup
-        />
-      )}
+          {availabilityData.shifts && availabilityData.shifts.length > 0 ? (
+            <div className="space-y-4">
+              <h4 className="text-xl font-semibold text-gray-700">Available Shifts:</h4>
+              {availabilityData.shifts.map((shift, index) => {
+                const currentShiftIdentifier = shift.uid || index;
+                const isExpanded = expandedShiftIdentifier === currentShiftIdentifier;
+                // Determine if the currently selected time belongs to this shift
+                const isSelectedShift = selectedShiftTime && (selectedShiftTime.uid ? selectedShiftTime.uid === shift.uid : selectedShiftTime.originalIndexInAvailabilityData === index);
 
-      {selectedShiftTime && (
-        <div className="mt-8 text-center">
-          <button
-            onClick={handleProceedToBooking}
-            className="px-6 py-3 bg-purple-600 text-white text-lg font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-all duration-150 ease-in-out"
-          >
-            {appConfig?.lng?.proceedToBookingBtn || "Proceed to Booking (Placeholder)"}
-          </button>
+
+                return (
+                  <div key={currentShiftIdentifier} className="border border-gray-200 rounded-lg shadow-sm bg-white overflow-hidden">
+                    <button
+                      type="button"
+                      className="w-full p-4 text-left bg-gray-50 hover:bg-gray-100 focus:outline-none"
+                      onClick={() => {
+                        const newIdentifier = isExpanded ? null : currentShiftIdentifier;
+                        setExpandedShiftIdentifier(newIdentifier);
+                        // If collapsing a shift that had a time selected, clear selectedShiftTime and addons
+                        if (isExpanded && isSelectedShift) {
+                          setSelectedShiftTime(null);
+                          setSelectedAddons({ menus: [], options: {} });
+                          setCurrentShiftAddons([]);
+                          setCurrentShiftUsagePolicy(null);
+                        }
+                      }}
+                    >
+                      <div className="flex justify-between items-center">
+                        <h5 className="text-lg font-bold text-blue-600">{shift.name}
+                          <span className="text-sm font-normal text-gray-500 ml-2">({shift.type})</span>
+                        </h5>
+                        <span className={`transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : 'rotate-0'}`}>
+                          <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </span>
+                      </div>
+                    </button>
+
+                    {isExpanded && (
+                      <div className="p-4 border-t border-gray-200">
+                        <p className="text-sm text-gray-600 my-1">
+                          <span className="font-medium">{appConfig?.lng?.time || 'Time'}:</span> {formatDecimalTime(shift.start, appConfig?.timeFormat)} - {formatDecimalTime(shift.end, appConfig?.timeFormat)}
+                        </p>
+                        {shift.description && (
+                          <div
+                            className="mt-2 text-sm text-gray-700 prose prose-sm max-w-none bg-gray-50 p-2 rounded"
+                            dangerouslySetInnerHTML={{ __html: shift.description }}
+                          />
+                        )}
+                        {shift.message && (
+                          <p className="text-xs mt-2 p-2 bg-blue-50 border border-blue-200 text-blue-700 rounded">
+                            {shift.message}
+                          </p>
+                        )}
+                        {shift.times && shift.times.length > 0 ? (
+                          <div className="mt-3">
+                            <p className="text-sm font-semibold text-gray-800 mb-2">Available Booking Times:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {shift.times.map((timeObj, timeIndex) => (
+                                <button
+                                  key={timeIndex}
+                                  onClick={() => handleTimeSelection(shift, timeObj, index)} // Pass originalIndexInAvailabilityData
+                                  className={`px-3 py-1.5 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-colors
+                                    ${isSelectedShift && selectedShiftTime.selectedTime === (typeof timeObj === 'object' ? timeObj.time : timeObj)
+                                      ? 'bg-green-600 text-white ring-green-600' // Active selected time
+                                      : 'bg-green-500 text-white hover:bg-green-600 focus:ring-green-500' // Default
+                                    }`}
+                                >
+                                  {formatDecimalTime(typeof timeObj === 'object' ? timeObj.time : timeObj, appConfig?.timeFormat)}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-500 mt-2 italic">
+                            {appConfig?.lng?.legendUnavail || 'No specific online booking times listed for this shift. Please contact us for details.'}
+                          </p>
+                        )}
+
+                        {/* AddonSelection moved here, shown only if this shift is selected and has addons */}
+                        {isSelectedShift && currentShiftAddons && currentShiftAddons.length > 0 && (
+                          <div className="mt-4"> {/* Added margin-top for spacing */}
+                            <AddonSelection
+                              currentShiftAddons={currentShiftAddons}
+                              currentShiftUsagePolicy={currentShiftUsagePolicy}
+                              selectedAddons={selectedAddons}
+                              onAddonChange={handleAddonSelectionChange}
+                              guestCount={guests}
+                              currencySymbol={EFFECTIVE_CURRENCY_SYMBOL}
+                              languageStrings={appConfig?.lng}
+                              selectedShiftTime={selectedShiftTime}
+                            />
+                          </div>
+                        )}
+
+                        {/* SelectedAddonsSummary moved here, shown if this shift is selected */}
+                        {isSelectedShift && (Object.keys(selectedAddons.options).length > 0 || selectedAddons.menus.length > 0) && (
+                           <div className="mt-4"> {/* Added margin-top for spacing */}
+                            <SelectedAddonsSummary
+                              selectedAddons={selectedAddons}
+                              currencySymbol={EFFECTIVE_CURRENCY_SYMBOL}
+                              languageStrings={appConfig?.lng}
+                              guestCount={guests}
+                              currentShiftAddons={currentShiftAddons}
+                            />
+                          </div>
+                        )}
+
+                        {/* "Proceed to Booking" button moved here, shown if this shift is selected */}
+                        {isSelectedShift && selectedShiftTime?.selectedTime && (
+                          <div className="mt-6 text-center"> {/* Adjusted margin-top */}
+                            <button
+                              onClick={handleProceedToBooking}
+                              // Basic validation: enabled if a time is selected. Addon validation can be added here.
+                              disabled={!selectedShiftTime?.selectedTime}
+                              className="px-6 py-3 bg-purple-600 text-white text-lg font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {appConfig?.lng?.proceedToBookingBtn || "Proceed to Booking"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+             (!availabilityData.message && !apiError) &&
+            <p className="text-center text-gray-600 py-4 text-lg">
+              {appConfig?.lng?.legendClosed || 'No shifts currently available for the selected criteria.'}
+            </p>
+          )}
         </div>
       )}
+      {/* Fallback for when availabilityData itself is null but not loading and no error, or other states */}
+      { !availabilityData && !isLoading && !apiError && guests && selectedDate && (
+        <div className="text-center text-gray-500 py-4">
+             {appConfig?.lng?.noAvailDate || "No availability information for the selected date/guests. Please try different criteria."}
+        </div>
+      )}
+
     </div>
   );
 }
