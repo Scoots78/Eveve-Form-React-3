@@ -27,6 +27,9 @@ export default function ReservationForm() {
   const [isLoading, setIsLoading] = useState(false); // For availability loading
   const [apiError, setApiError] = useState(null); // For availability API errors
 
+  // State for accordion
+  const [expandedShiftUid, setExpandedShiftUid] = useState(null);
+
   // State for addon selection
   const [selectedShiftTime, setSelectedShiftTime] = useState(null);
   const [selectedAddons, setSelectedAddons] = useState({ menus: [], options: {} }); // Refactored state
@@ -122,6 +125,19 @@ export default function ReservationForm() {
       }
       const data = await response.json();
       setAvailabilityData(data);
+
+      // Accordion logic: set default expanded shift
+      if (data && data.shifts && data.shifts.length > 0) {
+        const dinnerShift = data.shifts.find(shift => shift.type === "Dinner");
+        if (dinnerShift) {
+          setExpandedShiftUid(dinnerShift.uid);
+        } else {
+          setExpandedShiftUid(data.shifts[0].uid); // Expand the first shift if no "Dinner" shift
+        }
+      } else {
+        setExpandedShiftUid(null); // No shifts, so nothing to expand
+      }
+
       if ((!data.shifts || data.shifts.length === 0) && !data.message) {
         setApiError(appConfig?.lng?.legendUnavail || "No availability found for the selected date and guest count.");
       }
@@ -447,47 +463,67 @@ export default function ReservationForm() {
           {availabilityData.shifts && availabilityData.shifts.length > 0 ? (
             <div className="space-y-4">
               <h4 className="text-xl font-semibold text-gray-700">Available Shifts:</h4>
-              {availabilityData.shifts.map((shift, index) => (
-                <div key={shift.uid || index} className="p-4 border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow bg-white">
-                  <h5 className="text-lg font-bold text-blue-600">{shift.name}
-                    <span className="text-sm font-normal text-gray-500 ml-2">({shift.type})</span>
-                  </h5>
-                  <p className="text-sm text-gray-600 my-1">
-                    <span className="font-medium">{appConfig?.lng?.time || 'Time'}:</span> {formatDecimalTime(shift.start, appConfig?.timeFormat)} - {formatDecimalTime(shift.end, appConfig?.timeFormat)}
-                  </p>
-                  {shift.description && (
-                    <div
-                      className="mt-2 text-sm text-gray-700 prose prose-sm max-w-none bg-gray-50 p-2 rounded"
-                      dangerouslySetInnerHTML={{ __html: shift.description }}
-                    />
-                  )}
-                  {shift.message && (
-                     <p className="text-xs mt-2 p-2 bg-blue-50 border border-blue-200 text-blue-700 rounded">
-                       {shift.message}
-                     </p>
-                  )}
-                  {shift.times && shift.times.length > 0 ? (
-                    <div className="mt-3">
-                      <p className="text-sm font-semibold text-gray-800 mb-2">Available Booking Times:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {shift.times.map((timeObj, timeIndex) => ( // Assuming time is an object { time: decimal, ...any other props } or just decimal
-                          <button
-                            key={timeIndex}
-                            onClick={() => handleTimeSelection(shift, timeObj)} // timeObj might just be the decimal time
-                            className="px-3 py-1.5 bg-green-500 text-white text-sm font-medium rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors"
-                          >
-                            {formatDecimalTime(typeof timeObj === 'object' ? timeObj.time : timeObj, appConfig?.timeFormat)}
-                          </button>
-                        ))}
+              {availabilityData.shifts.map((shift, index) => {
+                const isExpanded = expandedShiftUid === shift.uid;
+                return (
+                  <div key={shift.uid || index} className="border border-gray-200 rounded-lg shadow-sm bg-white overflow-hidden">
+                    <button
+                      type="button"
+                      className="w-full p-4 text-left bg-gray-50 hover:bg-gray-100 focus:outline-none"
+                      onClick={() => setExpandedShiftUid(isExpanded ? null : shift.uid)}
+                    >
+                      <div className="flex justify-between items-center">
+                        <h5 className="text-lg font-bold text-blue-600">{shift.name}
+                          <span className="text-sm font-normal text-gray-500 ml-2">({shift.type})</span>
+                        </h5>
+                        {/* Optional: Add an arrow icon here, rotating based on isExpanded */}
+                        <span className={`transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : 'rotate-0'}`}>
+                          <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </span>
                       </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500 mt-2 italic">
-                      {appConfig?.lng?.legendUnavail || 'No specific online booking times listed for this shift. Please contact us for details.'}
-                    </p>
-                  )}
-                </div>
-              ))}
+                    </button>
+
+                    {isExpanded && (
+                      <div className="p-4 border-t border-gray-200">
+                        <p className="text-sm text-gray-600 my-1">
+                          <span className="font-medium">{appConfig?.lng?.time || 'Time'}:</span> {formatDecimalTime(shift.start, appConfig?.timeFormat)} - {formatDecimalTime(shift.end, appConfig?.timeFormat)}
+                        </p>
+                        {shift.description && (
+                          <div
+                            className="mt-2 text-sm text-gray-700 prose prose-sm max-w-none bg-gray-50 p-2 rounded"
+                            dangerouslySetInnerHTML={{ __html: shift.description }}
+                          />
+                        )}
+                        {shift.message && (
+                          <p className="text-xs mt-2 p-2 bg-blue-50 border border-blue-200 text-blue-700 rounded">
+                            {shift.message}
+                          </p>
+                        )}
+                        {shift.times && shift.times.length > 0 ? (
+                          <div className="mt-3">
+                            <p className="text-sm font-semibold text-gray-800 mb-2">Available Booking Times:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {shift.times.map((timeObj, timeIndex) => (
+                                <button
+                                  key={timeIndex}
+                                  onClick={() => handleTimeSelection(shift, timeObj)}
+                                  className="px-3 py-1.5 bg-green-500 text-white text-sm font-medium rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-colors"
+                                >
+                                  {formatDecimalTime(typeof timeObj === 'object' ? timeObj.time : timeObj, appConfig?.timeFormat)}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-500 mt-2 italic">
+                            {appConfig?.lng?.legendUnavail || 'No specific online booking times listed for this shift. Please contact us for details.'}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ) : (
              (!availabilityData.message && !apiError) &&
