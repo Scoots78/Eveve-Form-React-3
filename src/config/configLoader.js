@@ -1,51 +1,6 @@
-// src/config/configLoader.js
-
-/**
- * Fetches the restaurant configuration HTML and parses out relevant JavaScript variables.
- * @param {string} estId - The establishment ID (e.g., 'TestNZ4').
- * @returns {Promise<Object>} A promise that resolves to an object containing the extracted variables.
- */
-export async function loadAppConfig(estId) {
-  if (!estId) {
-    console.error("Establishment ID is required.");
-    return Promise.reject("Establishment ID is required.");
-  }
-
-  const url = `https://nz.eveve.com/web/form?est=${estId}`;
-  console.log(`Fetching configuration from: ${url}`);
-
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch HTML: ${response.status} ${response.statusText}`);
-    }
-    const htmlString = await response.text();
-
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(htmlString, "text/html");
-    const scripts = doc.getElementsByTagName("script");
-
-    let configScriptContent = "";
-    for (let script of scripts) {
-      const scriptText = script.textContent || script.innerText || "";
-      // Try to find the main script block; this is a heuristic and might need refinement.
-      // Looking for a script that defines a significant number of our target variables.
-      if (scriptText.includes("const lng = {") && scriptText.includes("const weekDays = [")) {
-        configScriptContent = scriptText;
-        break;
-      }
-    }
-
-    if (!configScriptContent) {
-      const errorMsg = `Could not find the main configuration script block in the HTML fetched from ${url}.`;
-      console.error(errorMsg);
-      throw new Error(errorMsg);
-    }
-
-    // console.log("Extracted script content snippet:", configScriptContent.substring(0, 500));
-
-// src/config/configLoader.js
 import localLngData from '../i18n/en.json'; // Import the local JSON file
+
+// src/config/configLoader.js
 
 /**
  * Fetches the restaurant configuration HTML and parses out relevant JavaScript variables.
@@ -170,15 +125,17 @@ export async function loadAppConfig(estId) {
 
     const uniqueVariablesToExtract = [...new Set(variablesToExtract)];
 
-    for (const varName of uniqueVariablesToExtract) {
-      if (varName === 'lng') continue; // Skip lng as it's handled locally
+    if (configScriptContent) { // Only try to extract if we found the script
+        for (const varName of uniqueVariablesToExtract) {
+          if (varName === 'lng') continue; // Skip lng as it's handled locally
 
-      let value = extractVar(varName, configScriptContent);
-      if (value !== null) {
-        extractedConfigs[varName] = value;
-      } else {
-        console.warn(`Variable ${varName} could not be extracted.`);
-      }
+          let value = extractVar(varName, configScriptContent);
+          if (value !== null) {
+            extractedConfigs[varName] = value;
+          } else {
+            console.warn(`Variable ${varName} could not be extracted.`);
+          }
+        }
     }
     // console.log("Extracted Configs (excluding local lng):", extractedConfigs);
     return extractedConfigs;
