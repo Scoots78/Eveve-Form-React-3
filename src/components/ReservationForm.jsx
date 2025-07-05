@@ -18,6 +18,9 @@ export default function ReservationForm() {
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [guests, setGuests] = useState(''); // Initial state: empty string for placeholder
+  const [selectedDateForSummary, setSelectedDateForSummary] = useState(null);
+  const [selectedGuestsForSummary, setSelectedGuestsForSummary] = useState(null);
+  const [showDateTimePicker, setShowDateTimePicker] = useState(true);
 
   const [appConfig, setAppConfig] = useState(null);
   const [isConfigLoading, setIsConfigLoading] = useState(true);
@@ -90,6 +93,7 @@ export default function ReservationForm() {
       // Clear previous results and errors when date changes, useEffect will trigger new fetch
       setAvailabilityData(null);
       setApiError(null);
+      setShowDateTimePicker(true); // Show pickers when date changes
     }
   };
 
@@ -98,6 +102,7 @@ export default function ReservationForm() {
     // Clear previous results and errors when guests change, useEffect will trigger new fetch or clear
     setAvailabilityData(null);
     setApiError(null);
+    setShowDateTimePicker(true); // Show pickers when guests change
   };
 
   const fetchAvailability = useCallback(async (date, numGuests) => {
@@ -129,6 +134,10 @@ export default function ReservationForm() {
 
       // Accordion logic: set default expanded shift identifier (UID or index)
       if (data && data.shifts && data.shifts.length > 0) {
+        setSelectedDateForSummary(date);
+        setSelectedGuestsForSummary(numGuests);
+        setShowDateTimePicker(false); // Hide pickers if shifts are available
+
         let defaultIdentifier = null;
         const dinnerShiftIndex = data.shifts.findIndex(shift => shift.type === "Dinner");
 
@@ -151,15 +160,18 @@ export default function ReservationForm() {
 
       } else {
         setExpandedShiftIdentifier(null); // No shifts, so nothing to expand
+        setShowDateTimePicker(true); // Show pickers if no shifts
       }
 
       if ((!data.shifts || data.shifts.length === 0) && !data.message) {
         setApiError(appConfig?.lng?.legendUnavail || "No availability found for the selected date and guest count.");
+        setShowDateTimePicker(true); // Show pickers if no availability
       }
     } catch (error) {
       console.error("Error fetching availability:", error);
       setApiError(error.message || (appConfig?.lng?.eventPax || "Failed to fetch availability. Please check your connection or try again."));
       setAvailabilityData(null);
+      setShowDateTimePicker(true); // Show pickers on error
     } finally {
       setIsLoading(false);
     }
@@ -177,7 +189,8 @@ export default function ReservationForm() {
       setAvailabilityData(null);
       setApiError(null);
       setIsLoading(false);
--      setExpandedShiftIdentifier(null); // Also clear expanded shift
+      setExpandedShiftIdentifier(null); // Also clear expanded shift
+      setShowDateTimePicker(true); // Ensure pickers are shown if inputs become invalid
     }
     // Cleanup function to clear timeout if component unmounts or dependencies change
     return () => {
@@ -541,22 +554,24 @@ export default function ReservationForm() {
         {appConfig?.lng?.makeBookingAtTitlePrefix || "Make a Booking at "}{appConfig.estFull}
       </h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <CalendarPicker
-          date={selectedDate}
-          onChange={handleDateChange}
-          dateFormat={appConfig?.dateFormat} // Pass dateFormat from config
-          disablePast={true} // Pass disablePast from config
-        />
-        <GuestSelector
-          value={guests}
-          onChange={handleGuestsChange}
-          minGuests={appConfig?.partyMin || 1}
-          maxGuests={appConfig?.partyMax || 10}
-          guestLabel={appConfig?.lng?.guest}
-          guestsLabel={appConfig?.lng?.guests || appConfig?.lng?.partySize}
-        />
-      </div>
+      {showDateTimePicker && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <CalendarPicker
+            date={selectedDate}
+            onChange={handleDateChange}
+            dateFormat={appConfig?.dateFormat} // Pass dateFormat from config
+            disablePast={true} // Pass disablePast from config
+          />
+          <GuestSelector
+            value={guests}
+            onChange={handleGuestsChange}
+            minGuests={appConfig?.partyMin || 1}
+            maxGuests={appConfig?.partyMax || 10}
+            guestLabel={appConfig?.lng?.guest}
+            guestsLabel={appConfig?.lng?.guests || appConfig?.lng?.partySize}
+          />
+        </div>
+      )}
 
       {isLoading && ( // This is for availability loading
         <div className="flex justify-center items-center py-6">
@@ -577,12 +592,24 @@ export default function ReservationForm() {
       {availabilityData && !isLoading && !apiError && (
         <div className="mt-6 space-y-5">
           {/* This div wrapping estFull and message is kept outside shifts mapping as it's general availability info */}
-          <div className="p-4 bg-gray-50 rounded-lg shadow">
-            <h3 className="text-2xl font-semibold text-gray-700 mb-2">
-              {appConfig?.estFull || availabilityData.estFull || availabilityData.est}
-            </h3>
+          <div
+            className={`p-4 bg-gray-50 rounded-lg shadow ${!showDateTimePicker ? 'cursor-pointer hover:bg-gray-100' : ''}`}
+            onClick={!showDateTimePicker ? () => setShowDateTimePicker(true) : undefined}
+          >
+            {showDateTimePicker ? (
+              <h3 className="text-2xl font-semibold text-gray-700 mb-2">
+                {appConfig?.estFull || availabilityData.estFull || availabilityData.est}
+              </h3>
+            ) : (
+              <div className="text-gray-700">
+                <h3 className="text-xl font-semibold mb-1">Current Selection:</h3>
+                <p><span className="font-medium">Date:</span> {selectedDateForSummary ? format(selectedDateForSummary, appConfig?.dateFormat || 'MM/dd/yyyy') : 'Not set'}</p>
+                <p><span className="font-medium">Guests:</span> {selectedGuestsForSummary || 'Not set'}</p>
+                <p className="text-xs text-gray-500 mt-2">Click to change date or guest count.</p>
+              </div>
+            )}
             {availabilityData.message && (
-              <p className="text-sm p-3 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded-md">
+              <p className="text-sm p-3 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded-md mt-2">
                 {availabilityData.message}
               </p>
             )}
