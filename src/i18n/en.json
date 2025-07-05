@@ -62,6 +62,10 @@
   "optionQuantityNote": "Quantities for options are per item and may be limited by guest count or item-specific rules.",
 
   "selectedAddonsSummaryTitle": "Selected Add-ons Summary",
-  "totalAddonCostLabel": "Total Addon Cost",
-  "noAddonsSelected": "No add-ons selected."
+  "totalAddonCostLabel": "Total Addon Cost:",
+  "noAddonsSelected": "No add-ons selected.",
+
+  "availableShiftsTitle": "Available Shifts:",
+  "makeBookingAtTitlePrefix": "Make a Booking at ",
+  "availableBookingTimesTitle": "Available Booking Times:"
 }
