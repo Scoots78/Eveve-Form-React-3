@@ -547,7 +547,7 @@ export default function ReservationForm() {
           date={selectedDate}
           onChange={handleDateChange}
           dateFormat={appConfig?.dateFormat} // Pass dateFormat from config
-          disablePast={appConfig?.disablePast === 'true' || appConfig?.disablePast === true} // Pass disablePast from config
+          disablePast={true} // Pass disablePast from config
         />
         <GuestSelector
           value={guests}
