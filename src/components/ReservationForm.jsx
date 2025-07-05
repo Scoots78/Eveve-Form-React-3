@@ -538,8 +538,7 @@ export default function ReservationForm() {
   return (
     <div className="p-6 max-w-xl mx-auto bg-white shadow-xl rounded-lg space-y-6">
       <h1 className="text-3xl font-bold text-center text-gray-800">
-        {/* Simplified: If we reach here, appConfig and appConfig.estFull must exist due to checks above */}
-        {`Make a Booking at ${appConfig.estFull}`}
+        {appConfig?.lng?.makeBookingAtTitlePrefix || "Make a Booking at "}{appConfig.estFull}
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -591,7 +590,7 @@ export default function ReservationForm() {
 
           {availabilityData.shifts && availabilityData.shifts.length > 0 ? (
             <div className="space-y-4">
-              <h4 className="text-xl font-semibold text-gray-700">Available Shifts:</h4>
+              <h4 className="text-xl font-semibold text-gray-700">{appConfig?.lng?.availableShiftsTitle || "Available Shifts:"}</h4>
               {availabilityData.shifts.map((shift, index) => {
                 const currentShiftIdentifier = shift.uid || index;
                 const isExpanded = expandedShiftIdentifier === currentShiftIdentifier;
@@ -644,7 +643,7 @@ export default function ReservationForm() {
                         )}
                         {shift.times && shift.times.length > 0 ? (
                           <div className="mt-3">
-                            <p className="text-sm font-semibold text-gray-800 mb-2">Available Booking Times:</p>
+                            <p className="text-sm font-semibold text-gray-800 mb-2">{appConfig?.lng?.availableBookingTimesTitle || "Available Booking Times:"}</p>
                             <div className="flex flex-wrap gap-2">
                               {shift.times.map((timeObj, timeIndex) => (
                                 <button
