@@ -591,30 +591,28 @@ export default function ReservationForm() {
 
       {availabilityData && !isLoading && !apiError && (
         <div className="mt-6 space-y-5">
-          {/* This div wrapping estFull and message is kept outside shifts mapping as it's general availability info */}
-          <div
-            className={`p-4 bg-gray-50 rounded-lg shadow ${!showDateTimePicker ? 'cursor-pointer hover:bg-gray-100' : ''}`}
-            onClick={!showDateTimePicker ? () => setShowDateTimePicker(true) : undefined}
-          >
-            {showDateTimePicker ? (
-              <h3 className="text-2xl font-semibold text-gray-700 mb-2">
-                {appConfig?.estFull || availabilityData.estFull || availabilityData.est}
-              </h3>
-            ) : (
-              <div className="text-gray-700 text-center"> {/* Centered text */}
-                <h3 className="text-lg font-semibold"> {/* Adjusted font size */}
+          {/* This div will only render if date/covers are selected and pickers are hidden */}
+          {!showDateTimePicker && (
+            <div
+              className={`p-4 bg-gray-50 rounded-lg shadow cursor-pointer hover:bg-gray-100`}
+              onClick={() => setShowDateTimePicker(true)}
+            >
+              {/* This inner part now only needs to render the summary view */}
+              <div className="text-gray-700 text-center">
+                <h3 className="text-lg font-semibold">
                   {selectedDateForSummary ? format(selectedDateForSummary, 'EEEE do MMMM') : 'Date not set'}
                   {selectedGuestsForSummary ? ` for ${selectedGuestsForSummary} Guest${selectedGuestsForSummary > 1 ? 's' : ''}` : ''}
                 </h3>
                 <p className="text-xs text-gray-500 mt-1">Click to change</p>
               </div>
-            )}
-            {availabilityData.message && (
-              <p className="text-sm p-3 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded-md mt-2">
-                {availabilityData.message}
-              </p>
-            )}
-          </div>
+              {/* The availabilityData.message can still be relevant here */}
+              {availabilityData.message && (
+                <p className="text-sm p-3 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded-md mt-2">
+                  {availabilityData.message}
+                </p>
+              )}
+            </div>
+          )}
 
           {availabilityData.shifts && availabilityData.shifts.length > 0 ? (
             <div className="space-y-4">
