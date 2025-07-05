@@ -601,11 +601,12 @@ export default function ReservationForm() {
                 {appConfig?.estFull || availabilityData.estFull || availabilityData.est}
               </h3>
             ) : (
-              <div className="text-gray-700">
-                <h3 className="text-xl font-semibold mb-1">Current Selection:</h3>
-                <p><span className="font-medium">Date:</span> {selectedDateForSummary ? format(selectedDateForSummary, appConfig?.dateFormat || 'MM/dd/yyyy') : 'Not set'}</p>
-                <p><span className="font-medium">Guests:</span> {selectedGuestsForSummary || 'Not set'}</p>
-                <p className="text-xs text-gray-500 mt-2">Click to change date or guest count.</p>
+              <div className="text-gray-700 text-center"> {/* Centered text */}
+                <h3 className="text-lg font-semibold"> {/* Adjusted font size */}
+                  {selectedDateForSummary ? format(selectedDateForSummary, 'EEEE do MMMM') : 'Date not set'}
+                  {selectedGuestsForSummary ? ` for ${selectedGuestsForSummary} Guest${selectedGuestsForSummary > 1 ? 's' : ''}` : ''}
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">Click to change</p>
               </div>
             )}
             {availabilityData.message && (
