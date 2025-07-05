@@ -5,7 +5,7 @@ import 'flatpickr/dist/themes/material_blue.css';
 export default function CalendarPicker({ date, onChange, dateFormat, disablePast }) {
   const options = {
     // Standard internal date format, good for API calls
-    dateFormat: "Y-m-d",
+    dateFormat: "D, M j, Y",
     // altInput and altFormat are used for display purposes if dateFormat prop is provided
     altInput: !!dateFormat, // Enable altInput only if a custom display format is given
     altFormat: dateFormat || "D, M j, Y", // Use provided dateFormat for display, or fallback
