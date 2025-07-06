@@ -58,6 +58,7 @@ A frontend booking widget built with **React**, **Tailwind CSS**, and **Vite**, 
 
 - **Full Booking Flow Integration:**
     - [ ] **Implement "Hold Reservation":** Integrate with the Eveve `/web/hold` API endpoint, sending date, time, guests, and formatted addon data.
+    - [ ] **Selection Summary/Confirmation:** Create an intermediate step or modal to display currently selected values (selected shift, selected date, selected guests, selected time) for user review before collecting customer details.
     - [ ] **Customer Details Form:** Develop a new component/step to collect user information (name, email, phone, notes) after a successful hold.
     - [ ] **Confirm Booking:** Integrate with the final Eveve booking confirmation API endpoint.
 - **UI/UX Refinements:**
