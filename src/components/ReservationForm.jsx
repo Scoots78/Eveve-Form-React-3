@@ -40,6 +40,12 @@ export default function ReservationForm() {
   const [currentShiftAddons, setCurrentShiftAddons] = useState([]);
   const [currentShiftUsagePolicy, setCurrentShiftUsagePolicy] = useState(null); // Applies to Menus
 
+  // State for the proceed button
+  const [proceedButtonState, setProceedButtonState] = useState({
+    text: appConfig?.lng?.selectTimePrompt || "Select a Time to Proceed", // Initial state
+    disabled: true,
+  });
+
   useEffect(() => {
     const fetchConfig = async () => {
       // Check if est is present before trying to load config
@@ -412,12 +418,10 @@ export default function ReservationForm() {
   };
 
   const areAddonsValidForProceeding = () => {
-    if (!selectedShiftTime || !currentShiftAddons) {
-      // If no shift/time is selected, or no addons defined for it, then addon validation isn't strictly failing,
-      // but the button should be disabled due to lack of selected time anyway.
-      // For the purpose of this function, if there's nothing to validate, consider it "valid" from addon perspective.
-      // The overall button disable logic (!selectedShiftTime?.selectedTime || !areAddonsValidForProceeding()) will handle it.
-      return true;
+    if (!selectedShiftTime || !currentShiftAddons || currentShiftAddons.length === 0) {
+      // If no shift/time is selected, or no addons defined for it, then addon validation is trivially true.
+      // The button's primary disabled state for "no time selected" will be handled separately.
+      return { isValid: true };
     }
 
     const numericGuestCount = parseInt(guests, 10) || 0;
@@ -447,7 +451,7 @@ export default function ReservationForm() {
                 const parentMenuSelected = selectedAddons.menus.some(menu => menu.originalIndexInShift === optionDetails.parent);
                 if (!parentMenuSelected) {
                     console.log(`Validation Fail: Option ${optionDetails.name} selected but parent menu is not.`);
-                    return false; // Parent menu for selected option is not selected
+                    return { isValid: false, reasonCode: 'OPTION_PARENT_MISSING' };
                 }
             }
         }
@@ -458,69 +462,126 @@ export default function ReservationForm() {
     if (currentShiftUsagePolicy === 1) { // Radio Menu
       if (effectiveMenuAddons.length > 0 && selectedAddons.menus.length !== 1) {
         console.log("Validation Fail: Policy 1 - A menu must be selected.");
-        return false;
+        return { isValid: false, reasonCode: 'SELECT_MENU_POLICY_1' };
       }
     } else if (currentShiftUsagePolicy === 2) { // Quantity Menu
       if (effectiveMenuAddons.length > 0 && numericGuestCount > 0) {
         const totalMenuQuantity = selectedAddons.menus.reduce((sum, menu) => sum + (menu.quantity || 0), 0);
         if (totalMenuQuantity !== numericGuestCount) {
           console.log(`Validation Fail: Policy 2 - Total menu quantity (${totalMenuQuantity}) must equal guest count (${numericGuestCount}).`);
-          return false;
+          return { isValid: false, reasonCode: 'TOTAL_MENU_QUANTITY_MISMATCH' };
         }
         if (selectedShiftTime?.maxMenuTypes > 0) {
           const distinctSelectedMenuTypes = new Set(selectedAddons.menus.filter(m => m.quantity > 0).map(m => m.uid)).size;
           if (distinctSelectedMenuTypes > selectedShiftTime.maxMenuTypes) {
             console.log(`Validation Fail: Policy 2 - Exceeded max menu types (${selectedShiftTime.maxMenuTypes}).`);
-            return false;
+            return { isValid: false, reasonCode: 'MAX_MENU_TYPES_EXCEEDED' };
           }
         }
       } else if (effectiveMenuAddons.length > 0 && numericGuestCount === 0) {
-        // If guest count is 0, policy 2 implies items are selected by quantity not tied to guests.
-        // We need to ensure at least one menu is selected if menus are available, as "0 guests" doesn't mean "0 menus selected".
-        // This might need specific business rule: e.g. must select at least one menu item if policy is 2 and guests are 0.
-        // For now, let's assume if menus are available, at least one must have quantity > 0.
         const totalMenuQuantity = selectedAddons.menus.reduce((sum, menu) => sum + (menu.quantity || 0), 0);
         if (totalMenuQuantity === 0) {
             console.log("Validation Fail: Policy 2 (0 guests) - At least one menu item must be selected if available.");
-            return false;
+            return { isValid: false, reasonCode: 'SELECT_MENU_POLICY_2_GUESTS_0' };
         }
       }
     } else if (currentShiftUsagePolicy === 3) { // Checkbox Menu
       if (effectiveMenuAddons.length > 0) {
         const selectedMenuCount = selectedAddons.menus.length;
-        // Common interpretation: if policy 3 and menus are available, at least one must be selected.
-        if (selectedMenuCount === 0) {
-          console.log("Validation Fail: Policy 3 - At least one menu selection is required if menus are available.");
-          return false;
+        // Assuming if policy 3 and menus are available, at least one must be selected if minMenuTypes/maxMenuTypes implies a selection is needed.
+        // Or if shift itself has a property like 'minRequiredMenusPolicy3'
+        // For now, let's assume a general "must select at least one if available and policy 3 implies selection"
+        // A more robust check might involve selectedShiftTime?.minMenuTypes for policy 3.
+        // If no specific min, but menus are there, it's often implied one should be picked.
+        // This is a bit ambiguous without explicit minRequired for policy 3.
+        // Let's assume for now: if effectiveMenuAddons exist, and it's policy 3, at least one must be chosen.
+        if (selectedMenuCount === 0) { // This could be refined with a specific config for min selections on policy 3.
+          console.log("Validation Fail: Policy 3 - At least one menu selection might be required.");
+          return { isValid: false, reasonCode: 'SELECT_MENU_POLICY_3' };
         }
         const maxSelections = selectedShiftTime?.maxMenuTypes > 0 ? selectedShiftTime.maxMenuTypes : (numericGuestCount > 0 ? numericGuestCount : (effectiveMenuAddons.length > 0 ? 1: 0));
-         if (maxSelections > 0 && selectedMenuCount > maxSelections) { // maxSelections can be Infinity if not specified
+         if (maxSelections > 0 && selectedMenuCount > maxSelections) {
             console.log(`Validation Fail: Policy 3 - Selected menu count (${selectedMenuCount}) exceeds maximum allowed (${maxSelections}).`);
-            return false;
+            return { isValid: false, reasonCode: 'MAX_MENU_TYPES_EXCEEDED_POLICY_3' };
         }
       }
     }
     // Usage Policy 0 needs no specific menu validation here for proceeding.
 
-    // Option Validation (primarily for min quantity, as max and parent linking are handled by onAddonChange or above)
+    // Option Validation
     for (const optionUid in selectedAddons.options) {
       const quantity = selectedAddons.options[optionUid];
       if (quantity > 0) {
         const optionDetails = currentShiftAddons.find(a => String(a.uid) === optionUid);
         if (optionDetails) {
           const optionMinQty = (typeof optionDetails.min === 'number' && !isNaN(optionDetails.min)) ? optionDetails.min : 0;
-          if (quantity < optionMinQty) {
+          // Note: optionMinQty = 0 means it's truly optional. If min > 0, it means if selected, must have at least that quantity.
+          // The current logic in handleAddonChange already tries to prevent quantity < optionMinQty if optionMinQty > 0.
+          // This is a final check.
+          if (quantity < optionMinQty && optionMinQty > 0) { // Only fail if explicit min > 0 is not met
             console.log(`Validation Fail: Option ${optionDetails.name} quantity (${quantity}) is less than min required (${optionMinQty}).`);
-            return false;
+            return { isValid: false, reasonCode: 'OPTION_MIN_QUANTITY_NOT_MET' };
           }
-          // Max quantity check is mostly handled by onAddonChange, but double check against effectiveMaxQty if necessary.
-          // For now, min check is the primary concern for "proceed" validation not already handled during selection.
         }
       }
     }
     console.log("Addon validation passed.");
-    return true;
+    return { isValid: true };
   };
+
+  // Effect to update proceedButtonState based on selections and addon validity
+  useEffect(() => {
+    if (!selectedShiftTime?.selectedTime) {
+      setProceedButtonState({
+        text: appConfig?.lng?.selectTimePrompt || "Select a Time to Proceed",
+        disabled: true,
+      });
+      return;
+    }
+
+    const addonValidationResult = areAddonsValidForProceeding();
+
+    if (addonValidationResult.isValid) {
+      setProceedButtonState({
+        text: appConfig?.lng?.proceedToBookingBtn || "Proceed to Booking",
+        disabled: false,
+      });
+    } else {
+      let message = appConfig?.lng?.completeRequiredOptions || "Please complete required options"; // Generic fallback
+      switch (addonValidationResult.reasonCode) {
+        case 'SELECT_MENU_POLICY_1':
+          message = appConfig?.lng?.selectMenuPolicy1Prompt || "Please select a menu option";
+          break;
+        case 'TOTAL_MENU_QUANTITY_MISMATCH':
+          message = appConfig?.lng?.totalMenuQuantityMismatchPrompt || `Total menu items must match guest count (${guests})`;
+          break;
+        case 'MAX_MENU_TYPES_EXCEEDED':
+          message = appConfig?.lng?.maxMenuTypesExceededPrompt || `You have selected too many menu types (max: ${selectedShiftTime?.maxMenuTypes || 'N/A'})`;
+          break;
+        case 'SELECT_MENU_POLICY_2_GUESTS_0':
+          message = appConfig?.lng?.selectMenuPolicy2Guests0Prompt || "Please select at least one menu item";
+          break;
+        case 'SELECT_MENU_POLICY_3':
+          message = appConfig?.lng?.selectMenuPolicy3Prompt || "Please make a menu selection";
+          break;
+        case 'MAX_MENU_TYPES_EXCEEDED_POLICY_3':
+          message = appConfig?.lng?.maxMenuTypesExceededPolicy3Prompt || `Too many menu items selected (max: ${selectedShiftTime?.maxMenuTypes || guests})`;
+          break;
+        case 'OPTION_PARENT_MISSING':
+          message = appConfig?.lng?.optionParentMissingPrompt || "Select the main course for your chosen side/option";
+          break;
+        case 'OPTION_MIN_QUANTITY_NOT_MET':
+          message = appConfig?.lng?.optionMinQuantityNotMetPrompt || "Adjust quantity for a selected option";
+          break;
+        // Add more cases as new reasonCodes are introduced
+      }
+      setProceedButtonState({
+        text: message,
+        disabled: true,
+      });
+    }
+  }, [selectedShiftTime, selectedAddons, guests, currentShiftAddons, appConfig, currentShiftUsagePolicy]); // Ensure all relevant dependencies
+
 
   if (isConfigLoading) {
     return (
@@ -550,7 +611,7 @@ export default function ReservationForm() {
   // Render form only if config is loaded and no errors
   return (
     <div className="p-6 max-w-xl mx-auto bg-white shadow-xl rounded-lg space-y-6">
-      <h1 className="text-3xl font-bold text-center text-gray-800">
+      <h1 className="text-2xl font-bold text-center text-gray-800">
         {appConfig?.lng?.makeBookingAtTitlePrefix || "Make a Booking at "}{appConfig.estFull}
       </h1>
 
@@ -726,10 +787,15 @@ export default function ReservationForm() {
                           <div className="mt-6 text-center"> {/* Adjusted margin-top */}
                             <button
                               onClick={handleProceedToBooking}
-                              disabled={!selectedShiftTime?.selectedTime || !areAddonsValidForProceeding()}
-                              className="px-6 py-3 bg-purple-600 text-white text-lg font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+                              disabled={proceedButtonState.disabled}
+                              className="px-6 py-3 bg-purple-600 text-white text-lg font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center"
                             >
-                              {appConfig?.lng?.proceedToBookingBtn || "Proceed to Booking"}
+                              <span>{proceedButtonState.text}</span>
+                              {selectedShiftTime?.selectedTime && selectedDate && guests && ( // Summary still shown if time selected
+                                <div className="text-xs font-normal mt-1 text-purple-200">
+                                  {selectedShiftTime.name} - {format(selectedDate, appConfig?.dateFormat || 'MMM d, yyyy')} - {guests} Guest{guests > 1 ? 's' : ''} - {formatDecimalTime(selectedShiftTime.selectedTime, appConfig?.timeFormat)}
+                                </div>
+                              )}
                             </button>
                           </div>
                         )}
