@@ -61,11 +61,11 @@ export default function GuestSelector({
   const placeholderText = guestsLabel || `Select ${guestLabel.toLowerCase()}`;
 
   return (
-    <div className="mt-4">
-      <label htmlFor="guests-input" className="block text-sm font-medium text-gray-700 mb-1">
+    <div className="mb-4">
+      <label htmlFor="guests-input" className="block font-medium mb-1">
         {guestLabel}
       </label>
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-2 py-1">
         <button
           type="button"
           onClick={handleDecrement}
