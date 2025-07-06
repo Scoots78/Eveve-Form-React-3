@@ -727,9 +727,14 @@ export default function ReservationForm() {
                             <button
                               onClick={handleProceedToBooking}
                               disabled={!selectedShiftTime?.selectedTime || !areAddonsValidForProceeding()}
-                              className="px-6 py-3 bg-purple-600 text-white text-lg font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="px-6 py-3 bg-purple-600 text-white text-lg font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center"
                             >
-                              {appConfig?.lng?.proceedToBookingBtn || "Proceed to Booking"}
+                              <span>{appConfig?.lng?.proceedToBookingBtn || "Proceed to Booking"}</span>
+                              {selectedShiftTime?.selectedTime && selectedDate && guests && (
+                                <div className="text-xs font-normal mt-1 text-purple-200">
+                                  {selectedShiftTime.name} - {format(selectedDate, appConfig?.dateFormat || 'MMM d, yyyy')} - {guests} Guest{guests > 1 ? 's' : ''} - {formatDecimalTime(selectedShiftTime.selectedTime, appConfig?.timeFormat)}
+                                </div>
+                              )}
                             </button>
                           </div>
                         )}
