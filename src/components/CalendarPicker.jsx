@@ -1,6 +1,6 @@
 import React from 'react';
 import Flatpickr from 'react-flatpickr';
-import 'flatpickr/dist/themes/material_blue.css';
+import 'flatpickr/dist/themes/airbnb.css';
 
 export default function CalendarPicker({ date, onChange, dateFormat, disablePast }) {
   const options = {
