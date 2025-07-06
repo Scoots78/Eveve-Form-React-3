@@ -1,6 +1,6 @@
 import React from 'react';
 import Flatpickr from 'react-flatpickr';
-import 'flatpickr/dist/themes/airbnb.css';
+import 'flatpickr/dist/themes/material_blue.css';
 
 export default function CalendarPicker({ date, onChange, dateFormat, disablePast }) {
   const options = {
@@ -10,6 +10,7 @@ export default function CalendarPicker({ date, onChange, dateFormat, disablePast
     altInput: !!dateFormat, // Enable altInput only if a custom display format is given
     altFormat: dateFormat || "D, M j, Y", // Use provided dateFormat for display, or fallback
     minDate: disablePast ? "today" : null, // Disable past dates if prop is true
+    inline: true, // Open the calendar by default
   };
 
   return (

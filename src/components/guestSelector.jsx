@@ -61,11 +61,11 @@ export default function GuestSelector({
   const placeholderText = guestsLabel || `Select ${guestLabel.toLowerCase()}`;
 
   return (
-    <div className="mb-4">
-      <label htmlFor="guests-input" className="block font-medium mb-1">
+    <div className="mt-4">
+      <label htmlFor="guests-input" className="block text-sm font-medium text-gray-700 mb-1">
         {guestLabel}
       </label>
-      <div className="flex items-center space-x-2 py-1">
+      <div className="flex items-center space-x-2">
         <button
           type="button"
           onClick={handleDecrement}
@@ -83,7 +83,7 @@ export default function GuestSelector({
           value={currentGuests}
           onChange={handleChange}
           placeholder={placeholderText}
-          className="w-24 text-center border rounded-md py-1 "
+          className="w-24 text-center border rounded-md py-1"
           // HTML min/max are for browser hints, JS logic enforces strict limits
           min={effectiveMinGuests}
           max={effectiveMaxGuests}
