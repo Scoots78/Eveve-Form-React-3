@@ -67,5 +67,16 @@
 
   "availableShiftsTitle": "Available Shifts:",
   "makeBookingAtTitlePrefix": "Make a Booking at ",
-  "availableBookingTimesTitle": "Available Booking Times:"
+  "availableBookingTimesTitle": "Available Booking Times:",
+
+  "selectTimePrompt": "Select a Time to Proceed",
+  "completeRequiredOptions": "Please complete required options",
+  "selectMenuPolicy1Prompt": "Please select a menu option",
+  "totalMenuQuantityMismatchPrompt": "Total menu items must match guest count",
+  "maxMenuTypesExceededPrompt": "Too many menu types selected",
+  "selectMenuPolicy2Guests0Prompt": "Please select at least one menu item",
+  "selectMenuPolicy3Prompt": "Please make a menu selection",
+  "maxMenuTypesExceededPolicy3Prompt": "Too many menu items selected",
+  "optionParentMissingPrompt": "Select the main course for your chosen side/option",
+  "optionMinQuantityNotMetPrompt": "Adjust quantity for a selected option"
 }
