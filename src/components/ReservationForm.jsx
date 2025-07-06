@@ -616,7 +616,7 @@ export default function ReservationForm() {
       </h1>
 
       {showDateTimePicker && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 gap-6">
           <CalendarPicker
             date={selectedDate}
             onChange={handleDateChange}
