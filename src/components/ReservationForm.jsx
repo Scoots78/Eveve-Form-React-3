@@ -611,7 +611,7 @@ export default function ReservationForm() {
   // Render form only if config is loaded and no errors
   return (
     <div className="p-6 max-w-xl mx-auto bg-white shadow-xl rounded-lg space-y-6">
-      <h1 className="text-3xl font-bold text-center text-gray-800">
+      <h1 className="text-2xl font-bold text-center text-gray-800">
         {appConfig?.lng?.makeBookingAtTitlePrefix || "Make a Booking at "}{appConfig.estFull}
       </h1>
 
