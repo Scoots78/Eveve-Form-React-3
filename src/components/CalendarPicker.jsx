@@ -11,6 +11,9 @@ export default function CalendarPicker({ date, onChange, dateFormat, disablePast
     altFormat: dateFormat || "D, M j, Y", // Use provided dateFormat for display, or fallback
     minDate: disablePast ? "today" : null, // Disable past dates if prop is true
     inline: true, // Open the calendar by default
+    locale: {
+      firstDayOfWeek: 1 // Set Monday as the first day of the week
+    }
   };
 
   return (
@@ -22,6 +25,7 @@ export default function CalendarPicker({ date, onChange, dateFormat, disablePast
         value={date}
         onChange={onChange}
         className="w-full border rounded px-3 py-2"
+        
       />
     </div>
   );
