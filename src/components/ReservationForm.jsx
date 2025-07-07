@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import GuestSelector from "./guestSelector";
 import CalendarPicker from "./CalendarPicker";
-import { format } from 'date-fns';
+import { format, addMonths, startOfMonth, getDate, getYear, getMonth } from 'date-fns';
 import { loadAppConfig } from "../config/configLoader"; // Import the config loader
 import { formatDecimalTime } from "../utils/time"; // Import the utility function
 import { useDebounce } from "../hooks/useDebounce"; // Import the custom hook
@@ -9,6 +9,8 @@ import AddonSelection from "./AddonSelection"; // Import the new component
 import SelectedAddonsSummary from "./SelectedAddonsSummary"; // Import the summary component
 import { formatSelectedAddonsForApi } from "../utils/apiFormatter"; // Import the formatter
 
+const DEFAULT_COVERS_FOR_MONTH_AVAIL = 2;
+const EST_FOR_MONTH_AVAIL = "TestNZa"; // Hardcoded as per instructions
 
 export default function ReservationForm() {
   const EFFECTIVE_CURRENCY_SYMBOL = '$'; // Hardcoded currency symbol
@@ -21,6 +23,9 @@ export default function ReservationForm() {
   const [selectedDateForSummary, setSelectedDateForSummary] = useState(null);
   const [selectedGuestsForSummary, setSelectedGuestsForSummary] = useState(null);
   const [showDateTimePicker, setShowDateTimePicker] = useState(true);
+
+  const [closedDates, setClosedDates] = useState([]);
+  const [currentlyDisplayedMonth, setCurrentlyDisplayedMonth] = useState(startOfMonth(new Date()));
 
   const [appConfig, setAppConfig] = useState(null);
   const [isConfigLoading, setIsConfigLoading] = useState(true);
@@ -203,6 +208,71 @@ export default function ReservationForm() {
       clearDebouncedFetchAvailability();
     };
   }, [selectedDate, guests, debouncedFetchAvailability, clearDebouncedFetchAvailability]);
+
+
+  const fetchMonthAvailability = useCallback(async (monthDate) => {
+    const formattedDate = format(monthDate, 'yyyy-MM-dd');
+    const apiUrl = `https://nz0.eveve.com/web/month-avail?est=${EST_FOR_MONTH_AVAIL}&covers=${DEFAULT_COVERS_FOR_MONTH_AVAIL}&date=${formattedDate}`;
+    console.log(`Fetching month availability: ${apiUrl}`);
+
+    try {
+      const response = await fetch(apiUrl);
+      if (!response.ok) {
+        console.error(`Error fetching month availability for ${formattedDate}: ${response.status}`);
+        return []; // Return empty for this month on error
+      }
+      const data = await response.json();
+      const monthClosedDates = [];
+      if (data.times && Array.isArray(data.times)) {
+        const year = getYear(monthDate);
+        const month = getMonth(monthDate); // 0-indexed
+
+        data.times.forEach((dayAvailability, index) => {
+          // dayAvailability is an array, first element dayAvailability[0] contains actual times
+          // An empty dayAvailability[0] means the day is closed.
+          if (Array.isArray(dayAvailability) && Array.isArray(dayAvailability[0]) && dayAvailability[0].length === 0) {
+            // API gives 'from' date which is 1st of month. Index is 0-based day index.
+            const dayOfMonth = index + 1;
+            const closedDate = new Date(year, month, dayOfMonth);
+            monthClosedDates.push(format(closedDate, 'yyyy-MM-dd'));
+          }
+        });
+      }
+      console.log(`Closed dates for ${format(monthDate, 'yyyy-MM')}:`, monthClosedDates);
+      return monthClosedDates;
+    } catch (error) {
+      console.error(`Exception fetching month availability for ${formattedDate}:`, error);
+      return []; // Return empty for this month on exception
+    }
+  }, []);
+
+  const updateClosedDatesForCalendar = useCallback(async (baseMonthDate) => {
+    console.log("Updating closed dates for calendar, base month:", baseMonthDate);
+    const monthsToFetch = [
+      startOfMonth(baseMonthDate),
+      startOfMonth(addMonths(baseMonthDate, 1)),
+      startOfMonth(addMonths(baseMonthDate, 2)),
+    ];
+
+    try {
+      const results = await Promise.all(monthsToFetch.map(month => fetchMonthAvailability(month)));
+      const allNewClosedDates = [...new Set(results.flat())]; // Combine and remove duplicates
+      setClosedDates(allNewClosedDates);
+      console.log("Updated closedDates state:", allNewClosedDates);
+    } catch (error) {
+      console.error("Error processing month availability updates:", error);
+      // Optionally set an error state here
+    }
+  }, [fetchMonthAvailability]);
+
+  useEffect(() => {
+    updateClosedDatesForCalendar(currentlyDisplayedMonth);
+  }, [currentlyDisplayedMonth, updateClosedDatesForCalendar]);
+
+  const handleCalendarMonthChange = (newMonthDate) => {
+    console.log("Calendar month changed to:", newMonthDate);
+    setCurrentlyDisplayedMonth(startOfMonth(newMonthDate));
+  };
 
   const handleTimeSelection = (shift, timeObject, shiftIndexInAvailabilityData) => {
     // Assuming timeObject could be just the decimal time, or an object containing the time
@@ -622,6 +692,8 @@ export default function ReservationForm() {
             onChange={handleDateChange}
             dateFormat={appConfig?.dateFormat} // Pass dateFormat from config
             disablePast={true} // Pass disablePast from config
+            closedDates={closedDates} // Pass down closedDates
+            onCalendarMonthChange={handleCalendarMonthChange} // Pass down month change handler
           />
           <GuestSelector
             value={guests}
