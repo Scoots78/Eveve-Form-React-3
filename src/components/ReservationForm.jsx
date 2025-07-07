@@ -10,7 +10,7 @@ import SelectedAddonsSummary from "./SelectedAddonsSummary"; // Import the summa
 import { formatSelectedAddonsForApi } from "../utils/apiFormatter"; // Import the formatter
 
 const DEFAULT_COVERS_FOR_MONTH_AVAIL = 2;
-const EST_FOR_MONTH_AVAIL = "TestNZa"; // Hardcoded as per instructions
+// const EST_FOR_MONTH_AVAIL = "TestNZa"; // This will now come from 'est' (URL param)
 
 export default function ReservationForm() {
   const EFFECTIVE_CURRENCY_SYMBOL = '$'; // Hardcoded currency symbol
@@ -96,7 +96,7 @@ export default function ReservationForm() {
     if (est) {
       fetchConfig();
     }
-  }, [est, appConfig?.lng?.errorB]); // Added appConfig.lng.errorB to deps for stable error message
+  }, [est]); // fetchConfig should primarily depend on 'est'
 
   const handleDateChange = (dates) => {
     if (dates && dates.length > 0) {
@@ -263,11 +263,19 @@ export default function ReservationForm() {
       console.error("Error processing month availability updates:", error);
       // Optionally set an error state here
     }
-  }, [fetchMonthAvailability]);
+  }, [fetchMonthAvailability]); // fetchMonthAvailability is stable if its own deps are stable
 
   useEffect(() => {
-    updateClosedDatesForCalendar(currentlyDisplayedMonth);
-  }, [currentlyDisplayedMonth, updateClosedDatesForCalendar]);
+    // 'est' is from URL parameters. This is the correct establishment ID to use.
+    if (est) {
+      console.log("Calling updateClosedDatesForCalendar. Current month:", currentlyDisplayedMonth, "Est for avail:", est);
+      updateClosedDatesForCalendar(currentlyDisplayedMonth, est); // Use 'est' from URL params
+    } else {
+      console.log("Skipping initial month availability fetch: est ID from URL is not available.");
+    }
+    // This effect should run once on load (if est is present) and then only when currentlyDisplayedMonth changes.
+    // updateClosedDatesForCalendar is memoized by useCallback.
+  }, [est, currentlyDisplayedMonth, updateClosedDatesForCalendar]);
 
   const handleCalendarMonthChange = (newMonthDate) => {
     console.log("Calendar month changed to:", newMonthDate);
