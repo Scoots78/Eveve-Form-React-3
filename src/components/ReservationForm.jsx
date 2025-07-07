@@ -52,6 +52,7 @@ export default function ReservationForm() {
   });
 
   useEffect(() => {
+    console.log("useEffect for fetchConfig triggered. est:", est); // Log for effect execution
     const fetchConfig = async () => {
       // Check if est is present before trying to load config
       if (!est) {
@@ -244,10 +245,14 @@ export default function ReservationForm() {
       console.error(`Exception fetching month availability for ${formattedDate}:`, error);
       return []; // Return empty for this month on exception
     }
-  }, []);
+  }, []); // fetchMonthAvailability is stable
 
-  const updateClosedDatesForCalendar = useCallback(async (baseMonthDate) => {
-    console.log("Updating closed dates for calendar, base month:", baseMonthDate);
+  const updateClosedDatesForCalendar = useCallback(async (baseMonthDate, estIdToUse) => {
+    if (!estIdToUse) {
+      console.log("updateClosedDatesForCalendar: Skipped because estIdToUse is missing. estIdToUse:", estIdToUse);
+      return;
+    }
+    console.log(`updateClosedDatesForCalendar: Processing for base month: ${format(baseMonthDate, 'yyyy-MM-dd')}, est: ${estIdToUse}`);
     const monthsToFetch = [
       startOfMonth(baseMonthDate),
       startOfMonth(addMonths(baseMonthDate, 1)),
@@ -255,26 +260,24 @@ export default function ReservationForm() {
     ];
 
     try {
-      const results = await Promise.all(monthsToFetch.map(month => fetchMonthAvailability(month)));
-      const allNewClosedDates = [...new Set(results.flat())]; // Combine and remove duplicates
+      const results = await Promise.all(monthsToFetch.map(month => fetchMonthAvailability(month, estIdToUse)));
+      const allNewClosedDates = [...new Set(results.flat())];
       setClosedDates(allNewClosedDates);
-      console.log("Updated closedDates state:", allNewClosedDates);
+      console.log("updateClosedDatesForCalendar: Updated closedDates state:", allNewClosedDates);
     } catch (error) {
-      console.error("Error processing month availability updates:", error);
-      // Optionally set an error state here
+      console.error("updateClosedDatesForCalendar: Error processing month availability updates:", error);
     }
-  }, [fetchMonthAvailability]); // fetchMonthAvailability is stable if its own deps are stable
+  }, [fetchMonthAvailability]); // Depends on fetchMonthAvailability (which is stable)
 
   useEffect(() => {
-    // 'est' is from URL parameters. This is the correct establishment ID to use.
-    if (est) {
-      console.log("Calling updateClosedDatesForCalendar. Current month:", currentlyDisplayedMonth, "Est for avail:", est);
-      updateClosedDatesForCalendar(currentlyDisplayedMonth, est); // Use 'est' from URL params
+    // This effect triggers fetching closed dates based on the currently viewed month in the calendar
+    // and the establishment ID from the URL.
+    if (est && typeof est === 'string' && est.trim() !== '') {
+      console.log(`useEffect[est, currentlyDisplayedMonth, updateClosedDatesForCalendar]: Triggering updateClosedDatesForCalendar. est: ${est}, currentMonth: ${format(currentlyDisplayedMonth, 'yyyy-MM-dd')}`);
+      updateClosedDatesForCalendar(currentlyDisplayedMonth, est);
     } else {
-      console.log("Skipping initial month availability fetch: est ID from URL is not available.");
+      console.log(`useEffect[est, currentlyDisplayedMonth, updateClosedDatesForCalendar]: Skipping closed dates fetch because 'est' is not valid. est: '${est}'`);
     }
-    // This effect should run once on load (if est is present) and then only when currentlyDisplayedMonth changes.
-    // updateClosedDatesForCalendar is memoized by useCallback.
   }, [est, currentlyDisplayedMonth, updateClosedDatesForCalendar]);
 
   const handleCalendarMonthChange = (newMonthDate) => {
