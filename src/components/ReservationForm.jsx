@@ -211,10 +211,11 @@ export default function ReservationForm() {
   }, [selectedDate, guests, debouncedFetchAvailability, clearDebouncedFetchAvailability]);
 
 
-  const fetchMonthAvailability = useCallback(async (monthDate) => {
+  const fetchMonthAvailability = useCallback(async (monthDate, estIdFromArg) => { // Added estIdFromArg
     const formattedDate = format(monthDate, 'yyyy-MM-dd');
-    const apiUrl = `https://nz0.eveve.com/web/month-avail?est=${EST_FOR_MONTH_AVAIL}&covers=${DEFAULT_COVERS_FOR_MONTH_AVAIL}&date=${formattedDate}`;
-    console.log(`Fetching month availability: ${apiUrl}`);
+    // Use the passed estIdFromArg for the API call
+    const apiUrl = `https://nz0.eveve.com/web/month-avail?est=${estIdFromArg}&covers=${DEFAULT_COVERS_FOR_MONTH_AVAIL}&date=${formattedDate}`;
+    console.log(`fetchMonthAvailability: Fetching month availability: ${apiUrl}`);
 
     try {
       const response = await fetch(apiUrl);
