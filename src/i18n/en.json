@@ -80,7 +80,7 @@
   "optionParentMissingPrompt": "Select the main course for your chosen side/option",
   "optionMinQuantityNotMetPrompt": "Adjust quantity for a selected option",
 
-  /* --- Area Selection --- */
+
   "areaSelectionTitle": "Select Seating Area",
   "anyArea": "Any Area",
   "anyAreaDesc": "No preference for seating area",
