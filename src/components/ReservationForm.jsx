@@ -60,6 +60,7 @@ export default function ReservationForm() {
   // --- Area selection state ---
   const [availableAreas, setAvailableAreas] = useState([]);      // Areas available for the currently selected time
   const [selectedArea, setSelectedArea] = useState(null);        // The UID / id of the chosen area (or "any")
+  const [selectedAreaName, setSelectedAreaName] = useState(null); // Store the name of the selected area for display
 
   // State for the proceed button
   const [proceedButtonState, setProceedButtonState] = useState({
@@ -188,7 +189,7 @@ export default function ReservationForm() {
           console.log(
             `Found ${closedDatesArr.length} closed dates for ${monthKey}`
           );
-          // Cache month’s closed dates
+          // Cache month's closed dates
           setMonthClosedDates((prev) => ({ ...prev, [monthKey]: closedDatesArr }));
           
           // Add to fetched months cache
@@ -474,14 +475,22 @@ export default function ReservationForm() {
 
     /* ------------------------------------------------------------------
        AREA SELECTION HANDLING
-       Extract areas from either the specific time slot or the shift.
-       Structure assumption:
-         timeObject.areas OR shift.areas -> array of objects [{uid,name,description}]
+       Extract areas from the top-level API response and filter based on the selected time
     ------------------------------------------------------------------ */
-    const extractedAreas = (timeObject && timeObject.areas) || shift?.areas || [];
-    setAvailableAreas(Array.isArray(extractedAreas) ? extractedAreas : []);
-    // Reset previously selected area whenever a new time is chosen
+    // Reset area selection when a new time is chosen
     setSelectedArea(null);
+    setSelectedAreaName(null);
+
+    // Get areas from the top-level of the API response
+    const allAreas = availabilityData?.areas || [];
+    
+    // Filter areas based on whether the selected time is included in the area's times array
+    const filteredAreas = allAreas.filter(area => {
+      return Array.isArray(area.times) && area.times.includes(actualTime);
+    });
+    
+    console.log(`Found ${filteredAreas.length} areas available for time ${actualTime}:`, filteredAreas);
+    setAvailableAreas(filteredAreas);
 
     // Reset any previously selected addons
     setSelectedAddons({ menus: [], options: {} }); // Reset to new structure
@@ -619,6 +628,14 @@ export default function ReservationForm() {
   // --- Handler for area change ---
   const handleAreaChange = (areaUidOrAny) => {
     setSelectedArea(areaUidOrAny);
+    
+    // Update the selected area name for display in the summary
+    if (areaUidOrAny === 'any') {
+      setSelectedAreaName('Any Area');
+    } else {
+      const selectedAreaObj = availableAreas.find(area => area.uid === areaUidOrAny);
+      setSelectedAreaName(selectedAreaObj ? selectedAreaObj.name : null);
+    }
   };
 
   const handleProceedToBooking = () => {
@@ -649,10 +666,7 @@ export default function ReservationForm() {
     console.log("Booking Data for Hold:", bookingDataForHold);
 
     // Human-readable area information for the debug alert
-    const areaDisplay =
-      formattedArea
-        ? (formattedArea.toLowerCase() === 'any' ? 'Any Area' : formattedArea)
-        : 'None';
+    const areaDisplay = selectedAreaName || 'None';
 
     alert(`Hold Request Data (see console for details):\nDate: ${formattedDate}\nTime: ${formatDecimalTime(formattedTime, appConfig?.timeFormat)}\nGuests: ${numericGuests}\nAddons: ${formattedAddons || 'None'}\nArea: ${areaDisplay}`);
 
@@ -971,6 +985,9 @@ export default function ReservationForm() {
                           setSelectedAddons({ menus: [], options: {} });
                           setCurrentShiftAddons([]);
                           setCurrentShiftUsagePolicy(null);
+                          setAvailableAreas([]);
+                          setSelectedArea(null);
+                          setSelectedAreaName(null);
                         }
                       }}
                     >
@@ -1025,7 +1042,7 @@ export default function ReservationForm() {
                           </p>
                         )}
 
-                        {/* AddonSelection moved here, shown only if this shift is selected and has addons */}
+                        {/* Area Selection - show only if this shift is selected and areas are available */}
                         {isSelectedShift && availableAreas && availableAreas.length > 0 && (
                           <div className="mt-4">
                             <AreaSelection
@@ -1038,6 +1055,7 @@ export default function ReservationForm() {
                           </div>
                         )}
 
+                        {/* AddonSelection - show only if this shift is selected and has addons */}
                         {isSelectedShift && currentShiftAddons && currentShiftAddons.length > 0 && (
                           <div className="mt-4"> {/* Added margin-top for spacing */}
                             <AddonSelection
@@ -1053,7 +1071,7 @@ export default function ReservationForm() {
                           </div>
                         )}
 
-                        {/* SelectedAddonsSummary moved here, shown if this shift is selected */}
+                        {/* SelectedAddonsSummary - show if this shift is selected and addons are selected */}
                         {isSelectedShift && (Object.keys(selectedAddons.options).length > 0 || selectedAddons.menus.length > 0) && (
                            <div className="mt-4"> {/* Added margin-top for spacing */}
                             <SelectedAddonsSummary
@@ -1066,7 +1084,7 @@ export default function ReservationForm() {
                           </div>
                         )}
 
-                        {/* "Proceed to Booking" button moved here, shown if this shift is selected */}
+                        {/* "Proceed to Booking" button - shown if this shift is selected */}
                         {isSelectedShift && selectedShiftTime?.selectedTime && (
                           <div className="mt-6 text-center"> {/* Adjusted margin-top */}
                             <button
@@ -1078,6 +1096,7 @@ export default function ReservationForm() {
                               {selectedShiftTime?.selectedTime && selectedDate && guests && ( // Summary still shown if time selected
                                 <div className="text-xs font-normal mt-1 text-purple-200">
                                   {selectedShiftTime.name} - {format(selectedDate, appConfig?.dateFormat || 'MMM d, yyyy')} - {guests} Guest{guests > 1 ? 's' : ''} - {formatDecimalTime(selectedShiftTime.selectedTime, appConfig?.timeFormat)}
+                                  {selectedAreaName && ` - ${selectedAreaName}`}
                                 </div>
                               )}
                             </button>
