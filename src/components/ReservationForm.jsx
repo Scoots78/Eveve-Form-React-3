@@ -14,7 +14,8 @@ import { formatDecimalTime } from "../utils/time"; // Import the utility functio
 import { useDebounce } from "../hooks/useDebounce"; // Import the custom hook
 import AddonSelection from "./AddonSelection"; // Import the new component
 import SelectedAddonsSummary from "./SelectedAddonsSummary"; // Import the summary component
-import { formatSelectedAddonsForApi } from "../utils/apiFormatter"; // Import the formatter
+import { formatSelectedAddonsForApi, formatAreaForApi } from "../utils/apiFormatter"; // Import formatters
+import AreaSelection from "./AreaSelection"; // NEW – import the area selector component
 // Month availability utilities
 import {
   fetchMonthAvailability,
@@ -55,6 +56,10 @@ export default function ReservationForm() {
   const [selectedAddons, setSelectedAddons] = useState({ menus: [], options: {} }); // Refactored state
   const [currentShiftAddons, setCurrentShiftAddons] = useState([]);
   const [currentShiftUsagePolicy, setCurrentShiftUsagePolicy] = useState(null); // Applies to Menus
+
+  // --- Area selection state ---
+  const [availableAreas, setAvailableAreas] = useState([]);      // Areas available for the currently selected time
+  const [selectedArea, setSelectedArea] = useState(null);        // The UID / id of the chosen area (or "any")
 
   // State for the proceed button
   const [proceedButtonState, setProceedButtonState] = useState({
@@ -467,6 +472,17 @@ export default function ReservationForm() {
     setCurrentShiftAddons(processedAddons);
     setCurrentShiftUsagePolicy(usagePolicyForShift === undefined ? null : Number(usagePolicyForShift)); // Ensure it's a number or null
 
+    /* ------------------------------------------------------------------
+       AREA SELECTION HANDLING
+       Extract areas from either the specific time slot or the shift.
+       Structure assumption:
+         timeObject.areas OR shift.areas -> array of objects [{uid,name,description}]
+    ------------------------------------------------------------------ */
+    const extractedAreas = (timeObject && timeObject.areas) || shift?.areas || [];
+    setAvailableAreas(Array.isArray(extractedAreas) ? extractedAreas : []);
+    // Reset previously selected area whenever a new time is chosen
+    setSelectedArea(null);
+
     // Reset any previously selected addons
     setSelectedAddons({ menus: [], options: {} }); // Reset to new structure
 
@@ -600,6 +616,11 @@ export default function ReservationForm() {
     });
   };
 
+  // --- Handler for area change ---
+  const handleAreaChange = (areaUidOrAny) => {
+    setSelectedArea(areaUidOrAny);
+  };
+
   const handleProceedToBooking = () => {
     if (!selectedDate || !guests || !selectedShiftTime || !selectedShiftTime.selectedTime) {
       alert(appConfig?.lng?.fillAllFields || "Please select date, guests, and a time before proceeding.");
@@ -610,6 +631,7 @@ export default function ReservationForm() {
     const formattedDate = format(selectedDate, 'yyyy-MM-dd');
     const formattedTime = selectedShiftTime.selectedTime; // This is already in decimal format like 12.25
     const formattedAddons = formatSelectedAddonsForApi(selectedAddons);
+    const formattedArea   = formatAreaForApi(selectedArea);
 
     const bookingDataForHold = {
       est: est, // From URL params
@@ -618,13 +640,21 @@ export default function ReservationForm() {
       date: formattedDate,
       time: formattedTime,
       addons: formattedAddons, // May be an empty string if no addons selected
+      area: formattedArea,     // Formatted area ('' if none, 'any', or specific UID)
       // Potentially other details from appConfig or selectedShiftTime if needed by hold API
       // e.g., shiftUid: selectedShiftTime.uid,
     };
 
     console.log("Proceeding to Booking (Hold API Call Placeholder)");
     console.log("Booking Data for Hold:", bookingDataForHold);
-    alert(`Hold Request Data (see console for details):\nDate: ${formattedDate}\nTime: ${formatDecimalTime(formattedTime, appConfig?.timeFormat)}\nGuests: ${numericGuests}\nAddons: ${formattedAddons || 'None'}`);
+
+    // Human-readable area information for the debug alert
+    const areaDisplay =
+      formattedArea
+        ? (formattedArea.toLowerCase() === 'any' ? 'Any Area' : formattedArea)
+        : 'None';
+
+    alert(`Hold Request Data (see console for details):\nDate: ${formattedDate}\nTime: ${formatDecimalTime(formattedTime, appConfig?.timeFormat)}\nGuests: ${numericGuests}\nAddons: ${formattedAddons || 'None'}\nArea: ${areaDisplay}`);
 
     // In a real scenario, this would be an API call:
     // try {
@@ -771,6 +801,16 @@ export default function ReservationForm() {
 
     const addonValidationResult = areAddonsValidForProceeding();
 
+    // --- Area validation (if required) ---
+    const areaRequired = appConfig?.arSelect === 'true' && availableAreas.length > 0;
+    if (areaRequired && !selectedArea) {
+      setProceedButtonState({
+        text: appConfig?.lng?.selectAreaPrompt || "Please select a seating area",
+        disabled: true,
+      });
+      return;
+    }
+
     if (addonValidationResult.isValid) {
       setProceedButtonState({
         text: appConfig?.lng?.proceedToBookingBtn || "Proceed to Booking",
@@ -810,7 +850,7 @@ export default function ReservationForm() {
         disabled: true,
       });
     }
-  }, [selectedShiftTime, selectedAddons, guests, currentShiftAddons, appConfig, currentShiftUsagePolicy]); // Ensure all relevant dependencies
+  }, [selectedShiftTime, selectedAddons, guests, currentShiftAddons, appConfig, currentShiftUsagePolicy, availableAreas, selectedArea]); // Ensure all relevant dependencies
 
 
   if (isConfigLoading) {
@@ -986,6 +1026,18 @@ export default function ReservationForm() {
                         )}
 
                         {/* AddonSelection moved here, shown only if this shift is selected and has addons */}
+                        {isSelectedShift && availableAreas && availableAreas.length > 0 && (
+                          <div className="mt-4">
+                            <AreaSelection
+                              availableAreas={availableAreas}
+                              selectedArea={selectedArea}
+                              onAreaChange={handleAreaChange}
+                              areaAnyEnabled={appConfig?.areaAny === 'true'}
+                              languageStrings={appConfig?.lng}
+                            />
+                          </div>
+                        )}
+
                         {isSelectedShift && currentShiftAddons && currentShiftAddons.length > 0 && (
                           <div className="mt-4"> {/* Added margin-top for spacing */}
                             <AddonSelection
