@@ -199,7 +199,6 @@ export default function ReservationForm() {
         setIsMonthAvailLoading(false);
       }
     };
-    const monthZeroBased = instance.currentMonth; // react-calendar 0-based
     fetchCurrentMonthAvailability();
   }, [appConfig, configError, est]); // fetchedMonths removed to avoid unwanted re-runs
 
