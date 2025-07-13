@@ -9,7 +9,7 @@ A frontend booking widget built with **React**, **Tailwind CSS**, and **Vite**, 
 - **React** – Component-based UI rendering
 - **Tailwind CSS** – Utility-first styling
 - **Vite** – Fast development server and build tool
-- **react-flatpickr** – Date picker library
+- **react-calendar** – Date picker library
 - **date-fns** – For date formatting and utilities.
 - **Custom Hooks** – e.g., `useDebounce` for optimizing API calls.
 - **ESBuild** – Powered by Vite for fast bundling
@@ -21,6 +21,8 @@ A frontend booking widget built with **React**, **Tailwind CSS**, and **Vite**, 
 - [x] **React, Vite, Tailwind CSS Base:** Solid foundation for the widget.
 - [x] **Dynamic Restaurant Configuration:** Loads restaurant-specific settings, UI text (language strings), and operational parameters (min/max guests, time format, date format, etc.) using a `?est=UID` query parameter via `configLoader.js`.
 - [x] **Interactive Date Picker:** Allows users to select a booking date using `react-flatpickr`, with options for disabling past dates, configured by the dynamic configuration.
+- [x] **Interactive Date Picker:** Allows users to select a booking date using `react-calendar`, with options for disabling past dates, configured by the dynamic configuration.
+- [x] **Modern Calendar Component:** Recently migrated from `react-flatpickr` to `react-calendar`, providing better performance, accessibility, and a more polished interface.
 - [x] **Guest Number Selection:** Users can easily increment or decrement the number of guests, constrained by `partyMin` and `partyMax` from the configuration.
 - [x] **Real-time Availability:** Fetches and displays available booking slots (shifts and specific times) from the Eveve API (`/web/day-avail`) based on selected date and guest count.
 - [x] **Addon Selection System:**
