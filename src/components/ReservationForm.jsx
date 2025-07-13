@@ -1,6 +1,13 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+  startTransition
+} from "react";
 import GuestSelector from "./guestSelector";
-import CalendarPicker from "./CalendarPicker";
+import ReactCalendarPicker from "./ReactCalendarPicker";
 import { format } from 'date-fns';
 import { loadAppConfig } from "../config/configLoader"; // Import the config loader
 import { formatDecimalTime } from "../utils/time"; // Import the utility function
@@ -8,10 +15,19 @@ import { useDebounce } from "../hooks/useDebounce"; // Import the custom hook
 import AddonSelection from "./AddonSelection"; // Import the new component
 import SelectedAddonsSummary from "./SelectedAddonsSummary"; // Import the summary component
 import { formatSelectedAddonsForApi } from "../utils/apiFormatter"; // Import the formatter
+// Month availability utilities
+import {
+  fetchMonthAvailability,
+  parseClosedDatesFromMonthResponse,
+  defaultCoversForMonthAvail
+} from "../utils/monthAvailability";
 
 
 export default function ReservationForm() {
   const EFFECTIVE_CURRENCY_SYMBOL = '$'; // Hardcoded currency symbol
+  
+  // Ref to prevent multiple config loads
+  const configLoadedRef = useRef(false);
 
   const urlParams = new URLSearchParams(window.location.search);
   const est = urlParams.get("est"); // Removed fallback to "testnza"
@@ -46,8 +62,31 @@ export default function ReservationForm() {
     disabled: true,
   });
 
+  // -----------------------------------------------------------
+  // Month-availability state
+  // -----------------------------------------------------------
+  // 1) Map monthKey → array of closed Date objects
+  const [monthClosedDates, setMonthClosedDates] = useState({});
+  // 2) Cache of monthKeys we have already fetched
+  const [fetchedMonths, setFetchedMonths] = useState(() => new Set());
+  // 3) Loading flag limited to month-availability calls
+  const [isMonthAvailLoading, setIsMonthAvailLoading] = useState(false);
+  // Flag to suppress re-entrant onMonthChange while React state updates render
+  const isUpdatingMonthDataRef = useRef(false);
+  // Track if we've fetched the very first month already
+  const initialMonthFetchedRef = useRef(false);
+  // Prevent concurrent month-availability fetches
+  const monthFetchInProgressRef = useRef(false);
+
+
   useEffect(() => {
     const fetchConfig = async () => {
+      // Check if config has already been loaded or is loading
+      if (configLoadedRef.current) {
+        console.log("Config already loaded, skipping duplicate load");
+        return;
+      }
+      
       // Check if est is present before trying to load config
       if (!est) {
         setConfigError("No restaurant ID (est) provided in the URL.");
@@ -56,8 +95,11 @@ export default function ReservationForm() {
       }
 
       try {
+        configLoadedRef.current = true;
         setIsConfigLoading(true);
         setConfigError(null);
+        console.log(`Loading app configuration for est=${est}`);
+        
         const config = await loadAppConfig(est);
         setAppConfig(config);
         console.log("App Config Loaded:", config); // For verification
@@ -65,7 +107,6 @@ export default function ReservationForm() {
         if (config && !config.estFull) {
           console.error("Essential configuration missing: estFull is not defined in the loaded config.", config);
           setConfigError(config?.lng?.errorB || "Essential restaurant information (name) is missing. Unable to proceed.");
-          // No need to setIsConfigLoading(false) here as it's done in finally, but ensure form doesn't render.
         } else if (config) {
             // Example: Access a loaded config variable
             if (config.estName) {
@@ -78,20 +119,210 @@ export default function ReservationForm() {
                  console.log("Max Guests from Config:", config.partyMax);
             }
         }
-        // If config itself is null/undefined (error caught by catch block), configError will already be set.
       } catch (error) {
         console.error("Failed to load app configuration:", error);
         // Use a generic error message or one from lng if appConfig was partially loaded or defaults exist
-        setConfigError(error.message || (appConfig?.lng?.errorB || "Failed to load application configuration."));
+        setConfigError(error.message || "Failed to load application configuration.");
+        configLoadedRef.current = false; // Reset ref to allow retry
       } finally {
         setIsConfigLoading(false);
       }
     };
 
-    if (est) {
+    if (est && !configLoadedRef.current) {
       fetchConfig();
     }
-  }, [est, appConfig?.lng?.errorB]); // Added appConfig.lng.errorB to deps for stable error message
+  }, [est]); // Removed appConfig?.lng?.errorB from deps to prevent multiple calls
+
+  // -----------------------------------------------------------
+  // Initial month-availability fetch (ONLY current month)
+  // -----------------------------------------------------------
+  useEffect(() => {
+    const fetchCurrentMonthAvailability = async () => {
+      /* --------------------------------------------------------
+         Guard: ensure this effect runs only once.
+         If we've already fetched the first month, exit early.
+         -------------------------------------------------------- */
+      if (initialMonthFetchedRef.current) return;
+
+      // Abort if prerequisites are not satisfied
+      if (!appConfig || configError || isMonthAvailLoading) return;
+      
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1; // 1-based month
+      const monthKey = `${currentYear}-${String(currentMonth).padStart(2, "0")}`;
+      
+      // Skip if we already have this month's data
+      if (fetchedMonths.has(monthKey)) {
+        console.log(`Month availability for ${monthKey} already cached, skipping fetch`);
+        return;
+      }
+
+      // Mark as fetched only when we are sure we intend to fetch (or have verified cache)
+      // This prevents the effect from running again in the same session.
+      initialMonthFetchedRef.current = true;
+
+      try {
+        console.log(`Fetching initial month availability for current month: ${monthKey}`);
+        setIsMonthAvailLoading(true);
+        
+        const monthData = await fetchMonthAvailability(
+          est,
+          currentYear,
+          currentMonth,
+          appConfig.dapi || "https://nz.eveve.com"
+        );
+        
+        if (monthData) {
+          const closedDatesArr = parseClosedDatesFromMonthResponse(
+            monthData,
+            currentYear,
+            currentMonth
+          );
+          console.log(
+            `Found ${closedDatesArr.length} closed dates for ${monthKey}`
+          );
+          // Cache month’s closed dates
+          setMonthClosedDates((prev) => ({ ...prev, [monthKey]: closedDatesArr }));
+          
+          // Add to fetched months cache
+          setFetchedMonths(prev => {
+            const next = new Set(prev);
+            next.add(monthKey);
+            return next;
+          });
+        }
+      } catch (err) {
+        console.error(`Error fetching month availability for ${monthKey}:`, err);
+      } finally {
+        setIsMonthAvailLoading(false);
+      }
+    };
+
+    fetchCurrentMonthAvailability();
+  }, [appConfig, configError, est]); // fetchedMonths removed to avoid unwanted re-runs
+
+  // -----------------------------------------------------------
+  // Handle calendar month navigation
+  // -----------------------------------------------------------
+  const handleMonthChange = useCallback(async (_selected, _dateStr, instance) => {
+    console.groupCollapsed(
+      `%c[handleMonthChange] fired – yr:${instance.currentYear} m:${instance.currentMonth + 1}`,
+      "color:orange;font-weight:bold"
+    );
+    if (!appConfig) {
+      console.log("%cNo appConfig – aborting", "color:red");
+      console.groupEnd();
+      return;
+    }
+    // Avoid overlaps
+    if (monthFetchInProgressRef.current || isUpdatingMonthDataRef.current) {
+      console.log("%cOverlap or React update in progress – aborting", "color:red");
+      console.groupEnd();
+      return;
+    }
+    
+    const year = instance.currentYear;
+    const monthZeroBased = instance.currentMonth; // flatpickr 0-based
+    const month = monthZeroBased + 1;
+    const monthKey = `${year}-${String(month).padStart(2, "0")}`;
+
+    // Skip if we already have this month's data
+    if (fetchedMonths.has(monthKey)) {
+      console.log(`Month availability for ${monthKey} already cached, skipping fetch`);
+      return;
+    }
+
+    try {
+      console.log(`User navigated to new month: ${monthKey}, fetching availability`);
+      setIsMonthAvailLoading(true);
+      isUpdatingMonthDataRef.current = true;        // suppress re-entrant calls
+      monthFetchInProgressRef.current = true;
+      
+      const monthData = await fetchMonthAvailability(
+        est,
+        year,
+        month,
+        appConfig.dapi || "https://nz.eveve.com"
+      );
+      
+      if (monthData) {
+        const newClosed = parseClosedDatesFromMonthResponse(
+          monthData,
+          year,
+          month
+        );
+        console.log(`Found ${newClosed.length} closed dates for ${monthKey}`);
+        // Cache without triggering immediate calendar re-render loops
+        console.log("%cCaching closed dates & month key (startTransition)", "color:blue");
+        startTransition(() => {
+          console.log("%c→ setMonthClosedDates", "color:blue");
+          setMonthClosedDates((prev) => ({ ...prev, [monthKey]: newClosed }));
+          console.log("%c→ setFetchedMonths", "color:blue");
+          setFetchedMonths((prev) => {
+            const next = new Set(prev);
+            next.add(monthKey);
+            return next;
+        });
+
+        });
+      }
+    } catch (err) {
+      console.error(`Error fetching month availability for ${monthKey}:`, err);
+    } finally {
+      console.timeEnd(`[monthFetch] ${monthKey}`);
+      setIsMonthAvailLoading(false);
+      monthFetchInProgressRef.current = false;
+      isUpdatingMonthDataRef.current = false;       // re-enable callback
+      console.groupEnd();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    appConfig,
+    est
+    /* -----------------------------------------------------------
+       NOTE:
+       fetchedMonths is intentionally NOT included in the dependency
+       array.  Including it would create a new handleMonthChange
+       reference every time we cache a month, which causes Flatpickr
+       to re-initialise and emit an extra onMonthChange event.
+       The internal refs (monthFetchInProgressRef, fetchedMonths Set)
+       are sufficient for correctness and prevent duplicate calls.
+    ----------------------------------------------------------- */
+  ]);
+
+  /* ------------------------------------------------------------------
+     Derive flat array of disabled dates for CalendarPicker whenever
+     monthClosedDates changes. useMemo prevents unnecessary re-renders.
+  ------------------------------------------------------------------ */
+  const disabledDates = useMemo(
+    () =>
+      Object.values(monthClosedDates).reduce(
+        (all, arr) => all.concat(arr),
+        []
+      ),
+    [monthClosedDates]
+  );
+
+  /* ------------------------------------------------------------------
+     DEBUG: log whenever monthClosedDates or disabledDates change
+  ------------------------------------------------------------------ */
+  useEffect(() => {
+    console.log(
+      `%c[monthClosedDates] updated – months cached: ${Object.keys(monthClosedDates).join(
+        ", "
+      )}`,
+      "color:purple;font-weight:bold"
+    );
+  }, [monthClosedDates]);
+
+  useEffect(() => {
+    console.log(
+      `%c[disabledDates] length: ${disabledDates.length}`,
+      "color:teal;font-style:italic"
+    );
+  }, [disabledDates]);
 
   const handleDateChange = (dates) => {
     if (dates && dates.length > 0) {
@@ -617,11 +848,13 @@ export default function ReservationForm() {
 
       {showDateTimePicker && (
         <div className="grid grid-cols-2 gap-6">
-          <CalendarPicker
+          <ReactCalendarPicker
             date={selectedDate}
             onChange={handleDateChange}
             dateFormat={appConfig?.dateFormat} // Pass dateFormat from config
             disablePast={true} // Pass disablePast from config
+            disabledDates={disabledDates}
+            onMonthChange={handleMonthChange}
           />
           <GuestSelector
             value={guests}

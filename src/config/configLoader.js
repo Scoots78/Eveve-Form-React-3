@@ -55,7 +55,7 @@ export async function loadAppConfig(estId) {
       const loggingLngHandler = {
         get: function(target, prop, receiver) {
           if (prop in target) {
-            console.log(`Language variable accessed: lng.${prop}`);
+            //console.log(`Language variable accessed: lng.${prop}`);
             return target[prop];
           }
           // If the key is not found, log an error and return a placeholder
@@ -133,7 +133,7 @@ export async function loadAppConfig(estId) {
           if (value !== null) {
             extractedConfigs[varName] = value;
           } else {
-            console.warn(`Variable ${varName} could not be extracted.`);
+            //console.warn(`Variable ${varName} could not be extracted.`);
           }
         }
     }
