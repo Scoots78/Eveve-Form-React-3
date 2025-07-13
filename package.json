@@ -10,10 +10,11 @@
   },
   "dependencies": {
     "date-fns": "^4.1.0",
-    "flatpickr": "^4.6.13",
+    "flatpickr": "^4.6.13", // deprecated – will be removed in a future version
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-flatpickr": "^4.0.10"
+    "react-flatpickr": "^4.0.10", // deprecated – will be removed in a future version
+    "react-calendar": "^4.2.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.0",

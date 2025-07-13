@@ -199,7 +199,7 @@ export default function ReservationForm() {
         setIsMonthAvailLoading(false);
       }
     };
-
+    const monthZeroBased = instance.currentMonth; // react-calendar 0-based
     fetchCurrentMonthAvailability();
   }, [appConfig, configError, est]); // fetchedMonths removed to avoid unwanted re-runs
 
@@ -285,15 +285,15 @@ export default function ReservationForm() {
        NOTE:
        fetchedMonths is intentionally NOT included in the dependency
        array.  Including it would create a new handleMonthChange
-       reference every time we cache a month, which causes Flatpickr
-       to re-initialise and emit an extra onMonthChange event.
+       reference every time we cache a month, which causes react-calendar
+       to re-initialise and emit an extra onActiveStartDateChange event.
        The internal refs (monthFetchInProgressRef, fetchedMonths Set)
        are sufficient for correctness and prevent duplicate calls.
     ----------------------------------------------------------- */
   ]);
 
   /* ------------------------------------------------------------------
-     Derive flat array of disabled dates for CalendarPicker whenever
+     Derive flat array of disabled dates for ReactCalendarPicker whenever
      monthClosedDates changes. useMemo prevents unnecessary re-renders.
   ------------------------------------------------------------------ */
   const disabledDates = useMemo(

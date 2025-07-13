@@ -1,3 +1,16 @@
+/**
+ * ======================================================================
+ *  🚨  DEPRECATED COMPONENT – DO NOT USE IN NEW CODE  🚨
+ * ----------------------------------------------------------------------
+ *  CalendarPicker.jsx has been superseded by ReactCalendarPicker.jsx,
+ *  which uses `react-calendar` (not `react-flatpickr`) for improved
+ *  accessibility, performance, and maintainability.
+ *
+ *  This file is retained only for legacy reference.  All new features
+ *  or bug-fixes should target ReactCalendarPicker.jsx instead.
+ * ======================================================================
+ */
+
 import React from 'react';
 import Flatpickr from 'react-flatpickr';
 import 'flatpickr/dist/themes/airbnb.css';
