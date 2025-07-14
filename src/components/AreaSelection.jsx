@@ -105,12 +105,6 @@ const AreaSelection = ({
               />
               <div className="flex-grow">
                 <span className="addon-name font-medium text-gray-800">{area.name}</span>
-                {/* Prefer the shorter label if provided, fall back to description */}
-                {(area.short || area.description) && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {area.short || area.description}
-                  </p>
-                )}
               </div>
             </label>
           </div>

@@ -68,6 +68,15 @@ export default function ReservationForm() {
     disabled: true,
   });
 
+  /* ------------------------------------------------------------------
+     Normalised flag – true when “Any Area” is allowed.  We convert both
+     boolean true and string 'true' from the remote config to a boolean.
+     This is needed in multiple places (render + validation), so compute
+     it once at component level.
+  ------------------------------------------------------------------ */
+  const areaAnyAllowed =
+    appConfig?.areaAny === true || appConfig?.areaAny === 'true';
+
   // -----------------------------------------------------------
   // Month-availability state
   // -----------------------------------------------------------
@@ -665,10 +674,48 @@ export default function ReservationForm() {
     console.log("Proceeding to Booking (Hold API Call Placeholder)");
     console.log("Booking Data for Hold:", bookingDataForHold);
 
+    /* ----------------------------------------------------------
+       Build the GET hold-request URL for display / debugging
+    ---------------------------------------------------------- */
+    const baseHoldUrl =
+      (appConfig?.dapi || "https://nz.eveve.com") + "/web/hold";
+
+    const holdParams = new URLSearchParams({
+      est: est,
+      lng: appConfig?.usrLang || "en",
+      covers: numericGuests,
+      date: formattedDate,
+      time: formattedTime,
+    });
+
+    // Only include area parameter when a specific UID was chosen
+    // (omit when user selected "Any Area" which is returned as 'any')
+    if (formattedArea && formattedArea !== 'any') {
+      holdParams.append("area", formattedArea);
+    }
+
+    // Addons are optional – send if user picked something
+    if (formattedAddons) {
+      holdParams.append("addons", formattedAddons);
+    }
+
+    const assembledHoldUrl = `${baseHoldUrl}?${holdParams.toString()}`;
+    console.log("Assembled Hold URL:", assembledHoldUrl);
+
     // Human-readable area information for the debug alert
     const areaDisplay = selectedAreaName || 'None';
 
-    alert(`Hold Request Data (see console for details):\nDate: ${formattedDate}\nTime: ${formatDecimalTime(formattedTime, appConfig?.timeFormat)}\nGuests: ${numericGuests}\nAddons: ${formattedAddons || 'None'}\nArea: ${areaDisplay}`);
+    /* ----------------------------------------------------------
+       Show alert with the hold URL plus the data summary
+    ---------------------------------------------------------- */
+    alert(
+      `Hold Request URL:\n${assembledHoldUrl}\n\n` +
+      `Date: ${formattedDate}\n` +
+      `Time: ${formatDecimalTime(formattedTime, appConfig?.timeFormat)}\n` +
+      `Guests: ${numericGuests}\n` +
+      `Addons: ${formattedAddons || 'None'}\n` +
+      `Area: ${areaDisplay}`
+    );
 
     // In a real scenario, this would be an API call:
     // try {
@@ -836,11 +883,29 @@ export default function ReservationForm() {
     );
     /* eslint-enable no-console */
 
-    const areaSelectEnabled = appConfig?.arSelect === 'true';
-    const areaAnyAllowed    = appConfig?.areaAny === 'true';
-    const areaRequired      = areaSelectEnabled &&
-                              !areaAnyAllowed &&
-                              availableAreas.length > 0;
+    // ------------------------------------------------------------------
+    // Area-selection validation
+    // ‑ Eveve sometimes supplies feature flags as **booleans** and other
+    //   times as the **strings** “true” / “false”.  Normalise first.
+    // ------------------------------------------------------------------
+    const areaSelectEnabled =
+      appConfig?.arSelect === true || appConfig?.arSelect === 'true';
+    const areaAnyAllowed =
+      appConfig?.areaAny === true || appConfig?.areaAny === 'true';
+
+    // Area is mandatory when the feature is enabled AND “Any Area” is not
+    // allowed AND at least one concrete area is available for the time.
+    const areaRequired =
+      areaSelectEnabled && !areaAnyAllowed && availableAreas.length > 0;
+
+    /* eslint-disable no-console */
+    console.log('[AreaValidation] computed flags:', {
+      areaSelectEnabled,
+      areaAnyAllowed,
+      areaRequired,
+      selectedArea: selectedArea || 'none',
+    });
+    /* eslint-enable no-console */
 
     if (areaRequired && !selectedArea) {
       setProceedButtonState({
@@ -925,23 +990,30 @@ export default function ReservationForm() {
       </h1>
 
       {showDateTimePicker && (
-        <div className="grid grid-cols-2 gap-6">
-          <ReactCalendarPicker
-            date={selectedDate}
-            onChange={handleDateChange}
-            dateFormat={appConfig?.dateFormat} // Pass dateFormat from config
-            disablePast={true} // Pass disablePast from config
-            disabledDates={disabledDates}
-            onMonthChange={handleMonthChange}
-          />
-          <GuestSelector
-            value={guests}
-            onChange={handleGuestsChange}
-            minGuests={appConfig?.partyMin || 1}
-            maxGuests={appConfig?.partyMax || 10}
-            guestLabel={appConfig?.lng?.guest}
-            guestsLabel={appConfig?.lng?.guests || appConfig?.lng?.partySize}
-          />
+        <div className="grid grid-cols-10 gap-6">
+          {/* Calendar takes 60 % (6 / 10) */}
+          <div className="col-span-6">
+            <ReactCalendarPicker
+              date={selectedDate}
+              onChange={handleDateChange}
+              dateFormat={appConfig?.dateFormat} // Pass dateFormat from config
+              disablePast={true} // Pass disablePast from config
+              disabledDates={disabledDates}
+              onMonthChange={handleMonthChange}
+            />
+          </div>
+
+          {/* Guest selector takes remaining 40 % (4 / 10) */}
+          <div className="col-span-4">
+            <GuestSelector
+              value={guests}
+              onChange={handleGuestsChange}
+              minGuests={appConfig?.partyMin || 1}
+              maxGuests={appConfig?.partyMax || 10}
+              guestLabel={appConfig?.lng?.guest}
+              guestsLabel={appConfig?.lng?.guests || appConfig?.lng?.partySize}
+            />
+          </div>
         </div>
       )}
 
@@ -1074,7 +1146,7 @@ export default function ReservationForm() {
                               availableAreas={availableAreas}
                               selectedArea={selectedArea}
                               onAreaChange={handleAreaChange}
-                              areaAnyEnabled={appConfig?.areaAny === true || appConfig?.areaAny === 'true'}
+                              areaAnyEnabled={areaAnyAllowed}
                               languageStrings={appConfig?.lng}
                             />
                           </div>
