@@ -42,3 +42,32 @@ export function formatSelectedAddonsForApi(selectedAddons) {
 
   return apiParams.join(',');
 }
+
+/**
+ * Formats the seating area for API usage.
+ * Eveve generally accepts the literal string “any” to indicate no preference,
+ * but some integrations omit the parameter entirely in that case.
+ * This helper returns:
+ *   • ''           – when no area was chosen (caller should omit param)
+ *   • 'any'        – when user explicitly picked the “Any Area” option
+ *   • '<area-uid>' – for a specific area selection
+ *
+ * NOTE: It does **not** prepend the `area=` key or URL-encode the value.
+ * That responsibility is left to the code constructing the final query/string,
+ * allowing flexibility for GET vs POST payloads.
+ *
+ * @param {string|null|undefined} selectedArea  The currently chosen area UID
+ *                                              or the literal string 'any'.
+ * @returns {string} A formatted area value ready for inclusion in API data
+ */
+export function formatAreaForApi(selectedArea) {
+  if (!selectedArea) return '';          // nothing selected → omit
+
+  // Normalise to case-insensitive match for “any”
+  if (typeof selectedArea === 'string' && selectedArea.trim().toLowerCase() === 'any') {
+    return 'any';
+  }
+
+  // For concrete areas just return the raw/trimmed value.
+  return String(selectedArea).trim();
+}

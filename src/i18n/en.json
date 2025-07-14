@@ -78,5 +78,13 @@
   "selectMenuPolicy3Prompt": "Please make a menu selection",
   "maxMenuTypesExceededPolicy3Prompt": "Too many menu items selected",
   "optionParentMissingPrompt": "Select the main course for your chosen side/option",
-  "optionMinQuantityNotMetPrompt": "Adjust quantity for a selected option"
+  "optionMinQuantityNotMetPrompt": "Adjust quantity for a selected option",
+
+
+  "areaSelectionTitle": "Select Seating Area",
+  "anyArea": "Any Area",
+  "anyAreaDesc": "No preference for seating area",
+  "areaSelectionHelp": "Select your preferred seating area (optional)",
+  "areaSelectionRequired": "Area selection is required to proceed",
+  "selectAreaPrompt": "Please select a seating area"
 }

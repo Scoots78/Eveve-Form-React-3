@@ -83,7 +83,7 @@ export default function GuestSelector({
           value={currentGuests}
           onChange={handleChange}
           placeholder={placeholderText}
-          className="w-24 text-center border rounded-md py-1"
+          className="w-16 text-center border rounded-md py-1"
           // HTML min/max are for browser hints, JS logic enforces strict limits
           min={effectiveMinGuests}
           max={effectiveMaxGuests}
