@@ -137,7 +137,7 @@ export async function loadAppConfig(estId) {
           }
         }
     }
-    // console.log("Extracted Configs (excluding local lng):", extractedConfigs);
+     console.log("Extracted Configs (excluding local lng):", extractedConfigs);
     return extractedConfigs;
 
   } catch (error) {

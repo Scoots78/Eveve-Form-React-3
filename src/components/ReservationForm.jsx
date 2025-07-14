@@ -816,7 +816,32 @@ export default function ReservationForm() {
     const addonValidationResult = areAddonsValidForProceeding();
 
     // --- Area validation (if required) ---
-    const areaRequired = appConfig?.arSelect === 'true' && availableAreas.length > 0;
+    /* ----------------------------------------------------------
+       Area requirement logic
+       - arSelect === 'true'  ? area-selection feature enabled
+       - areaAny  === 'true'  ? "Any Area" allowed ? optional
+       - Otherwise            ? mandatory (must pick a specific area)
+    ---------------------------------------------------------- */
+    // DEBUG: inspect the raw flag values coming from appConfig
+    /* eslint-disable no-console */
+    console.log(
+      "[AreaValidation] appConfig.arSelect →",
+      appConfig?.arSelect,
+      `(type: ${typeof appConfig?.arSelect})`
+    );
+    console.log(
+      "[AreaValidation] appConfig.areaAny  →",
+      appConfig?.areaAny,
+      `(type: ${typeof appConfig?.areaAny})`
+    );
+    /* eslint-enable no-console */
+
+    const areaSelectEnabled = appConfig?.arSelect === 'true';
+    const areaAnyAllowed    = appConfig?.areaAny === 'true';
+    const areaRequired      = areaSelectEnabled &&
+                              !areaAnyAllowed &&
+                              availableAreas.length > 0;
+
     if (areaRequired && !selectedArea) {
       setProceedButtonState({
         text: appConfig?.lng?.selectAreaPrompt || "Please select a seating area",
@@ -1049,7 +1074,7 @@ export default function ReservationForm() {
                               availableAreas={availableAreas}
                               selectedArea={selectedArea}
                               onAreaChange={handleAreaChange}
-                              areaAnyEnabled={appConfig?.areaAny === 'true'}
+                              areaAnyEnabled={appConfig?.areaAny === true || appConfig?.areaAny === 'true'}
                               languageStrings={appConfig?.lng}
                             />
                           </div>

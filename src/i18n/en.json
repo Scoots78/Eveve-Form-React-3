@@ -85,5 +85,6 @@
   "anyArea": "Any Area",
   "anyAreaDesc": "No preference for seating area",
   "areaSelectionHelp": "Select your preferred seating area (optional)",
+  "areaSelectionRequired": "Area selection is required to proceed",
   "selectAreaPrompt": "Please select a seating area"
 }
