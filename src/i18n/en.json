@@ -86,9 +86,8 @@
   "anyAreaDesc": "No preference for seating area",
   "areaSelectionHelp": "Select your preferred seating area (optional)",
   "areaSelectionRequired": "Area selection is required to proceed",
-  "bookingDetailsTitle": "Complete Your Reservation",
   "selectAreaPrompt": "Please select a seating area",
-
+  "bookingDetailsTitle": "Complete Your Reservation",
   "bookingSummaryTitle": "Booking Summary",
   "bookingPersonalDetailsTitle": "Your Details",
   "bookingAllergiesTitle": "Allergies & Dietary Requirements",
@@ -109,3 +108,4 @@
   "requiredFieldError": "This field is required",
   "emailFormatError": "Please enter a valid email address",
   "phoneFormatError": "Please enter a valid phone number"
+}
