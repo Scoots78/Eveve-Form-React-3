@@ -9,12 +9,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.4",
     "date-fns": "^4.1.0",
     "flatpickr": "^4.6.13",
     "react": "^18.2.0",
+    "react-calendar": "^4.2.1",
     "react-dom": "^18.2.0",
-    "react-flatpickr": "^4.0.10",
-    "react-calendar": "^4.2.1"
+    "react-flatpickr": "^4.0.10"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.0",

@@ -71,3 +71,50 @@ export function formatAreaForApi(selectedArea) {
   // For concrete areas just return the raw/trimmed value.
   return String(selectedArea).trim();
 }
+
+/**
+ * Formats customer details for API submission.
+ * This is a helper to ensure consistency when sending customer data to the Eveve API.
+ *
+ * @param {Object} customerData - The customer details object
+ * @param {string} customerData.firstName - Customer first name
+ * @param {string} customerData.lastName - Customer last name
+ * @param {string} customerData.email - Customer email address
+ * @param {string} customerData.phone - Customer phone number
+ * @param {string} [customerData.notes] - Optional booking notes
+ * @param {boolean} [customerData.optin] - Mailing list opt-in (default true)
+ * @param {Object} [customerData.allergy] - Allergy information
+ * @param {boolean} customerData.allergy.has - Whether the customer has allergies
+ * @param {string} customerData.allergy.details - Allergy details if has=true
+ * @returns {Object} Formatted data ready for URL parameters or request body
+ */
+export function formatCustomerDetails(customerData) {
+  // Validate required fields
+  if (!customerData.firstName || !customerData.lastName || !customerData.email || !customerData.phone) {
+    throw new Error('Missing required customer details');
+  }
+
+  // Basic formatted object
+  const formatted = {
+    fname: customerData.firstName.trim(),
+    lname: customerData.lastName.trim(),
+    email: customerData.email.trim(),
+    phone: customerData.phone.trim(),
+    optin: customerData.optin !== false ? 1 : 0 // Default to opt-in unless explicitly false
+  };
+
+  // Add optional fields if present
+  if (customerData.notes) {
+    formatted.notes = customerData.notes.trim();
+  }
+
+  // Handle allergy information
+  if (customerData.allergy) {
+    formatted.allergy = customerData.allergy.has ? 1 : 0;
+    if (customerData.allergy.has && customerData.allergy.details) {
+      formatted.allergytext = customerData.allergy.details.trim();
+    }
+  }
+
+  return formatted;
+}

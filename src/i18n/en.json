@@ -86,5 +86,26 @@
   "anyAreaDesc": "No preference for seating area",
   "areaSelectionHelp": "Select your preferred seating area (optional)",
   "areaSelectionRequired": "Area selection is required to proceed",
-  "selectAreaPrompt": "Please select a seating area"
-}
+  "bookingDetailsTitle": "Complete Your Reservation",
+  "selectAreaPrompt": "Please select a seating area",
+
+  "bookingSummaryTitle": "Booking Summary",
+  "bookingPersonalDetailsTitle": "Your Details",
+  "bookingAllergiesTitle": "Allergies & Dietary Requirements",
+  "bookingOptionsTitle": "Additional Options",
+  "bookingNotesTitle": "Special Requests",
+  "bookingTotalPrice": "Total Price",
+  "bookingConfirmButton": "Confirm Booking",
+  "bookingCloseButton": "Cancel",
+  "bookingSuccessTitle": "Booking Confirmed!",
+  "bookingErrorTitle": "Booking Error",
+  "bookingSuccessMessage": "Your booking has been confirmed. We look forward to seeing you!",
+  "bookingErrorMessage": "There was a problem confirming your booking. Please try again or contact us directly.",
+  "bookingLoadingMessage": "Processing your booking...",
+  "allergiesYes": "Yes, I have dietary requirements",
+  "allergiesNo": "No dietary requirements",
+  "allergiesDetails": "Please describe your dietary requirements",
+  "optinLabel": "Keep me informed about news and offers",
+  "requiredFieldError": "This field is required",
+  "emailFormatError": "Please enter a valid email address",
+  "phoneFormatError": "Please enter a valid phone number"

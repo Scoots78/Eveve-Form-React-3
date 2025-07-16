@@ -1,4 +1,4 @@
-﻿import React, {
+import React, {
   useState,
   useEffect,
   useCallback,
@@ -14,8 +14,10 @@ import { formatDecimalTime } from "../utils/time"; // Import the utility functio
 import { useDebounce } from "../hooks/useDebounce"; // Import the custom hook
 import AddonSelection from "./AddonSelection"; // Import the new component
 import SelectedAddonsSummary from "./SelectedAddonsSummary"; // Import the summary component
-import { formatSelectedAddonsForApi, formatAreaForApi } from "../utils/apiFormatter"; // Import formatters
-import AreaSelection from "./AreaSelection"; // NEW â€“ import the area selector component
+import { formatSelectedAddonsForApi, formatAreaForApi, formatCustomerDetails } from "../utils/apiFormatter"; // Import formatters
+import AreaSelection from "./AreaSelection"; // NEW – import the area selector component
+import { useHoldBooking, useUpdateHold, useBookReservation } from "../hooks/booking";
+import { BookingDetailsModal } from "./booking";
 // Month availability utilities
 import {
   fetchMonthAvailability,
@@ -61,6 +63,19 @@ export default function ReservationForm() {
   const [availableAreas, setAvailableAreas] = useState([]);      // Areas available for the currently selected time
   const [selectedArea, setSelectedArea] = useState(null);        // The UID / id of the chosen area (or "any")
   const [selectedAreaName, setSelectedAreaName] = useState(null); // Store the name of the selected area for display
+  
+  // --- Booking flow state ---
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  const [bookingData, setBookingData] = useState(null);
+  const [bookingState, setBookingState] = useState({
+    isHolding: false,
+    holdError: null,
+    isUpdating: false,
+    updateError: null,
+    isBooking: false,
+    bookingError: null,
+    bookingSuccess: false
+  });
 
   // State for the proceed button
   const [proceedButtonState, setProceedButtonState] = useState({
@@ -69,18 +84,24 @@ export default function ReservationForm() {
   });
 
   /* ------------------------------------------------------------------
-     Normalised flag â€“ true when â€œAny Areaâ€ is allowed.  We convert both
+     Normalised flag – true when "Any Area" is allowed.  We convert both
      boolean true and string 'true' from the remote config to a boolean.
      This is needed in multiple places (render + validation), so compute
      it once at component level.
   ------------------------------------------------------------------ */
+  // Initialize booking hooks
+  const baseApiUrl = appConfig?.dapi || "https://nz6.eveve.com";
+  const { holdBooking, isLoading: isHoldLoading, error: holdError, holdData, clearHoldData } = useHoldBooking(baseApiUrl);
+  const { updateHold, isLoading: isUpdateLoading, error: updateError } = useUpdateHold(baseApiUrl);
+  const { bookReservation, isLoading: isBookingLoading, error: bookingError, bookingResult } = useBookReservation(baseApiUrl);
+
   const areaAnyAllowed =
     appConfig?.areaAny === true || appConfig?.areaAny === 'true';
 
   // -----------------------------------------------------------
   // Month-availability state
   // -----------------------------------------------------------
-  // 1) Map monthKey â†’ array of closed Date objects
+  // 1) Map monthKey → array of closed Date objects
   const [monthClosedDates, setMonthClosedDates] = useState({});
   // 2) Cache of monthKeys we have already fetched
   const [fetchedMonths, setFetchedMonths] = useState(() => new Set());
@@ -222,17 +243,17 @@ export default function ReservationForm() {
   // -----------------------------------------------------------
   const handleMonthChange = useCallback(async (_selected, _dateStr, instance) => {
     console.groupCollapsed(
-      `%c[handleMonthChange] fired â€“ yr:${instance.currentYear} m:${instance.currentMonth + 1}`,
+      `%c[handleMonthChange] fired – yr:${instance.currentYear} m:${instance.currentMonth + 1}`,
       "color:orange;font-weight:bold"
     );
     if (!appConfig) {
-      console.log("%cNo appConfig â€“ aborting", "color:red");
+      console.log("%cNo appConfig – aborting", "color:red");
       console.groupEnd();
       return;
     }
     // Avoid overlaps
     if (monthFetchInProgressRef.current || isUpdatingMonthDataRef.current) {
-      console.log("%cOverlap or React update in progress â€“ aborting", "color:red");
+      console.log("%cOverlap or React update in progress – aborting", "color:red");
       console.groupEnd();
       return;
     }
@@ -271,9 +292,9 @@ export default function ReservationForm() {
         // Cache without triggering immediate calendar re-render loops
         console.log("%cCaching closed dates & month key (startTransition)", "color:blue");
         startTransition(() => {
-          console.log("%câ†’ setMonthClosedDates", "color:blue");
+          console.log("%c→ setMonthClosedDates", "color:blue");
           setMonthClosedDates((prev) => ({ ...prev, [monthKey]: newClosed }));
-          console.log("%câ†’ setFetchedMonths", "color:blue");
+          console.log("%c→ setFetchedMonths", "color:blue");
           setFetchedMonths((prev) => {
             const next = new Set(prev);
             next.add(monthKey);
@@ -324,7 +345,7 @@ export default function ReservationForm() {
   ------------------------------------------------------------------ */
   useEffect(() => {
     console.log(
-      `%c[monthClosedDates] updated â€“ months cached: ${Object.keys(monthClosedDates).join(
+      `%c[monthClosedDates] updated – months cached: ${Object.keys(monthClosedDates).join(
         ", "
       )}`,
       "color:purple;font-weight:bold"
@@ -647,7 +668,7 @@ export default function ReservationForm() {
     }
   };
 
-  const handleProceedToBooking = () => {
+  const handleProceedToBooking = async () => {
     if (!selectedDate || !guests || !selectedShiftTime || !selectedShiftTime.selectedTime) {
       alert(appConfig?.lng?.fillAllFields || "Please select date, guests, and a time before proceeding.");
       return;
@@ -657,7 +678,7 @@ export default function ReservationForm() {
     const formattedDate = format(selectedDate, 'yyyy-MM-dd');
     const formattedTime = selectedShiftTime.selectedTime; // This is already in decimal format like 12.25
     const formattedAddons = formatSelectedAddonsForApi(selectedAddons);
-    const formattedArea   = formatAreaForApi(selectedArea);
+    const formattedArea = formatAreaForApi(selectedArea);
 
     const bookingDataForHold = {
       est: est, // From URL params
@@ -667,75 +688,91 @@ export default function ReservationForm() {
       time: formattedTime,
       addons: formattedAddons, // May be an empty string if no addons selected
       area: formattedArea,     // Formatted area ('' if none, 'any', or specific UID)
-      // Potentially other details from appConfig or selectedShiftTime if needed by hold API
-      // e.g., shiftUid: selectedShiftTime.uid,
     };
 
-    console.log("Proceeding to Booking (Hold API Call Placeholder)");
-    console.log("Booking Data for Hold:", bookingDataForHold);
-
-    /* ----------------------------------------------------------
-       Build the GET hold-request URL for display / debugging
-    ---------------------------------------------------------- */
-    const baseHoldUrl =
-      (appConfig?.dapi || "https://nz.eveve.com") + "/web/hold";
-
-    const holdParams = new URLSearchParams({
-      est: est,
-      lng: appConfig?.usrLang || "en",
-      covers: numericGuests,
-      date: formattedDate,
-      time: formattedTime,
+    // Store booking data for display in the modal
+    setBookingData({
+      ...bookingDataForHold,
+      formattedDate,
+      areaName: selectedAreaName,
+      formattedAddons: formattedAddons ? formattedAddons : 'None'
     });
 
-    // Only include area parameter when a specific UID was chosen
-    // (omit when user selected "Any Area" which is returned as 'any')
-    if (formattedArea && formattedArea !== 'any') {
-      holdParams.append("area", formattedArea);
+    try {
+      setBookingState(prev => ({ ...prev, isHolding: true, holdError: null }));
+      const holdResult = await holdBooking(bookingDataForHold);
+      console.log("Hold Result:", holdResult);
+      
+      // Open booking details modal after successful hold
+      setIsBookingModalOpen(true);
+    } catch (err) {
+      console.error("Error during hold:", err);
+      setBookingState(prev => ({ ...prev, holdError: err.message }));
+      alert(appConfig?.lng?.errorHold || "Failed to hold booking. Please try again.");
+    } finally {
+      setBookingState(prev => ({ ...prev, isHolding: false }));
     }
+  };
 
-    // Addons are optional â€“ send if user picked something
-    if (formattedAddons) {
-      holdParams.append("addons", formattedAddons);
+  const handleCustomerDetailsSubmit = async (holdToken, customerData) => {
+    try {
+      setBookingState(prev => ({ ...prev, isUpdating: true, updateError: null }));
+      
+      // Step 1: Update the hold with customer details
+      const updateResult = await updateHold(holdToken, customerData);
+      console.log("Update Result:", updateResult);
+      
+      // Step 2: Finalize the booking
+      setBookingState(prev => ({ ...prev, isBooking: true, bookingError: null }));
+      const bookResult = await bookReservation(holdToken);
+      console.log("Booking Result:", bookResult);
+      
+      // Set success state
+      setBookingState(prev => ({ ...prev, bookingSuccess: true }));
+    } catch (err) {
+      console.error("Error during booking process:", err);
+      setBookingState(prev => ({ 
+        ...prev, 
+        updateError: prev.isUpdating ? err.message : null,
+        bookingError: prev.isBooking ? err.message : null
+      }));
+    } finally {
+      setBookingState(prev => ({ ...prev, isUpdating: false, isBooking: false }));
     }
+  };
 
-    const assembledHoldUrl = `${baseHoldUrl}?${holdParams.toString()}`;
-    console.log("Assembled Hold URL:", assembledHoldUrl);
-
-    // Human-readable area information for the debug alert
-    const areaDisplay = selectedAreaName || 'None';
-
-    /* ----------------------------------------------------------
-       Show alert with the hold URL plus the data summary
-    ---------------------------------------------------------- */
-    alert(
-      `Hold Request URL:\n${assembledHoldUrl}\n\n` +
-      `Date: ${formattedDate}\n` +
-      `Time: ${formatDecimalTime(formattedTime, appConfig?.timeFormat)}\n` +
-      `Guests: ${numericGuests}\n` +
-      `Addons: ${formattedAddons || 'None'}\n` +
-      `Area: ${areaDisplay}`
-    );
-
-    // In a real scenario, this would be an API call:
-    // try {
-    //   const response = await fetch(`https://nz6.eveve.com/web/hold`, {
-    //     method: 'POST', // Or GET, depending on API spec for hold with addons
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify(bookingDataForHold),
-    //   });
-    //   const result = await response.json();
-    //   if (result.ok) {
-    //     console.log("Hold successful:", result);
-    //     // Navigate to next step, e.g., customer details form, passing result.uid
-    //   } else {
-    //     console.error("Hold failed:", result);
-    //     setApiError(result.message || appConfig?.lng?.errorHold || "Failed to hold booking.");
-    //   }
-    // } catch (error) {
-    //   console.error("Error during hold booking:", error);
-    //   setApiError(appConfig?.lng?.errorServer || "Server error during hold booking.");
-    // }
+  const handleBookingModalClose = () => {
+    // If booking was successful, we might want to reset the form
+    if (bookingState.bookingSuccess) {
+      // Reset form state for a new booking
+      setSelectedDate(new Date());
+      setGuests('');
+      setSelectedDateForSummary(null);
+      setSelectedGuestsForSummary(null);
+      setShowDateTimePicker(true);
+      setAvailabilityData(null);
+      setApiError(null);
+      setExpandedShiftIdentifier(null);
+      setSelectedShiftTime(null);
+      setSelectedAddons({ menus: [], options: {} });
+      setCurrentShiftAddons([]);
+      setCurrentShiftUsagePolicy(null);
+      setAvailableAreas([]);
+      setSelectedArea(null);
+      setSelectedAreaName(null);
+    }
+    
+    // Reset booking state
+    setIsBookingModalOpen(false);
+    setBookingState({
+      isHolding: false,
+      holdError: null,
+      isUpdating: false,
+      updateError: null,
+      isBooking: false,
+      bookingError: null,
+      bookingSuccess: false
+    });
   };
 
   const areAddonsValidForProceeding = () => {
@@ -872,12 +909,12 @@ export default function ReservationForm() {
     // DEBUG: inspect the raw flag values coming from appConfig
     /* eslint-disable no-console */
     console.log(
-      "[AreaValidation] appConfig.arSelect â†’",
+      "[AreaValidation] appConfig.arSelect →",
       appConfig?.arSelect,
       `(type: ${typeof appConfig?.arSelect})`
     );
     console.log(
-      "[AreaValidation] appConfig.areaAny  â†’",
+      "[AreaValidation] appConfig.areaAny  →",
       appConfig?.areaAny,
       `(type: ${typeof appConfig?.areaAny})`
     );
@@ -885,15 +922,13 @@ export default function ReservationForm() {
 
     // ------------------------------------------------------------------
     // Area-selection validation
-    // â€‘ Eveve sometimes supplies feature flags as **booleans** and other
-    //   times as the **strings** â€œtrueâ€ / â€œfalseâ€.  Normalise first.
+    // ‑ Eveve sometimes supplies feature flags as **booleans** and other
+    //   times as the **strings** "true" / "false".  Normalise first.
     // ------------------------------------------------------------------
     const areaSelectEnabled =
       appConfig?.arSelect === true || appConfig?.arSelect === 'true';
-    const areaAnyAllowed =
-      appConfig?.areaAny === true || appConfig?.areaAny === 'true';
 
-    // Area is mandatory when the feature is enabled AND â€œAny Areaâ€ is not
+    // Area is mandatory when the feature is enabled AND "Any Area" is not
     // allowed AND at least one concrete area is available for the time.
     const areaRequired =
       areaSelectEnabled && !areaAnyAllowed && availableAreas.length > 0;
@@ -992,7 +1027,7 @@ export default function ReservationForm() {
       {showDateTimePicker && (
         <div className="grid grid-cols-1 md:grid-cols-10 gap-6">
           {/* Responsive grid: stacks on mobile, 60/40 split from md+ */}
-          {/* Calendar – full width on mobile, 60 % on md+ */}
+          {/* Calendar � full width on mobile, 60 % on md+ */}
           <div className="flex justify-center md:justify-start md:col-span-6">
             <ReactCalendarPicker
               date={selectedDate}
@@ -1004,7 +1039,7 @@ export default function ReservationForm() {
             />
           </div>
 
-          {/* Guest selector – full width on mobile, 40 % on md+ */}
+          {/* Guest selector � full width on mobile, 40 % on md+ */}
           <div className="flex justify-center md:justify-start md:col-span-4">
             <GuestSelector
               value={guests}
@@ -1229,7 +1264,18 @@ export default function ReservationForm() {
         </div>
       )}
 
+      {/* Booking Details Modal */}
+      <BookingDetailsModal
+        isOpen={isBookingModalOpen}
+        onClose={handleBookingModalClose}
+        holdData={holdData}
+        bookingData={bookingData}
+        onSubmit={handleCustomerDetailsSubmit}
+        appConfig={appConfig}
+        isLoading={bookingState.isUpdating || bookingState.isBooking}
+        error={bookingState.updateError || bookingState.bookingError}
+        success={bookingState.bookingSuccess}
+      />
     </div>
   );
 }
-

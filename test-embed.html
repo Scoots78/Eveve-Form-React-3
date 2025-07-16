@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Booking Widget Demo</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        h1 {
+            color: #4b2e83;
+        }
+        .widget-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .instructions {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 40px;
+        }
+        code {
+            background-color: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Fine Dining Restaurant</h1>
+        <p>Experience our exquisite menu and make a reservation below</p>
+    </header>
+
+    <!-- Widget Container - This is where the Eveve booking widget will be mounted -->
+    <div class="widget-container" id="eveve-booking-widget"></div>
+
+    <!-- Instructions Section -->
+    <div class="instructions">
+        <h2>How to Use the Booking Widget</h2>
+        <ol>
+            <li>Select your preferred date from the calendar</li>
+            <li>Enter the number of guests in your party</li>
+            <li>Choose an available time slot from the options provided</li>
+            <li>Select any required menu options or add-ons</li>
+            <li>Choose a seating area if available</li>
+            <li>Click "Proceed to Booking" to enter your details</li>
+            <li>Complete the booking form with your contact information</li>
+            <li>Confirm your reservation</li>
+        </ol>
+        
+        <h3>Developer Instructions</h3>
+        <p>To embed this widget on your own website:</p>
+        <ol>
+            <li>Include the Eveve widget script in your HTML file:
+                <pre><code>&lt;script type="module" src="/testform25/assets/index-[hash].js"&gt;&lt;/script&gt;</code></pre>
+            </li>
+            <li>Create a container element with an ID:
+                <pre><code>&lt;div id="eveve-booking-widget"&gt;&lt;/div&gt;</code></pre>
+            </li>
+            <li>Make sure to include the restaurant ID parameter (<code>est</code>) in the URL:
+                <pre><code>https://yourwebsite.com/booking?est=YOUR_RESTAURANT_ID</code></pre>
+            </li>
+        </ol>
+    </div>
+
+    <!-- Load the Eveve Widget -->
+    <script>
+        // Function to load the widget script
+        function loadEveveWidget() {
+            // Get the current URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Check if est parameter exists, if not, add a default for testing
+            if (!urlParams.has('est')) {
+                // Add a default restaurant ID for testing
+                // In production, this should be your actual restaurant ID
+                const newUrl = window.location.pathname + '?est=testnza';
+                window.history.replaceState({}, '', newUrl);
+            }
+            
+            // Create the script element
+            const script = document.createElement('script');
+            script.type = 'module';
+            script.src = '/testform25/assets/index.js';
+            
+            // Append the script to the document
+            document.body.appendChild(script);
+        }
+
+        // Load the widget when the page is fully loaded
+        window.addEventListener('load', loadEveveWidget);
+    </script>
+</body>
+</html>
