@@ -16,7 +16,7 @@ import AddonSelection from "./AddonSelection"; // Import the new component
 import SelectedAddonsSummary from "./SelectedAddonsSummary"; // Import the summary component
 import { formatSelectedAddonsForApi, formatAreaForApi, formatCustomerDetails } from "../utils/apiFormatter"; // Import formatters
 import AreaSelection from "./AreaSelection"; // NEW – import the area selector component
-import { useHoldBooking, useUpdateHold, useBookReservation } from "../hooks/booking";
+import { useHoldBooking, useUpdateHold } from "../hooks/booking";
 import { BookingDetailsModal } from "./booking";
 // Month availability utilities
 import {
@@ -93,7 +93,6 @@ export default function ReservationForm() {
   const baseApiUrl = appConfig?.dapi || "https://nz6.eveve.com";
   const { holdBooking, isLoading: isHoldLoading, error: holdError, holdData, clearHoldData } = useHoldBooking(baseApiUrl);
   const { updateHold, isLoading: isUpdateLoading, error: updateError } = useUpdateHold(baseApiUrl);
-  const { bookReservation, isLoading: isBookingLoading, error: bookingError, bookingResult } = useBookReservation(baseApiUrl);
 
   const areaAnyAllowed =
     appConfig?.areaAny === true || appConfig?.areaAny === 'true';
@@ -736,26 +735,17 @@ export default function ReservationForm() {
       // Step 1: Update the hold with customer details + extras
       const updateResult = await updateHold(holdToken, enhancedCustomerData);
       console.log("Update Result:", updateResult);
-      
-      // Step 2: Finalize the booking
-      setBookingState(prev => ({ ...prev, isBooking: true, bookingError: null }));
-      const bookResult = await bookReservation(holdToken, {
-        est,                                 // Restaurant ID from URL params
-        lng: appConfig?.usrLang || "en"      // Language code (fallback to 'en')
-      });
-      console.log("Booking Result:", bookResult);
-      
-      // Set success state
+
+      // /web/update is the final confirmation call — mark success immediately
       setBookingState(prev => ({ ...prev, bookingSuccess: true }));
     } catch (err) {
       console.error("Error during booking process:", err);
       setBookingState(prev => ({ 
         ...prev, 
-        updateError: prev.isUpdating ? err.message : null,
-        bookingError: prev.isBooking ? err.message : null
+        updateError: prev.isUpdating ? err.message : null
       }));
     } finally {
-      setBookingState(prev => ({ ...prev, isUpdating: false, isBooking: false }));
+      setBookingState(prev => ({ ...prev, isUpdating: false }));
     }
   };
 

@@ -4,7 +4,7 @@ import { formatDecimalTime } from "../../utils/time";
 import { formatCustomerDetails } from "../../utils/apiFormatter";
 
 /**
- * BookingDetailsModal - A modal dialog for collecting customer details after a successful hold
+ * BookingDetailsModal - A modal dialog for collecting customer details and confirming the reservation
  * @param {Object} props - Component props
  * @param {boolean} props.isOpen - Whether the modal is open
  * @param {Function} props.onClose - Function to call when the modal is closed
@@ -147,6 +147,7 @@ export default function BookingDetailsModal({
         const formattedData = formatCustomerDetails(customerData);
         
         // Call onSubmit with holdData.uid and formatted customer data
+        // This will update and confirm the booking in one step
         onSubmit(holdData.uid, customerData);
       } catch (err) {
         console.error("Error formatting customer data:", err);
@@ -203,7 +204,7 @@ export default function BookingDetailsModal({
                   <div className="flex flex-col items-center">
                     <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-600"></div>
                     <p className="mt-4 text-purple-600 font-medium">
-                      {appConfig?.lng?.bookingLoadingMessage || "Processing your booking..."}
+                      {appConfig?.lng?.bookingLoadingMessage || "Confirming your reservation..."}
                     </p>
                   </div>
                 </div>
@@ -231,7 +232,7 @@ export default function BookingDetailsModal({
                     {appConfig?.lng?.bookingSuccessTitle || "Booking Confirmed!"}
                   </h3>
                   <p className="mt-2 text-gray-600">
-                    {appConfig?.lng?.bookingSuccessMessage || "Your booking has been confirmed. We look forward to seeing you!"}
+                    {appConfig?.lng?.bookingSuccessMessage || "Your reservation has been confirmed. We look forward to seeing you!"}
                   </p>
                   <div className="mt-6">
                     <button
