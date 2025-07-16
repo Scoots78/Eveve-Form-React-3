@@ -537,7 +537,8 @@ export default function ReservationForm() {
 
         if (menuUsagePolicy === 1) { // Radio buttons for Menus
           if (value) { // value is true if selected
-            newSelected.menus = [{ ...addonData }]; // Replace with the single selected menu
+            // Replace with the single selected menu, tagging its usage policy
+            newSelected.menus = [{ ...addonData, usagePolicy: menuUsagePolicy }];
           } else {
             // Should not happen with radios if one is always selected, but as safeguard:
             newSelected.menus = [];
@@ -578,10 +579,11 @@ export default function ReservationForm() {
           if (newProposedQuantity > 0) {
             if (menuIndex > -1) {
               newSelected.menus[menuIndex].quantity = newProposedQuantity;
+              newSelected.menus[menuIndex].usagePolicy = menuUsagePolicy; // ensure policy stored
             } else {
               // This case (adding a new menu item under usage:2) should also respect the total quantity check above for its first unit.
               // The logic above handles it if numericGuests > 0.
-              newSelected.menus.push({ ...addonData, quantity: newProposedQuantity });
+              newSelected.menus.push({ ...addonData, quantity: newProposedQuantity, usagePolicy: menuUsagePolicy });
             }
           } else { // Quantity is 0 or less
             if (menuIndex > -1) {
@@ -596,7 +598,7 @@ export default function ReservationForm() {
 
           if (value) { // Checkbox is checked
             if (menuIndex === -1 && newSelected.menus.length < maxSelections) {
-              newSelected.menus.push({ ...addonData });
+              newSelected.menus.push({ ...addonData, usagePolicy: menuUsagePolicy });
             } else if (menuIndex === -1 && newSelected.menus.length >= maxSelections) {
               // Attempted to select more than allowed, do nothing or alert user (UI should prevent this)
               console.warn(`Cannot select more than ${maxSelections} menu(s).`);
@@ -677,7 +679,7 @@ export default function ReservationForm() {
     const numericGuests = parseInt(guests, 10);
     const formattedDate = format(selectedDate, 'yyyy-MM-dd');
     const formattedTime = selectedShiftTime.selectedTime; // This is already in decimal format like 12.25
-    const formattedAddons = formatSelectedAddonsForApi(selectedAddons);
+    const formattedAddons = formatSelectedAddonsForApi(selectedAddons, numericGuests);
     const formattedArea = formatAreaForApi(selectedArea);
 
     const bookingDataForHold = {
@@ -728,7 +730,7 @@ export default function ReservationForm() {
         ...customerData,
         est,                                                    // Restaurant id (mandatory for Eveve)
         lng: appConfig?.usrLang || "en",                        // Language (falls back to en)
-        addons: formatSelectedAddonsForApi(selectedAddons) || ""// Add-ons (empty string if none)
+        addons: formatSelectedAddonsForApi(selectedAddons, parseInt(guests, 10)) || ""// Add-ons (empty string if none)
       };
 
       // Step 1: Update the hold with customer details + extras

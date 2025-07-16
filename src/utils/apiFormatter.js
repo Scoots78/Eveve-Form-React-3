@@ -3,15 +3,17 @@
  * Each addon is represented as `uid` or `uid:quantity`.
  *
  * @param {object} addonsObject - The selected addons state (e.g., state.currentSelectedAddons).
- *   Expected structure: { usage1: object|null, usage2: array, usage3: array }
+ *   Expected structure: { menus: array, options: object }
+ * @param {number} [guestCount=null] - The number of guests for the booking, used for usage=1 addons
  * @returns {string} A comma-separated string of selected addon UIDs and quantities.
  */
-export function formatSelectedAddonsForApi(selectedAddons) {
+export function formatSelectedAddonsForApi(selectedAddons, guestCount = null) {
   if (!selectedAddons || (!selectedAddons.menus?.length && !Object.keys(selectedAddons.options || {}).length)) {
     return "";
   }
 
   const apiParams = [];
+  const numericGuestCount = guestCount !== null ? parseInt(guestCount, 10) : null;
 
   // Process selected menus
   if (selectedAddons.menus && selectedAddons.menus.length > 0) {
@@ -20,8 +22,11 @@ export function formatSelectedAddonsForApi(selectedAddons) {
         if (typeof menu.quantity === 'number' && menu.quantity > 0) {
           // This case is for menus selected under usage:2 (quantity selectors)
           apiParams.push(`${menu.uid}:${menu.quantity}`);
+        } else if (menu.usagePolicy === 1 && numericGuestCount && numericGuestCount > 0) {
+          // For usage=1 menus (same menu for all guests), include the guest count
+          apiParams.push(`${menu.uid}:${numericGuestCount}`);
         } else {
-          // This case is for menus selected under usage:1 (radio) or usage:3 (checkbox)
+          // This case is for menus selected under usage:3 (checkbox)
           // or usage:2 menus with quantity 0 that somehow didn't get removed (shouldn't happen with current logic)
           // For simplicity, if quantity is not present or not > 0, just send UID.
           apiParams.push(menu.uid);
@@ -45,11 +50,11 @@ export function formatSelectedAddonsForApi(selectedAddons) {
 
 /**
  * Formats the seating area for API usage.
- * Eveve generally accepts the literal string “any” to indicate no preference,
+ * Eveve generally accepts the literal string "any" to indicate no preference,
  * but some integrations omit the parameter entirely in that case.
  * This helper returns:
  *   • ''           – when no area was chosen (caller should omit param)
- *   • 'any'        – when user explicitly picked the “Any Area” option
+ *   • 'any'        – when user explicitly picked the "Any Area" option
  *   • '<area-uid>' – for a specific area selection
  *
  * NOTE: It does **not** prepend the `area=` key or URL-encode the value.
@@ -63,7 +68,7 @@ export function formatSelectedAddonsForApi(selectedAddons) {
 export function formatAreaForApi(selectedArea) {
   if (!selectedArea) return '';          // nothing selected → omit
 
-  // Normalise to case-insensitive match for “any”
+  // Normalise to case-insensitive match for "any"
   if (typeof selectedArea === 'string' && selectedArea.trim().toLowerCase() === 'any') {
     return 'any';
   }
