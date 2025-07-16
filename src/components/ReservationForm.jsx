@@ -1,4 +1,4 @@
-import React, {
+﻿import React, {
   useState,
   useEffect,
   useCallback,
@@ -15,7 +15,7 @@ import { useDebounce } from "../hooks/useDebounce"; // Import the custom hook
 import AddonSelection from "./AddonSelection"; // Import the new component
 import SelectedAddonsSummary from "./SelectedAddonsSummary"; // Import the summary component
 import { formatSelectedAddonsForApi, formatAreaForApi } from "../utils/apiFormatter"; // Import formatters
-import AreaSelection from "./AreaSelection"; // NEW – import the area selector component
+import AreaSelection from "./AreaSelection"; // NEW â€“ import the area selector component
 // Month availability utilities
 import {
   fetchMonthAvailability,
@@ -69,7 +69,7 @@ export default function ReservationForm() {
   });
 
   /* ------------------------------------------------------------------
-     Normalised flag – true when “Any Area” is allowed.  We convert both
+     Normalised flag â€“ true when â€œAny Areaâ€ is allowed.  We convert both
      boolean true and string 'true' from the remote config to a boolean.
      This is needed in multiple places (render + validation), so compute
      it once at component level.
@@ -80,7 +80,7 @@ export default function ReservationForm() {
   // -----------------------------------------------------------
   // Month-availability state
   // -----------------------------------------------------------
-  // 1) Map monthKey → array of closed Date objects
+  // 1) Map monthKey â†’ array of closed Date objects
   const [monthClosedDates, setMonthClosedDates] = useState({});
   // 2) Cache of monthKeys we have already fetched
   const [fetchedMonths, setFetchedMonths] = useState(() => new Set());
@@ -222,17 +222,17 @@ export default function ReservationForm() {
   // -----------------------------------------------------------
   const handleMonthChange = useCallback(async (_selected, _dateStr, instance) => {
     console.groupCollapsed(
-      `%c[handleMonthChange] fired – yr:${instance.currentYear} m:${instance.currentMonth + 1}`,
+      `%c[handleMonthChange] fired â€“ yr:${instance.currentYear} m:${instance.currentMonth + 1}`,
       "color:orange;font-weight:bold"
     );
     if (!appConfig) {
-      console.log("%cNo appConfig – aborting", "color:red");
+      console.log("%cNo appConfig â€“ aborting", "color:red");
       console.groupEnd();
       return;
     }
     // Avoid overlaps
     if (monthFetchInProgressRef.current || isUpdatingMonthDataRef.current) {
-      console.log("%cOverlap or React update in progress – aborting", "color:red");
+      console.log("%cOverlap or React update in progress â€“ aborting", "color:red");
       console.groupEnd();
       return;
     }
@@ -271,9 +271,9 @@ export default function ReservationForm() {
         // Cache without triggering immediate calendar re-render loops
         console.log("%cCaching closed dates & month key (startTransition)", "color:blue");
         startTransition(() => {
-          console.log("%c→ setMonthClosedDates", "color:blue");
+          console.log("%câ†’ setMonthClosedDates", "color:blue");
           setMonthClosedDates((prev) => ({ ...prev, [monthKey]: newClosed }));
-          console.log("%c→ setFetchedMonths", "color:blue");
+          console.log("%câ†’ setFetchedMonths", "color:blue");
           setFetchedMonths((prev) => {
             const next = new Set(prev);
             next.add(monthKey);
@@ -324,7 +324,7 @@ export default function ReservationForm() {
   ------------------------------------------------------------------ */
   useEffect(() => {
     console.log(
-      `%c[monthClosedDates] updated – months cached: ${Object.keys(monthClosedDates).join(
+      `%c[monthClosedDates] updated â€“ months cached: ${Object.keys(monthClosedDates).join(
         ", "
       )}`,
       "color:purple;font-weight:bold"
@@ -694,7 +694,7 @@ export default function ReservationForm() {
       holdParams.append("area", formattedArea);
     }
 
-    // Addons are optional – send if user picked something
+    // Addons are optional â€“ send if user picked something
     if (formattedAddons) {
       holdParams.append("addons", formattedAddons);
     }
@@ -872,12 +872,12 @@ export default function ReservationForm() {
     // DEBUG: inspect the raw flag values coming from appConfig
     /* eslint-disable no-console */
     console.log(
-      "[AreaValidation] appConfig.arSelect →",
+      "[AreaValidation] appConfig.arSelect â†’",
       appConfig?.arSelect,
       `(type: ${typeof appConfig?.arSelect})`
     );
     console.log(
-      "[AreaValidation] appConfig.areaAny  →",
+      "[AreaValidation] appConfig.areaAny  â†’",
       appConfig?.areaAny,
       `(type: ${typeof appConfig?.areaAny})`
     );
@@ -885,15 +885,15 @@ export default function ReservationForm() {
 
     // ------------------------------------------------------------------
     // Area-selection validation
-    // ‑ Eveve sometimes supplies feature flags as **booleans** and other
-    //   times as the **strings** “true” / “false”.  Normalise first.
+    // â€‘ Eveve sometimes supplies feature flags as **booleans** and other
+    //   times as the **strings** â€œtrueâ€ / â€œfalseâ€.  Normalise first.
     // ------------------------------------------------------------------
     const areaSelectEnabled =
       appConfig?.arSelect === true || appConfig?.arSelect === 'true';
     const areaAnyAllowed =
       appConfig?.areaAny === true || appConfig?.areaAny === 'true';
 
-    // Area is mandatory when the feature is enabled AND “Any Area” is not
+    // Area is mandatory when the feature is enabled AND â€œAny Areaâ€ is not
     // allowed AND at least one concrete area is available for the time.
     const areaRequired =
       areaSelectEnabled && !areaAnyAllowed && availableAreas.length > 0;
@@ -990,9 +990,10 @@ export default function ReservationForm() {
       </h1>
 
       {showDateTimePicker && (
-        <div className="grid grid-cols-10 gap-6">
-          {/* Calendar takes 60 % (6 / 10) */}
-          <div className="col-span-6">
+        <div className="grid grid-cols-1 md:grid-cols-10 gap-6">
+          {/* Responsive grid: stacks on mobile, 60/40 split from md+ */}
+          {/* Calendar – full width on mobile, 60 % on md+ */}
+          <div className="flex justify-center md:justify-start md:col-span-6">
             <ReactCalendarPicker
               date={selectedDate}
               onChange={handleDateChange}
@@ -1003,8 +1004,8 @@ export default function ReservationForm() {
             />
           </div>
 
-          {/* Guest selector takes remaining 40 % (4 / 10) */}
-          <div className="col-span-4">
+          {/* Guest selector – full width on mobile, 40 % on md+ */}
+          <div className="flex justify-center md:justify-start md:col-span-4">
             <GuestSelector
               value={guests}
               onChange={handleGuestsChange}
@@ -1118,7 +1119,15 @@ export default function ReservationForm() {
                           <div className="mt-3">
                             <p className="text-sm font-semibold text-gray-800 mb-2">{appConfig?.lng?.availableBookingTimesTitle || "Available Booking Times:"}</p>
                             <div className="flex flex-wrap gap-2">
-                              {shift.times.map((timeObj, timeIndex) => (
+                              {/* Filter out negative times (blocked times) */}
+                                {shift.times
+                                  .filter(timeObj => {
+                                    // Extract the time value, whether it's a direct decimal or an object with a time property
+                                    const timeValue = typeof timeObj === 'object' ? timeObj.time : timeObj;
+                                    // Only include positive time values (available times)
+                                    return timeValue >= 0;
+                                  })
+                                  .map((timeObj, timeIndex) => (
                                 <button
                                   key={timeIndex}
                                   onClick={() => handleTimeSelection(shift, timeObj, index)} // Pass originalIndexInAvailabilityData
@@ -1223,3 +1232,4 @@ export default function ReservationForm() {
     </div>
   );
 }
+

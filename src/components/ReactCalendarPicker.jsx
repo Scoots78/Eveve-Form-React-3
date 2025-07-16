@@ -86,7 +86,14 @@ const ReactCalendarPicker = ({
   };
 
   return (
-    <div className="react-calendar-wrapper">
+    <>
+      {/*
+        Tailwind classes added:
+        • mx-auto            → centres the wrapper horizontally on mobile
+        • flex justify-center→ keeps the calendar centred within the wrapper
+        • md:block           → reverts to normal block layout from the md breakpoint up
+      */}
+      <div className="react-calendar-wrapper mx-auto flex justify-center md:block">
       <Calendar
         value={date}
         onChange={handleDateChange}
@@ -104,6 +111,9 @@ const ReactCalendarPicker = ({
         .react-calendar-wrapper {
           width: 100%;
           max-width: 100%;
+          /* Explicit centring for non-Tailwind environments (mobile first) */
+          margin-left: auto;
+          margin-right: auto;
         }
         
         :global(.react-calendar-custom) {
@@ -149,7 +159,8 @@ const ReactCalendarPicker = ({
           color: #9ca3af;
         }
       `}</style>
-    </div>
+      </div>
+    </>
   );
 };
 
