@@ -990,9 +990,10 @@ export default function ReservationForm() {
       </h1>
 
       {showDateTimePicker && (
-        <div className="grid grid-cols-10 gap-6">
-          {/* Calendar takes 60 % (6 / 10) */}
-          <div className="col-span-6">
+        <div className="grid grid-cols-1 md:grid-cols-10 gap-6">
+          {/* Responsive grid: stacks on mobile, 60/40 split from md+ */}
+          {/* Calendar – full width on mobile, 60 % on md+ */}
+          <div className="flex justify-center md:justify-start md:col-span-6">
             <ReactCalendarPicker
               date={selectedDate}
               onChange={handleDateChange}
@@ -1003,8 +1004,8 @@ export default function ReservationForm() {
             />
           </div>
 
-          {/* Guest selector takes remaining 40 % (4 / 10) */}
-          <div className="col-span-4">
+          {/* Guest selector – full width on mobile, 40 % on md+ */}
+          <div className="flex justify-center md:justify-start md:col-span-4">
             <GuestSelector
               value={guests}
               onChange={handleGuestsChange}
