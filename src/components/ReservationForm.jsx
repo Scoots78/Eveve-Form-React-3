@@ -718,8 +718,21 @@ export default function ReservationForm() {
     try {
       setBookingState(prev => ({ ...prev, isUpdating: true, updateError: null }));
       
-      // Step 1: Update the hold with customer details
-      const updateResult = await updateHold(holdToken, customerData);
+      /* ------------------------------------------------------------------
+         Build a richer customer-data payload for /web/update
+         • est  – restaurant UID from the URL
+         • lng  – language code from remote config
+         • addons – formatted addon string (uid[:qty],…)
+         ------------------------------------------------------------------ */
+      const enhancedCustomerData = {
+        ...customerData,
+        est,                                                    // Restaurant id (mandatory for Eveve)
+        lng: appConfig?.usrLang || "en",                        // Language (falls back to en)
+        addons: formatSelectedAddonsForApi(selectedAddons) || ""// Add-ons (empty string if none)
+      };
+
+      // Step 1: Update the hold with customer details + extras
+      const updateResult = await updateHold(holdToken, enhancedCustomerData);
       console.log("Update Result:", updateResult);
       
       // Step 2: Finalize the booking
