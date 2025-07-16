@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import * as Headless from "@headlessui/react";
+import { Dialog, Transition } from "@headlessui/react";
 import { formatDecimalTime } from "../../utils/time";
 import { formatCustomerDetails } from "../../utils/apiFormatter";
 
@@ -155,8 +155,8 @@ export default function BookingDetailsModal({
   };
 
   return (
-    <Headless.Transition show={isOpen} as={React.Fragment}>
-      <Headless.Dialog
+    <Transition show={isOpen} as={React.Fragment}>
+      <Dialog
         as="div"
         className="fixed inset-0 z-10 overflow-y-auto"
         onClose={() => {
@@ -167,7 +167,7 @@ export default function BookingDetailsModal({
         }}
       >
         <div className="min-h-screen px-4 text-center">
-          <Headless.Transition.Child
+          <Transition.Child
             as={React.Fragment}
             enter="ease-out duration-300"
             enterFrom="opacity-0"
@@ -176,8 +176,8 @@ export default function BookingDetailsModal({
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <Headless.Dialog.Overlay className="fixed inset-0 bg-black opacity-30" />
-          </Headless.Transition.Child>
+            <Dialog.Overlay className="fixed inset-0 bg-black opacity-30" />
+          </Transition.Child>
 
           {/* This element is to trick the browser into centering the modal contents. */}
           <span
@@ -187,7 +187,7 @@ export default function BookingDetailsModal({
             &#8203;
           </span>
 
-          <Headless.Transition.Child
+          <Transition.Child
             as={React.Fragment}
             enter="ease-out duration-300"
             enterFrom="opacity-0 scale-95"
@@ -284,12 +284,12 @@ export default function BookingDetailsModal({
                 ) : (
                   /* Main form */
                   <>
-                    <Headless.Dialog.Title
+                    <Dialog.Title
                       as="h3"
                       className="text-lg font-medium leading-6 text-gray-900 text-center"
                     >
                       {appConfig?.lng?.bookingDetailsTitle || "Complete Your Reservation"}
-                    </Headless.Dialog.Title>
+                    </Dialog.Title>
 
                     {/* Booking summary */}
                     {bookingData && (
@@ -543,9 +543,9 @@ export default function BookingDetailsModal({
                 )
               )}
             </div>
-          </Headless.Transition.Child>
+          </Transition.Child>
         </div>
-      </Headless.Dialog>
-    </Headless.Transition>
+      </Dialog>
+    </Transition>
   );
 }
