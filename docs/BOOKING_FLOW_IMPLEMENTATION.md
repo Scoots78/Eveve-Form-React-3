@@ -20,18 +20,18 @@ It is aimed at developers who need to maintain, extend or audit the code.
 │ Booking      │──────────────►   │
 │  Details     │◄──────────────   │
 │  Modal       │   ok:true        │
-└─────┬────────┘                  │
-      │ book()                    │
-      ▼                            ▼
- (success/ failure)        Eveve /web/book
+└──────────────┘                  │
+        ▲                         │
+        │ (success / failure)     │
+        └─────────────────────────┘
 ```
 
-The widget remains a **client-side SPA**.  No server-side code is required for Phase 1.
+`/web/update` is the **final confirmation** call; no subsequent API calls are required in Phase 1.
 
-* **UI layer:** React + Tailwind.  
-* **State management:** local `useState` per component.  
-* **Side-effects / API:** plain `fetch` wrapped in custom hooks.  
-* **Modal:** Headless UI `<Dialog>` keeps the flow in-page (no scroll jump).  
+* **UI layer:** React + Tailwind  
+* **State management:** local `useState` per component  
+* **Side-effects / API:** plain `fetch` wrapped in custom hooks  
+* **Modal:** Headless-UI `<Dialog>` keeps the flow in-page  
 
 ---
 
@@ -39,94 +39,96 @@ The widget remains a **client-side SPA**.  No server-side code is required for P
 
 | Path | Purpose |
 |------|---------|
-| `src/components/booking/BookingDetailsModal.jsx` | Displays booking summary, collects customer data, orchestrates `/web/update` → `/web/book`. |
-| `src/hooks/booking/useHoldBooking.js` | POST/GET `/web/hold`, returns `holdToken`, `card`, `perHead`, `until`. |
-| `src/hooks/booking/useUpdateHold.js` | Adds customer details to the hold via `/web/update`. |
-| `src/hooks/booking/useBookReservation.js` | Final confirmation through `/web/book`. |
-| `src/utils/apiFormatter.js` | + `formatCustomerDetails()` to normalise names, phone, allergy etc. |
+| `src/components/booking/BookingDetailsModal.jsx` | Displays booking summary, collects customer data, orchestrates `/web/update`. |
+| `src/hooks/booking/useHoldBooking.js` | Calls `/web/hold`, returns `{ holdToken, card, perHead, until }`. |
+| `src/hooks/booking/useUpdateHold.js` | Finalises the reservation via `/web/update`. |
+| `src/utils/apiFormatter.js` | `formatCustomerDetails()` normalises names, phone, allergies, options… |
 | `src/components/ReservationForm.jsx` | Integrates the above: triggers hold, opens modal, resets UI on success. |
 
-All new hooks share a simple contract:
+All hooks expose a common signature:
 
 ```ts
-const { actionFn, isLoading, error, data } = useHook(baseUrl)
+const { actionFn, isLoading, error, data } = useHook();
 ```
-
-Errors are surfaced to the modal and shown inline.
 
 ---
 
 ## 3 API Integration Details
 
-| Step | Endpoint | Method | Mandatory Params | Notes |
-|------|----------|--------|------------------|-------|
-| Hold | `/web/hold` | GET | `est,lng,covers,date,time` | Optional: `addons`, `area` – omitted when empty. |
-| Update | `/web/update` | GET | `uid,fname,lname,email,phone` | Extra: `notes`, `optin`, `allergy`, `allergytext`. |
-| Book | `/web/book` | GET | `uid` | Finalises the reservation. |
+| Step   | Endpoint      | Method | Mandatory Params                    | Notes |
+|--------|---------------|--------|-------------------------------------|-------|
+| Hold   | `/web/hold`   | GET    | `est,lng,covers,date,time`          | Optional: `addons`, `area` when present |
+| Update | `/web/update` | GET    | `uid,lastName,firstName,phone,email`| Extra: `notes,optins,bookopt,guestopt,allergies,dietary`.<br>Returns `{ ok:true, totals:[…], loyalty:[…], optins }` and **completes the booking**. |
 
-* **Base URL** taken from `appConfig.dapi` with fallback to `https://nz6.eveve.com`.  
-* Query strings assembled via `URLSearchParams` to avoid encoding bugs.  
-* All responses are expected to be JSON `{ ok:true/false, … }`; non-200 raises.
+* Base URL derived from `appConfig.dapi` (falls back to `https://nz6.eveve.com`).  
+* Query strings constructed with `URLSearchParams` to guarantee encoding correctness.  
+* Non-200 or `ok:false` responses bubble up as errors.
 
 ---
 
 ## 4 User Flow (Happy Path)
 
-1. Guest picks **date → covers → time** in `ReservationForm`.
+1. Guest selects **date → covers → time** in `ReservationForm`.  
 2. Presses **Proceed to Booking**.  
-   • Component calls `useHoldBooking` → `/web/hold`.  
-   • On success, `holdData` saved and `BookingDetailsModal` opens.
-3. Guest fills **personal details**, optionally notes / allergy, clicks **Confirm Booking**.  
-   • Modal calls `useUpdateHold` (shows spinner).  
-   • If update succeeds, immediately calls `useBookReservation`.
-4. `/web/book` returns `ok:true`.  
-   • Modal switches to **success state** (green tick).  
-   • Closing modal resets the entire form for a fresh booking.
+   • Component invokes `useHoldBooking` → `/web/hold`.  
+   • On success, `holdData` is stored and `BookingDetailsModal` opens.
+3. Guest enters **personal details**, opt-in box (pre-checked), allergy info, then clicks **Confirm Booking**.  
+   • Modal calls `useUpdateHold` (loading spinner).  
+   • `/web/update` returns `ok:true` → modal shows **success state** (green tick).  
+   • Closing the modal resets the form for a fresh booking.
 
-Error states show red banner inside the modal; the user can retry or cancel without leaving the page.
+If `/web/update` fails the modal shows an inline error; the guest can retry or cancel.
 
 ---
 
 ## 5 Validation Rules Implemented
 
-* All required text fields must be non-empty; email pattern `\S+@\S+\.\S+`.
-* If `allergy.has == true` then `allergy.details` is required.
-* Marketing **opt-in is pre-checked** (can be unticked).
-* Add-on and area validation inherited from previous widget logic.
+* Required fields: `firstName`, `lastName`, `email`, `phone`.  
+* Email regex: `\S+@\S+\.\S+`.  
+* Opt-in checkbox defaults to **checked** (`optins=1`) but users may untick (→ 0).  
+* If allergies feature enabled and **Yes** selected, the textarea becomes required.  
+* Add-on and area rules inherited from the availability logic.
 
 ---
 
-## 6 Extensibility Hooks – Phase 2 Preview
+## 6 Extensibility Hooks – Phase 2 Preview (Card Flows)
 
-The code was written to allow seamless upgrade to card-flows:
+In credit-card scenarios the booking MUST be created first (via `/web/update`) **before** Stripe credentials can be fetched using `pi-get`.  
+Planned approach:
 
-* `holdData.card` is already read; modal simply hides Stripe section when `card==0`.
-* A placeholder **state machine** (`bookingState`) is present – will gain `loadingIntent`, `awaitingCard` etc.
-* Stripe helpers (`useStripeIntent`, Elements wrapper) will plug into the modal without touching `ReservationForm`.
+1. Execute `/web/update` invisibly once details are submitted.  
+2. Fetch Stripe client secret (`pi-get`), render Elements, process card.  
+3. If card entry fails or times-out, call Eveve cancellation endpoint (TBD) and show an error.
+
+The current code already:
+
+* Stores `card` flag from hold response.  
+* Hides Stripe UI when `card == 0`.  
+* Provides state placeholders (`loadingIntent`, `awaitingCard`, etc.) to be activated in Phase 2.
 
 ---
 
 ## 7 Testing Checklist
 
-1. Start dev server: `npm run dev`, open  
-   `http://localhost:5183/testform25/?est=<yourEstId>`.
-2. Complete a booking with **no addons, no area**.
-3. Complete a booking with **menus & options**; verify quantities and price.
-4. Toggle **“Any Area”** flag in remote config → modal should respect.
-5. Force an API 500 (e.g. bad `est`) and check error surfaces.
+1. Dev server `npm run dev` → open widget with `?est=<EstId>`.  
+2. Complete a booking with **no add-ons**, verify success splash.  
+3. Complete a booking with **menus/options**; confirm quantities reflected in the confirmation JSON.  
+4. Toggle **allergy flag** in config; verify conditional fields.  
+5. Un-tick the **marketing opt-in** and observe `optins:0` in update call.  
+6. Force API failure (e.g., wrong `uid`) → modal shows error & allows retry.
 
 ---
 
-## 8 Future Improvements (Phase 2)
+## 8 Future Improvements
 
-| Area | Planned Work |
-|------|--------------|
-| Payments | Integrate Stripe Elements, confirm `SetupIntent` / `PaymentIntent` depending on `card` flag. |
-| State Management | Move booking context to Zustand to avoid prop drilling across modal layers. |
-| Countdown | Show hold expiry timer; auto-cancel when `until` lapses. |
-| Webhooks | Handle `card==1` capture after booking via Stripe webhook. |
-| E2E | Cypress scenarios for hold-update-book with and without payment. |
+| Area | Idea |
+|------|------|
+| Payments | Add Stripe Elements flow per Phase 2 plan. |
+| Countdown | Display hold expiry timer; auto-cancel when reached. |
+| State | Migrate to Zustand once flow grows. |
+| Webhooks | For `card == 1` captures, reconcile via Stripe webhook. |
+| E2E | Cypress end-to-end covering hold-update (and later card flows). |
 
 ---
 
-**Status:** Phase 1 delivered – widget now performs a full reservation cycle without credit-card requirements and is production-ready for `card == 0` establishments.
+**Status:** Phase 1 delivered – widget now performs a full reservation cycle with `/web/update` as the final confirmation and is production-ready for establishments with `card == 0`.

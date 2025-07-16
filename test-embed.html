@@ -76,7 +76,7 @@
                 <pre><code>&lt;div id="eveve-booking-widget"&gt;&lt;/div&gt;</code></pre>
             </li>
             <li>Make sure to include the restaurant ID parameter (<code>est</code>) in the URL:
-                <pre><code>https://yourwebsite.com/booking?est=YOUR_RESTAURANT_ID</code></pre>
+                <pre><code>https://yourwebsite.com/booking?est=testnza</code></pre>
             </li>
         </ol>
     </div>
@@ -92,7 +92,9 @@
             if (!urlParams.has('est')) {
                 // Add a default restaurant ID for testing
                 // In production, this should be your actual restaurant ID
-                const newUrl = window.location.pathname + '?est=testnza';
+                //const newUrl = window.location.pathname + '?est=testnza';
+                const newUrl = 'http://localhost:5187/testform25/?est=TestNZA';
+
                 window.history.replaceState({}, '', newUrl);
             }
             
