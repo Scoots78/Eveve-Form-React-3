@@ -15,9 +15,12 @@ export function useBookReservation(baseUrl) {
    * Finalize a booking with a hold token
    * 
    * @param {string} holdToken - Token from the hold response
+   * @param {Object} [extraParams] - Extra parameters to include in the call
+   * @param {string} [extraParams.est] - Restaurant ID (required by Eveve)
+   * @param {string} [extraParams.lng='en'] - Language code
    * @returns {Promise<Object>} - Booking confirmation data
    */
-  const bookReservation = async (holdToken) => {
+  const bookReservation = async (holdToken, extraParams = {}) => {
     setIsLoading(true);
     setError(null);
     
@@ -27,6 +30,14 @@ export function useBookReservation(baseUrl) {
       
       // Add hold token
       url.searchParams.append("uid", holdToken);
+
+      // Add restaurant ID if provided
+      if (extraParams.est) {
+        url.searchParams.append("est", extraParams.est);
+      }
+      
+      // Add language code; default to 'en'
+      url.searchParams.append("lng", extraParams.lng || "en");
       
       console.log("Book Reservation Request URL:", url.toString());
       

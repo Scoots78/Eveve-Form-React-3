@@ -737,7 +737,10 @@ export default function ReservationForm() {
       
       // Step 2: Finalize the booking
       setBookingState(prev => ({ ...prev, isBooking: true, bookingError: null }));
-      const bookResult = await bookReservation(holdToken);
+      const bookResult = await bookReservation(holdToken, {
+        est,                                 // Restaurant ID from URL params
+        lng: appConfig?.usrLang || "en"      // Language code (fallback to 'en')
+      });
       console.log("Booking Result:", bookResult);
       
       // Set success state
