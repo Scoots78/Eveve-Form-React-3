@@ -13,15 +13,35 @@ This document outlines the API call sequence and data structure for handling **c
 ```plaintext
 https://nz.eveve.com/web/hold?est=TestNZA&lng=en&covers=10&date=2025-07-25&time=16&area=1000
 ```
+**Stripe Payment (Optional):**  
+   A payment intent is created on the backend.  
+   The frontend confirms payment via Stripe Elements.  
+   Upon success, the booking proceeds.
+   Eveve reponse from HOLD booking indicated the type of payment, which would be credit card regsitration used for future payment or for imediate payment or no credit card at all.
+   Codes used:
+   - 0 "card":0,"perHead":0,"until":""}
+   - 1 "card":1,"perHead":3000,"until":"" Credit card registration only for the possible amount of $30.00
+   - 2 "card":2,"perHead":3000,"until":""
+If card is not 0 then this should be noted and the stripe process followed for this booking
 
 ---
 
 ## 🔹 Update Booking – Customer Details
 **Note:** API calls and schema to be defined separately (TBC).
+- **Optional:** Stripe Elements card input
+- A **Submit button** to confirm and send data to `/web/book`. The full request would look like this:
+  ```
+  https://nz.eveve.com/web/update?est=TestNZA&uid=41975&lng=en&lastName=Last%20name&firstName=First%20name&phone=%252B447720848732&email=email%40eveve.com&addons=1000:2,1001:1&notes=Notes%20here&dietary=Dietary%20requirements%20text&allergies=Allergies%20text&bookopt=1023,1024&guestopt=1001,1002&optem=1
+  ```
 
+- **Response:**  
+  If the booking is successful, the response will contain `"ok": true`. For example:  
+  ```json
+  { "ok": true, "totals": [0, 0, 3, 0], "loyalty": [], "optins": 1 }
+  ```
 ---
 
-## 🔹 Stripe Payment Stage (Triggered Post-Update)
+## 🔹 Stripe Payment Stage (This was initially after the update but we want to move this process to before the update)
 
 ### ➤ `ccrequest` – Stripe Form Redirect
 **Purpose:** Displays Eveve-hosted Stripe card form.  
