@@ -164,7 +164,9 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
    * @returns {Promise<Object>} - Payment result with payment method ID
    */
   const processPayment = useCallback(async (params) => {
-    console.log('Processing payment with params:', {
+    const label = `[useStripePayment] processPayment-${params?.uid || 'n/a'}`;
+    console.time(label);
+    console.log(new Date().toISOString(), 'Processing payment with params:', {
       cardElementExists: !!params.cardElement,
       billingDetails: params.billingDetails
     });
@@ -263,6 +265,7 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
       };
     } finally {
       setIsLoading(false);
+      console.timeEnd(label);
     }
   }, [stripeKeys]);
 
@@ -278,7 +281,9 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
    * @returns {Promise<Object>} - Result of attaching payment method
    */
   const attachPaymentMethod = useCallback(async (params) => {
-    console.log('Attaching payment method with params:', {
+    const label = `[useStripePayment] attachPaymentMethod-${params?.uid || 'n/a'}`;
+    console.time(label);
+    console.log(new Date().toISOString(), 'Attaching payment method with params:', {
       est: params.est,
       uid: params.uid,
       created: params.created,
@@ -343,6 +348,7 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
       };
     } finally {
       setIsLoading(false);
+      console.timeEnd(label);
     }
   }, []);
 
@@ -360,7 +366,9 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
    * @returns {Promise<Object>} - Result of the payment flow
    */
   const completePaymentFlow = useCallback(async (params) => {
-    console.log('Starting complete payment flow with params:', {
+    const label = `[useStripePayment] completePaymentFlow-${params?.uid || 'n/a'}`;
+    console.time(label);
+    console.log(new Date().toISOString(), 'Starting complete payment flow with params:', {
       est: params.est,
       uid: params.uid,
       created: params.created,
@@ -448,6 +456,7 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
         errorDetails: err.stack
       };
     }
+      console.timeEnd(label);
   }, [fetchStripeKeys, fetchDepositInfo, processPayment, attachPaymentMethod]);
 
   /**

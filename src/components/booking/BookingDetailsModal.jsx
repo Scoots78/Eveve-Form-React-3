@@ -84,10 +84,15 @@ export default function BookingDetailsModal({
   const isDepositRequired = holdData && holdData.card === 2;
   const isNoShowProtection = holdData && holdData.card === 1;
 
+  // Helper for timestamp logs
+  const logWithTimestamp = (message, data) => {
+    console.log(`${new Date().toISOString()} [BookingDetailsModal] ${message}`, data || '');
+  };
+
   // Reset form when modal opens with new hold data
   useEffect(() => {
     if (isOpen && holdData) {
-      console.debug('[BookingDetailsModal] Modal opened with holdData:', {
+      logWithTimestamp('Modal opened with holdData:', {
         uid: holdData.uid,
         card: holdData.card,
         perHead: holdData.perHead
@@ -163,7 +168,7 @@ export default function BookingDetailsModal({
   
   // Handle card element change
   const handleCardChange = (event) => {
-    console.debug('[BookingDetailsModal] Card element change:', {
+    logWithTimestamp('Card element change:', {
       complete: event.complete,
       hasError: !!event.error,
       empty: event.empty,
@@ -241,13 +246,17 @@ export default function BookingDetailsModal({
       return;
     }
     
+    const timerLabel = `[BookingDetailsModal] initializeStripe-${holdData.uid}`;
+    console.time(timerLabel);
+    
     try {
       setIsInitializingStripe(true);
       
-      console.debug('[BookingDetailsModal] Initializing Stripe with customer details:', {
+      logWithTimestamp('Initializing Stripe with customer details:', {
         firstName: customerData.firstName,
         lastName: customerData.lastName,
-        email: customerData.email
+        email: customerData.email,
+        uid: holdData.uid
       });
       
       // Fetch Stripe keys with customer details
@@ -262,14 +271,24 @@ export default function BookingDetailsModal({
       });
       
       if (keys && keys.publicKey) {
-        console.debug('[BookingDetailsModal] Stripe keys fetched successfully');
+        logWithTimestamp('Stripe keys fetched successfully', {
+          publicKey: keys.publicKey.substring(0, 8) + '...',
+          hasClientSecret: !!keys.clientSecret
+        });
         setStripePublicKey(keys.publicKey);
         
         // Fetch deposit information
-        await fetchDepositInfo({
+        logWithTimestamp('Fetching deposit information');
+        const depositData = await fetchDepositInfo({
           est: bookingData.est || holdData.est,
           uid: holdData.uid,
           created: holdData.created
+        });
+        
+        logWithTimestamp('Deposit info received', {
+          isDeposit: depositData.isDeposit,
+          isNoShow: depositData.isNoShow,
+          amount: depositData.amount
         });
         
         // Move to payment step
@@ -278,23 +297,27 @@ export default function BookingDetailsModal({
         throw new Error("Failed to retrieve Stripe keys");
       }
     } catch (err) {
-      console.error("[BookingDetailsModal] Error initializing payment:", err);
+      console.error(`${new Date().toISOString()} [BookingDetailsModal] Error initializing payment:`, err);
       setCardState(prev => ({
         ...prev,
         error: err.message || "Failed to initialize payment system"
       }));
     } finally {
       setIsInitializingStripe(false);
+      console.timeEnd(timerLabel);
     }
   };
 
   // Handle "Continue to Payment" button click
   const handleContinueToPayment = async (e) => {
     e.preventDefault();
+    logWithTimestamp('Continue to payment button clicked');
     
     // Validate personal details
     if (validatePersonalDetails()) {
       await initializeStripe();
+    } else {
+      logWithTimestamp('Personal details validation failed', validationErrors);
     }
   };
 
@@ -302,44 +325,72 @@ export default function BookingDetailsModal({
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Create a unique timer label for this submission
+    const submissionId = Date.now().toString(36);
+    const timerLabel = `[BookingDetailsModal] handleSubmit-${submissionId}`;
+    console.time(timerLabel);
+    
+    logWithTimestamp(`Form submission started (${submissionId})`, {
+      isCardRequired,
+      currentStep: currentStep,
+      bookingUid: holdData?.uid
+    });
+    
     // For non-card bookings, validate and submit directly
     if (!isCardRequired) {
       if (validateForm()) {
         try {
-          console.debug('[BookingDetailsModal] Submitting non-card booking');
+          logWithTimestamp('Submitting non-card booking');
           onSubmit(holdData.uid, customerData);
         } catch (err) {
-          console.error("[BookingDetailsModal] Error processing booking:", err);
+          console.error(`${new Date().toISOString()} [BookingDetailsModal] Error processing booking:`, err);
         }
+      } else {
+        logWithTimestamp('Non-card booking validation failed', validationErrors);
       }
+      console.timeEnd(timerLabel);
       return;
     }
     
     // For card bookings, process payment first
     if (validateForm()) {
       try {
-        console.debug('[BookingDetailsModal] Processing payment for card-required booking');
+        logWithTimestamp('Processing payment for card-required booking', {
+          step: 'start',
+          uid: holdData.uid,
+          cardComplete: cardState.complete,
+          hasStripe: !!cardState.stripe,
+          hasElements: !!cardState.elements
+        });
+        
         setPaymentProcessing(true);
         
         // Double-check that we have everything we need for Stripe
         if (!cardState.stripe) {
-          throw new Error("Stripe not initialized properly");
+          const error = new Error("Stripe not initialized properly");
+          logWithTimestamp('Payment error: Stripe not initialized', { error });
+          throw error;
         }
         
         if (!cardState.elements) {
-          throw new Error("Stripe Elements not initialized properly");
+          const error = new Error("Stripe Elements not initialized properly");
+          logWithTimestamp('Payment error: Elements not initialized', { error });
+          throw error;
         }
         
         // Get the card element
         const cardElement = cardState.elements.getElement(CardElement);
         if (!cardElement) {
-          throw new Error("Card element not found");
+          const error = new Error("Card element not found");
+          logWithTimestamp('Payment error: Card element not found', { error });
+          throw error;
         }
         
-        console.debug('[BookingDetailsModal] Starting payment flow with:', {
+        logWithTimestamp('Starting payment flow', {
           uid: holdData.uid,
           created: holdData.created,
-          cardElementExists: !!cardElement
+          cardElementExists: !!cardElement,
+          step: 'before-completePaymentFlow'
         });
         
         // Process payment flow
@@ -353,15 +404,24 @@ export default function BookingDetailsModal({
           cardElement: cardElement
         });
         
-        console.debug('[BookingDetailsModal] Payment flow result:', {
+        logWithTimestamp('Payment flow result', {
           success: paymentResult.success,
           hasError: !!paymentResult.error,
+          errorMessage: paymentResult.error,
           paymentMethodId: paymentResult.paymentMethodId ? 
-            `${paymentResult.paymentMethodId.substring(0, 8)}...` : null
+            `${paymentResult.paymentMethodId.substring(0, 8)}...` : null,
+          intentType: paymentResult.intentType,
+          status: paymentResult.status,
+          step: 'after-completePaymentFlow'
         });
         
         if (!paymentResult.success) {
-          throw new Error(paymentResult.error || "Payment processing failed");
+          const error = new Error(paymentResult.error || "Payment processing failed");
+          logWithTimestamp('Payment flow failed', { 
+            error: error.message,
+            details: paymentResult.errorDetails
+          });
+          throw error;
         }
         
         // Add payment information to customer data for the booking update
@@ -374,21 +434,45 @@ export default function BookingDetailsModal({
           isNoShow: paymentResult.isNoShow
         };
         
-        console.debug('[BookingDetailsModal] Payment successful, updating booking with payment info');
+        logWithTimestamp('Payment successful, updating booking with payment info', {
+          paymentMethodId: paymentResult.paymentMethodId ? 
+            `${paymentResult.paymentMethodId.substring(0, 8)}...` : null,
+          amount: paymentResult.amount,
+          isDeposit: paymentResult.isDeposit,
+          step: 'before-onSubmit'
+        });
         
         // Payment successful, now update booking
         onSubmit(holdData.uid, updatedCustomerData);
         
+        logWithTimestamp('Booking update submitted', {
+          step: 'after-onSubmit'
+        });
+        
         // Set to complete step
         setCurrentStep(STEPS.COMPLETE);
       } catch (err) {
-        console.error("[BookingDetailsModal] Error processing booking:", err);
+        console.error(`${new Date().toISOString()} [BookingDetailsModal] Error processing booking:`, {
+          message: err.message,
+          stack: err.stack,
+          name: err.name,
+          code: err.code,
+          type: err.type,
+          decline_code: err.decline_code,
+          param: err.param
+        });
+        
         setCardState(prev => ({
           ...prev,
           error: err.message || "Failed to process payment"
         }));
         setPaymentProcessing(false);
+      } finally {
+        console.timeEnd(timerLabel);
       }
+    } else {
+      logWithTimestamp('Card booking validation failed', validationErrors);
+      console.timeEnd(timerLabel);
     }
   };
 
@@ -396,17 +480,24 @@ export default function BookingDetailsModal({
   const stripeProviderComponent = useMemo(() => {
     if (!stripePublicKey) return null;
     
-    console.debug('[BookingDetailsModal] Creating Stripe provider with key:', 
+    logWithTimestamp('Creating Stripe provider with key:', 
       stripePublicKey ? `${stripePublicKey.substring(0, 8)}...` : 'none');
     
     return (
       <StripeProvider 
         stripeKey={stripePublicKey}
         onLoad={(stripe) => {
-          console.debug('[BookingDetailsModal] Stripe loaded in provider');
+          logWithTimestamp('Stripe loaded in provider', {
+            stripeInstanceExists: !!stripe
+          });
         }}
         onError={(err) => {
-          console.error('[BookingDetailsModal] Stripe provider error:', err);
+          console.error(`${new Date().toISOString()} [BookingDetailsModal] Stripe provider error:`, {
+            message: err.message,
+            stack: err.stack,
+            name: err.name
+          });
+          
           setCardState(prev => ({
             ...prev,
             error: `Payment system error: ${err.message || 'Unknown error'}`
@@ -912,7 +1003,10 @@ export default function BookingDetailsModal({
                           <button
                             type="button"
                             className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                            onClick={() => setCurrentStep(STEPS.PERSONAL_DETAILS)}
+                            onClick={() => {
+                              logWithTimestamp('Back button clicked, returning to personal details');
+                              setCurrentStep(STEPS.PERSONAL_DETAILS);
+                            }}
                             disabled={isLoading || paymentProcessing}
                           >
                             {appConfig?.lng?.backButton || "Back"}
@@ -921,6 +1015,13 @@ export default function BookingDetailsModal({
                             type="submit"
                             className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={isLoading || paymentProcessing || !cardState.complete}
+                            onClick={() => {
+                              logWithTimestamp('Payment submit button clicked', {
+                                cardComplete: cardState.complete,
+                                hasStripe: !!cardState.stripe,
+                                hasElements: !!cardState.elements
+                              });
+                            }}
                           >
                             {appConfig?.lng?.bookingConfirmWithPaymentButton || "Complete Payment & Book"}
                           </button>

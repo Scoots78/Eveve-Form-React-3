@@ -14,6 +14,19 @@ const stripePromiseCache =
   globalThis.__EVEVE_STRIPE_PROMISES__ ||
   (globalThis.__EVEVE_STRIPE_PROMISES__ = {});
 
+/* ------------------------------------------------------------------ *
+ * Small logging helpers                                              *
+ * ------------------------------------------------------------------ */
+const nowISO = () => new Date().toISOString();
+
+const startTimer = (label) => {
+  const fullLabel = `[stripe-api] ${label}`;
+  console.time(fullLabel);
+  return fullLabel;
+};
+
+const endTimer = (label) => console.timeEnd(label);
+
 /**
  * Get (or create) a cached promise for a Stripe instance keyed by publishable
  * key.  The resolved Stripe object is memo-ised, ensuring Elements and payment
@@ -33,11 +46,16 @@ const getStripePromise = (publicKey) => {
   }
 
   // Otherwise create, store, and return a new promise
+  const timer = startTimer(`loadStripe(${publicKey.slice(0, 8)}…)`);
   stripePromiseCache[publicKey] = loadStripe(publicKey).then((stripe) => {
     // Cache the concrete instance so subsequent `getStripe()` calls resolve
     // synchronously without awaiting the promise.
     stripeInstance = stripe;
+    endTimer(timer);
     return stripe;
+  }).catch(err => {
+    endTimer(timer);
+    throw err;
   });
 
   return stripePromiseCache[publicKey];
@@ -50,8 +68,10 @@ const getStripePromise = (publicKey) => {
  */
 export const initializeStripe = async (publicKey) => {
   try {
+    const timer = startTimer(`initializeStripe(${publicKey?.slice(0,8)}…)`);
     const stripe = await getStripePromise(publicKey);
     stripeInstance = stripe;
+    endTimer(timer);
     return stripe;
   } catch (error) {
     console.error('Error initializing Stripe:', error);
@@ -71,7 +91,9 @@ export const getStripe = async (publicKey = null) => {
   }
 
   // Await the cached promise to ensure a single Stripe instance is produced
+  const timer = startTimer(`getStripe(${publicKey.slice(0,8)}…)`);
   stripeInstance = await getStripePromise(publicKey);
+  endTimer(timer);
   return stripeInstance;
 };
 
@@ -84,6 +106,7 @@ export const getStripe = async (publicKey = null) => {
  */
 export const confirmSetupIntent = async (clientSecret, paymentMethod, options = {}) => {
   try {
+    const timer = startTimer('confirmSetupIntent');
     const stripe = await getStripe();
     
     if (!stripe) {
@@ -104,6 +127,7 @@ export const confirmSetupIntent = async (clientSecret, paymentMethod, options = 
       }
     );
     
+    endTimer(timer);
     return result;
   } catch (error) {
     console.error('Error confirming setup intent:', error);
@@ -120,6 +144,7 @@ export const confirmSetupIntent = async (clientSecret, paymentMethod, options = 
  */
 export const confirmPaymentIntent = async (clientSecret, paymentMethod, options = {}) => {
   try {
+    const timer = startTimer('confirmPaymentIntent');
     const stripe = await getStripe();
     
     if (!stripe) {
@@ -140,6 +165,7 @@ export const confirmPaymentIntent = async (clientSecret, paymentMethod, options 
       }
     );
     
+    endTimer(timer);
     return result;
   } catch (error) {
     console.error('Error confirming payment intent:', error);
