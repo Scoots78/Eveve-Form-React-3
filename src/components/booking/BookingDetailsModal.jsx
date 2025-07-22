@@ -2,10 +2,37 @@ import React, { useState, useEffect } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { formatDecimalTime } from "../../utils/time";
 import { formatCustomerDetails } from "../../utils/apiFormatter";
-import { Elements, useStripe, useElements } from "@stripe/react-stripe-js";
+import { Elements, useStripe, useElements, CardElement } from "@stripe/react-stripe-js";
 import StripeCardElement from "./StripeCardElement";
 import StripeProvider from "./StripeProvider";
 import { useStripePayment } from "../../hooks/booking/useStripePayment";
+
+// Inner component that uses Stripe hooks
+function CardForm({ onChange, disabled, label, showTestCards }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  
+  const handleCardChange = (event) => {
+    if (onChange) {
+      onChange({
+        complete: event.complete,
+        error: event.error,
+        empty: event.empty,
+        stripe,
+        elements
+      });
+    }
+  };
+  
+  return (
+    <StripeCardElement
+      onChange={handleCardChange}
+      disabled={disabled}
+      showTestCards={showTestCards}
+      label={label}
+    />
+  );
+}
 
 /**
  * BookingDetailsModal - A modal dialog for collecting customer details and confirming the reservation
@@ -54,6 +81,8 @@ export default function BookingDetailsModal({
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
   const [stripePublicKey, setStripePublicKey] = useState(null);
+  const [stripeElements, setStripeElements] = useState(null);
+  const [stripeInstance, setStripeInstance] = useState(null);
   
   // Initialize stripe payment hook
   const {
@@ -94,6 +123,8 @@ export default function BookingDetailsModal({
       setCardComplete(false);
       setPaymentProcessing(false);
       setPaymentError(null);
+      setStripeElements(null);
+      setStripeInstance(null);
       resetStripePayment();
       
       // Fetch Stripe keys if card is required
@@ -167,6 +198,12 @@ export default function BookingDetailsModal({
     } else {
       setPaymentError(null);
     }
+    
+    // Store Stripe and Elements instances for later use
+    if (event.stripe && event.elements) {
+      setStripeInstance(event.stripe);
+      setStripeElements(event.elements);
+    }
   };
 
   // Validate the form
@@ -221,8 +258,13 @@ export default function BookingDetailsModal({
         if (isCardRequired) {
           setPaymentProcessing(true);
           
-          // Get card element
-          const cardElement = document.getElementById('card-element');
+          // Make sure we have the Stripe elements
+          if (!stripeElements || !stripeInstance) {
+            throw new Error("Stripe payment system not initialized properly");
+          }
+          
+          // Get the CardElement
+          const cardElement = stripeElements.getElement(CardElement);
           
           if (!cardElement) {
             throw new Error("Card element not found");
@@ -243,8 +285,18 @@ export default function BookingDetailsModal({
             throw new Error(paymentResult.error || "Payment processing failed");
           }
           
+          // Add payment information to customer data for the booking update
+          const updatedCustomerData = {
+            ...customerData,
+            paymentMethodId: paymentResult.paymentMethodId,
+            paymentAmount: paymentResult.amount,
+            paymentCurrency: paymentResult.currency,
+            isDeposit: paymentResult.isDeposit,
+            isNoShow: paymentResult.isNoShow
+          };
+          
           // Payment successful, now update booking
-          onSubmit(holdData.uid, customerData);
+          onSubmit(holdData.uid, updatedCustomerData);
         } else {
           // No card required, just update booking
           onSubmit(holdData.uid, customerData);
@@ -289,7 +341,7 @@ export default function BookingDetailsModal({
         {/* Stripe Card Element */}
         {stripePublicKey ? (
           <StripeProvider stripeKey={stripePublicKey}>
-            <StripeCardElement
+            <CardForm
               onChange={handleCardChange}
               disabled={paymentProcessing}
               showTestCards={true}

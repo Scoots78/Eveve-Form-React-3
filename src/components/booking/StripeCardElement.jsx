@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CardElement } from '@stripe/react-stripe-js';
+import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
 /**
  * StripeCardElement - A component that renders the Stripe Card Element
@@ -25,6 +25,11 @@ const StripeCardElement = ({
 }) => {
   const [error, setError] = useState(null);
   const [cardComplete, setCardComplete] = useState(false);
+
+  // Grab the current Stripe & Elements instances so the parent
+  // component can use them (e.g. to call elements.getElement).
+  const stripe = useStripe();
+  const elements = useElements();
 
   // Default card element styling options
   const defaultOptions = {
@@ -61,7 +66,9 @@ const StripeCardElement = ({
       onChange({
         error: event.error,
         complete: event.complete,
-        empty: event.empty
+        empty: event.empty,
+        stripe,
+        elements
       });
     }
   };
@@ -71,10 +78,13 @@ const StripeCardElement = ({
     if (onChange) {
       onChange({
         error: error ? { message: error } : null,
-        complete: cardComplete
+        complete: cardComplete,
+        stripe,
+        elements
       });
     }
-  }, [cardComplete, error, onChange]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cardComplete, error, stripe, elements]); // ignore onChange ref in deps to avoid infinite loop
 
   return (
     <div className={`stripe-card-container ${className}`}>

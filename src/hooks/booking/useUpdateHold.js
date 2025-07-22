@@ -31,6 +31,11 @@ export function useUpdateHold(baseUrl) {
    * @param {string} [customerData.addons] - Selected add-ons
    * @param {Array} [customerData.bookopt] - Booking options
    * @param {Array} [customerData.guestopt] - Guest options
+   * @param {string} [customerData.paymentMethodId] - Stripe payment method ID
+   * @param {number} [customerData.paymentAmount] - Payment amount in cents
+   * @param {string} [customerData.paymentCurrency] - Payment currency code
+   * @param {boolean} [customerData.isDeposit] - Whether this is a deposit payment
+   * @param {boolean} [customerData.isNoShow] - Whether this is a no-show protection
    * @returns {Promise<Object>} - Update response data
    */
   const updateHold = async (holdToken, customerData) => {
@@ -89,6 +94,28 @@ export function useUpdateHold(baseUrl) {
         url.searchParams.append("guestopt", customerData.guestopt.join(','));
       }
       
+      // Add payment information if present
+      if (customerData.paymentMethodId) {
+        url.searchParams.append("pm", customerData.paymentMethodId);
+      }
+      
+      if (customerData.paymentAmount) {
+        url.searchParams.append("total", customerData.paymentAmount);
+        // Also include the float value if available
+        url.searchParams.append("totalFloat", (customerData.paymentAmount / 100).toFixed(2));
+      }
+      
+      if (customerData.paymentCurrency) {
+        url.searchParams.append("currency", customerData.paymentCurrency);
+      }
+      
+      // Add payment type information
+      if (customerData.isDeposit) {
+        url.searchParams.append("paymentType", "deposit");
+      } else if (customerData.isNoShow) {
+        url.searchParams.append("paymentType", "noshow");
+      }
+      
       console.log("Update Hold Request URL:", url.toString());
       
       const response = await fetch(url);
@@ -106,6 +133,17 @@ export function useUpdateHold(baseUrl) {
       
       // Store the successful update result
       setUpdateResult(data);
+      
+      // If payment method ID is present, log success message
+      if (customerData.paymentMethodId) {
+        console.log("Payment information successfully attached to booking:", {
+          paymentMethodId: customerData.paymentMethodId.substring(0, 10) + '...',
+          isDeposit: customerData.isDeposit,
+          isNoShow: customerData.isNoShow,
+          amount: customerData.paymentAmount ? `${(customerData.paymentAmount / 100).toFixed(2)} ${customerData.paymentCurrency || ''}` : 'N/A'
+        });
+      }
+      
       return data;
     } catch (err) {
       console.error("Error during update request:", err);
