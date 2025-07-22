@@ -683,9 +683,37 @@ export default function ReservationForm() {
     const numericGuests = parseInt(guests, 10);
     const formattedDate = format(selectedDate, 'yyyy-MM-dd');
     const formattedTime = selectedShiftTime.selectedTime; // This is already in decimal format like 12.25
+
+    /* ------------------------------------------------------------------
+       Build optionsMeta so optional-addon UIDs map to friendly names.
+       This allows formatAddonsForDisplay to show names instead of raw
+       UIDs (e.g. “1003”) in the booking summary.
+    ------------------------------------------------------------------ */
+    const optionsMeta = {};
+    currentShiftAddons
+      .filter((a) => a.type === 'Option')
+      .forEach((opt) => {
+        if (opt.uid && opt.name) {
+          optionsMeta[String(opt.uid)] = { name: opt.name };
+        }
+      });
+
+    // Attach meta without mutating original state object
+    const selectedAddonsWithMeta = {
+      ...selectedAddons,
+      optionsMeta
+    };
+
     // Split addon formatting: UID string for API vs. friendly string for UI
-    const formattedAddonsUid      = formatSelectedAddonsForApi(selectedAddons, numericGuests, false);
-    const formattedAddonsDisplay  = formatAddonsForDisplay(selectedAddons, numericGuests);
+    const formattedAddonsUid     = formatSelectedAddonsForApi(
+      selectedAddonsWithMeta,
+      numericGuests,
+      false
+    );
+    const formattedAddonsDisplay = formatAddonsForDisplay(
+      selectedAddonsWithMeta,
+      numericGuests
+    );
     const formattedArea = formatAreaForApi(selectedArea);
 
     const bookingDataForHold = {
@@ -1046,14 +1074,17 @@ export default function ReservationForm() {
           {/* Responsive grid: stacks on mobile, 60/40 split from md+ */}
           {/* Calendar � full width on mobile, 60 % on md+ */}
           <div className="flex justify-center md:justify-start md:col-span-6">
-            <ReactCalendarPicker
-              date={selectedDate}
-              onChange={handleDateChange}
-              dateFormat={appConfig?.dateFormat} // Pass dateFormat from config
-              disablePast={true} // Pass disablePast from config
-              disabledDates={disabledDates}
-              onMonthChange={handleMonthChange}
-            />
+            {/* Added wrapper to give calendar consistent styling */}
+            <div className="mt-6 p-4 border border-gray-200 rounded-lg shadow bg-white w-full">
+              <ReactCalendarPicker
+                date={selectedDate}
+                onChange={handleDateChange}
+                dateFormat={appConfig?.dateFormat} // Pass dateFormat from config
+                disablePast={true} // Pass disablePast from config
+                disabledDates={disabledDates}
+                onMonthChange={handleMonthChange}
+              />
+            </div>
           </div>
 
           {/* Guest selector � full width on mobile, 40 % on md+ */}
