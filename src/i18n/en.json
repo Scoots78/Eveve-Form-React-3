@@ -95,12 +95,21 @@
   "bookingNotesTitle": "Special Requests",
   "bookingTotalPrice": "Total Price",
   "bookingConfirmButton": "Confirm Booking",
+  "bookingConfirmWithPaymentButton": "Complete Payment & Book",
   "bookingCloseButton": "Cancel",
   "bookingSuccessTitle": "Booking Confirmed!",
   "bookingErrorTitle": "Booking Error",
   "bookingSuccessMessage": "Your booking has been confirmed. We look forward to seeing you!",
   "bookingErrorMessage": "There was a problem confirming your booking. Please try again or contact us directly.",
   "bookingLoadingMessage": "Processing your booking...",
+  "paymentProcessingMessage": "Processing payment...",
+
+  /* ----- Stripe / Payment ----- */
+  "depositTitle": "Deposit Payment",
+  "cardDetailsTitle": "Card Details for No-Show Protection",
+  "cardDetailsLabel": "Card Details",
+  "cardRequiredError": "Please complete your card details",
+
   "allergiesYes": "Yes, I have dietary requirements",
   "allergiesNo": "No dietary requirements",
   "allergiesDetails": "Please describe your dietary requirements",
