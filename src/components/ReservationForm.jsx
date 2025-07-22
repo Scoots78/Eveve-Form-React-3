@@ -41,7 +41,7 @@ export default function ReservationForm() {
   const est = urlParams.get("est"); // Removed fallback to "testnza"
 
   /* ------------------------------------------------------------------
-     Treat date as “unset” on initial load so the GuestSelector container
+     Treat date as "unset" on initial load so the GuestSelector container
      does NOT appear until the user actively picks a date.
   ------------------------------------------------------------------ */
   const [selectedDate, setSelectedDate] = useState(null);
@@ -691,7 +691,7 @@ export default function ReservationForm() {
     /* ------------------------------------------------------------------
        Build optionsMeta so optional-addon UIDs map to friendly names.
        This allows formatAddonsForDisplay to show names instead of raw
-       UIDs (e.g. “1003”) in the booking summary.
+       UIDs (e.g. "1003") in the booking summary.
     ------------------------------------------------------------------ */
     const optionsMeta = {};
     currentShiftAddons
@@ -1074,7 +1074,6 @@ export default function ReservationForm() {
       </h1>
 
       {showDateTimePicker && (
-        {/* Stack calendar and guest selector vertically */}
         <div className="flex flex-col items-center gap-6">
           {/* Calendar – full width */}
           <div className="flex justify-center w-full">
