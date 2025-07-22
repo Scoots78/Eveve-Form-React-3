@@ -38,6 +38,11 @@ export default function BookingDetailsModal({
   };
   const [currentStep, setCurrentStep] = useState(STEPS.PERSONAL_DETAILS);
   
+  // Timer state
+  const [timeRemaining, setTimeRemaining] = useState(3 * 60); // 3 minutes in seconds
+  const [timerExpired, setTimerExpired] = useState(false);
+  const timerIntervalRef = useRef(null);
+  
   // Customer details state
   const [customerData, setCustomerData] = useState({
     firstName: "",
@@ -93,6 +98,63 @@ export default function BookingDetailsModal({
   const logWithTimestamp = (message, data) => {
     console.log(`${new Date().toISOString()} [BookingDetailsModal] ${message}`, data || '');
   };
+
+  // Format time remaining as MM:SS
+  const formatTimeRemaining = () => {
+    const minutes = Math.floor(timeRemaining / 60);
+    const seconds = timeRemaining % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Get timer color based on time remaining
+  const getTimerColor = () => {
+    if (timeRemaining <= 30) return 'text-red-600 font-bold animate-pulse';
+    if (timeRemaining <= 60) return 'text-yellow-600 font-bold';
+    return 'text-gray-700';
+  };
+
+  // Start countdown timer when modal opens
+  useEffect(() => {
+    if (isOpen && !success && !localSuccess) {
+      // Reset timer state
+      setTimeRemaining(3 * 60);
+      setTimerExpired(false);
+      
+      // Clear any existing timer
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+      
+      // Start new timer
+      timerIntervalRef.current = setInterval(() => {
+        setTimeRemaining(prev => {
+          if (prev <= 1) {
+            // Timer expired
+            clearInterval(timerIntervalRef.current);
+            setTimerExpired(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    
+    // Clean up timer on unmount or modal close
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    };
+  }, [isOpen, success, localSuccess]);
+
+  // Stop timer when booking is successful
+  useEffect(() => {
+    if ((success || localSuccess) && timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+  }, [success, localSuccess]);
 
   // Reset form when modal opens with new hold data
   useEffect(() => {
@@ -250,6 +312,12 @@ export default function BookingDetailsModal({
   const validatePersonalDetails = () => {
     const errors = {};
     
+    // Check if timer has expired
+    if (timerExpired) {
+      errors.timer = "Your booking session has expired. Please start again.";
+      return false;
+    }
+    
     if (!customerData.firstName.trim()) {
       errors.firstName = appConfig?.lng?.requiredFieldError || "This field is required";
     }
@@ -275,6 +343,13 @@ export default function BookingDetailsModal({
   // Validate the full form
   const validateForm = () => {
     const errors = {};
+    
+    // Check if timer has expired
+    if (timerExpired) {
+      errors.timer = "Your booking session has expired. Please start again.";
+      setValidationErrors(errors);
+      return false;
+    }
     
     // Include personal details validation
     if (!validatePersonalDetails()) {
@@ -303,6 +378,14 @@ export default function BookingDetailsModal({
   // Initialize Stripe with customer details
   const initializeStripe = async () => {
     if (!isCardRequired || !holdData || !holdData.uid || !holdData.created) {
+      return;
+    }
+    
+    // Check if timer has expired
+    if (timerExpired) {
+      setValidationErrors({
+        timer: "Your booking session has expired. Please start again."
+      });
       return;
     }
     
@@ -373,6 +456,14 @@ export default function BookingDetailsModal({
     e.preventDefault();
     logWithTimestamp('Continue to payment button clicked');
     
+    // Check if timer has expired
+    if (timerExpired) {
+      setValidationErrors({
+        timer: "Your booking session has expired. Please start again."
+      });
+      return;
+    }
+    
     // Validate personal details
     if (validatePersonalDetails()) {
       await initializeStripe();
@@ -384,6 +475,14 @@ export default function BookingDetailsModal({
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Check if timer has expired
+    if (timerExpired) {
+      setValidationErrors({
+        timer: "Your booking session has expired. Please start again."
+      });
+      return;
+    }
     
     // Create a unique timer label for this submission
     const submissionId = Date.now().toString(36);
@@ -843,6 +942,43 @@ export default function BookingDetailsModal({
                       </div>
                     )}
 
+                    {/* Countdown Timer */}
+                    <div className="mt-3 mb-2 text-center">
+                      <div className={`inline-flex items-center px-3 py-1 rounded-full border ${timerExpired ? 'bg-red-100 border-red-300' : 'bg-gray-50 border-gray-200'}`}>
+                        <svg 
+                          className={`w-4 h-4 mr-1 ${timerExpired ? 'text-red-600' : getTimerColor()}`} 
+                          fill="none" 
+                          viewBox="0 0 24 24" 
+                          stroke="currentColor"
+                        >
+                          <path 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            strokeWidth={2} 
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" 
+                          />
+                        </svg>
+                        <span className={getTimerColor()}>
+                          {timerExpired 
+                            ? "Time expired" 
+                            : `Time remaining: ${formatTimeRemaining()}`
+                          }
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Timer expired message */}
+                    {timerExpired && (
+                      <div className="mt-2 mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-center">
+                        <p className="text-red-600 font-medium">
+                          Your booking session has expired
+                        </p>
+                        <p className="text-red-600 text-sm mt-1">
+                          Please close this window and start a new booking to continue.
+                        </p>
+                      </div>
+                    )}
+
                     {/* Step indicator */}
                     {isCardRequired && (
                       <div className="mt-4 mb-2">
@@ -857,6 +993,13 @@ export default function BookingDetailsModal({
                             <span>Payment</span>
                           </div>
                         </div>
+                      </div>
+                    )}
+
+                    {/* Timer validation error */}
+                    {validationErrors.timer && (
+                      <div className="mt-2 mb-4 p-3 bg-red-50 text-red-700 text-sm rounded">
+                        <p className="font-medium">{validationErrors.timer}</p>
                       </div>
                     )}
 
@@ -882,6 +1025,7 @@ export default function BookingDetailsModal({
                                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 ${
                                   validationErrors.firstName ? "border-red-500" : "border-gray-300"
                                 }`}
+                                disabled={timerExpired}
                               />
                               {validationErrors.firstName && (
                                 <p className="mt-1 text-sm text-red-600">{validationErrors.firstName}</p>
@@ -901,6 +1045,7 @@ export default function BookingDetailsModal({
                                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 ${
                                   validationErrors.lastName ? "border-red-500" : "border-gray-300"
                                 }`}
+                                disabled={timerExpired}
                               />
                               {validationErrors.lastName && (
                                 <p className="mt-1 text-sm text-red-600">{validationErrors.lastName}</p>
@@ -920,6 +1065,7 @@ export default function BookingDetailsModal({
                                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 ${
                                   validationErrors.email ? "border-red-500" : "border-gray-300"
                                 }`}
+                                disabled={timerExpired}
                               />
                               {validationErrors.email && (
                                 <p className="mt-1 text-sm text-red-600">{validationErrors.email}</p>
@@ -939,6 +1085,7 @@ export default function BookingDetailsModal({
                                 className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 ${
                                   validationErrors.phone ? "border-red-500" : "border-gray-300"
                                 }`}
+                                disabled={timerExpired}
                               />
                               {validationErrors.phone && (
                                 <p className="mt-1 text-sm text-red-600">{validationErrors.phone}</p>
@@ -970,6 +1117,7 @@ export default function BookingDetailsModal({
                                   if (!formTouched) setFormTouched(true);
                                 }}
                                 className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                                disabled={timerExpired}
                               />
                               <label htmlFor="allergies-yes" className="ml-2 block text-sm text-gray-700">
                                 {appConfig?.lng?.allergiesYes || "Yes, I have dietary requirements"}
@@ -993,6 +1141,7 @@ export default function BookingDetailsModal({
                                   if (!formTouched) setFormTouched(true);
                                 }}
                                 className="h-4 w-4 text-purple-600 focus:ring-purple-500"
+                                disabled={timerExpired}
                               />
                               <label htmlFor="allergies-no" className="ml-2 block text-sm text-gray-700">
                                 {appConfig?.lng?.allergiesNo || "No dietary requirements"}
@@ -1010,6 +1159,7 @@ export default function BookingDetailsModal({
                                   className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 ${
                                     validationErrors["allergy.details"] ? "border-red-500" : "border-gray-300"
                                   }`}
+                                  disabled={timerExpired}
                                 ></textarea>
                                 {validationErrors["allergy.details"] && (
                                   <p className="mt-1 text-sm text-red-600">{validationErrors["allergy.details"]}</p>
@@ -1030,6 +1180,7 @@ export default function BookingDetailsModal({
                             onChange={handleInputChange}
                             rows="3"
                             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                            disabled={timerExpired}
                           ></textarea>
                           <p className="mt-1 text-xs text-gray-500">
                             Special requests are not guaranteed and are subject to availability.
@@ -1046,6 +1197,7 @@ export default function BookingDetailsModal({
                               checked={customerData.optin}
                               onChange={handleInputChange}
                               className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                              disabled={timerExpired}
                             />
                             <label htmlFor="optin" className="ml-2 block text-sm text-gray-700">
                               {appConfig?.lng?.optinLabel || "Keep me informed about news and offers"}
@@ -1068,7 +1220,7 @@ export default function BookingDetailsModal({
                             <button
                               type="submit"
                               className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                              disabled={isLoading || isInitializingStripe}
+                              disabled={isLoading || isInitializingStripe || timerExpired}
                             >
                               {appConfig?.lng?.continueToPaymentButton || "Continue to Payment"}
                             </button>
@@ -1077,7 +1229,7 @@ export default function BookingDetailsModal({
                               type="button"
                               onClick={handleSubmit}
                               className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                              disabled={isLoading}
+                              disabled={isLoading || timerExpired}
                             >
                               {appConfig?.lng?.bookingConfirmButton || "Confirm Booking"}
                             </button>
@@ -1101,14 +1253,14 @@ export default function BookingDetailsModal({
                               logWithTimestamp('Back button clicked, returning to personal details');
                               setCurrentStep(STEPS.PERSONAL_DETAILS);
                             }}
-                            disabled={isLoading || paymentProcessing}
+                            disabled={isLoading || paymentProcessing || timerExpired}
                           >
                             {appConfig?.lng?.backButton || "Back"}
                           </button>
                           <button
                             type="submit"
                             className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                            disabled={isLoading || paymentProcessing || !cardState.complete}
+                            disabled={isLoading || paymentProcessing || !cardState.complete || timerExpired}
                             onClick={() => {
                               logWithTimestamp('Payment submit button clicked', {
                                 cardComplete: cardState.complete,
