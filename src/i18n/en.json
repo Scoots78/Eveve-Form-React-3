@@ -104,7 +104,6 @@
   "bookingLoadingMessage": "Processing your booking...",
   "paymentProcessingMessage": "Processing payment...",
 
-  /* ----- Stripe / Payment ----- */
   "depositTitle": "Deposit Payment",
   "cardDetailsTitle": "Card Details for No-Show Protection",
   "cardDetailsLabel": "Card Details",
