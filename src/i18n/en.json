@@ -97,6 +97,8 @@
   "bookingConfirmButton": "Confirm Booking",
   "bookingConfirmWithPaymentButton": "Complete Payment & Book",
   "bookingCloseButton": "Cancel",
+  "continueToPaymentButton": "Continue to Payment",
+  "backButton": "Back",
   "bookingSuccessTitle": "Booking Confirmed!",
   "bookingErrorTitle": "Booking Error",
   "bookingSuccessMessage": "Your booking has been confirmed. We look forward to seeing you!",

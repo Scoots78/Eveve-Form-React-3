@@ -28,13 +28,27 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
    * @returns {Promise<Object>} - Stripe keys and client secret
    */
   const fetchStripeKeys = useCallback(async (params) => {
+    // If we've already fetched keys for this booking UID, reuse them
+    if (stripeKeys && stripeKeys.clientSecret && params?.uid === stripeKeys?.uid) {
+      console.log('[useStripePayment] Re-using previously fetched Stripe keys');
+      return stripeKeys;
+    }
+
     console.log('Fetching Stripe keys with params:', params);
     setIsLoading(true);
     setError(null);
     
     try {
       // Create a friendly customer description for Stripe if not provided
-      const customerDescription = params.desc || 'Customer';
+      const customerDescription =
+        params.desc ||
+        [
+          params.firstName,
+          params.lastName,
+          params.email
+        ]
+          .filter(Boolean)
+          .join('_');
       
       const piGetParams = {
         est: params.est,
@@ -64,6 +78,8 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
       });
       
       setStripeKeys(keys);
+      // Keep uid so we know which booking the keys belong to
+      keys.uid = params.uid;
       
       // Initialize Stripe with the public key
       await stripeApi.initializeStripe(keys.publicKey);
@@ -355,14 +371,20 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
     });
     
     try {
-      // Step 1: Fetch Stripe keys
-      console.log('Step 1: Fetching Stripe keys');
-      const keys = await fetchStripeKeys({
-        est: params.est,
-        uid: params.uid,
-        created: params.created,
-        desc: `${params.firstName}_${params.lastName}_-_${params.email}`
-      });
+      // Step 1: Fetch Stripe keys (only if not already fetched)
+      let keys = stripeKeys;
+      if (!keys) {
+        console.log('Step 1: Fetching Stripe keys');
+        keys = await fetchStripeKeys({
+          est: params.est,
+          uid: params.uid,
+          created: params.created,
+          desc: `${params.firstName}_${params.lastName}_-_${params.email}`,
+          firstName: params.firstName,
+          lastName: params.lastName,
+          email: params.email
+        });
+      }
       
       // Step 2: Fetch deposit info
       console.log('Step 2: Fetching deposit info');
