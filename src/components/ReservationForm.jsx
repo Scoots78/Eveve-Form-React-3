@@ -14,7 +14,12 @@ import { formatDecimalTime } from "../utils/time"; // Import the utility functio
 import { useDebounce } from "../hooks/useDebounce"; // Import the custom hook
 import AddonSelection from "./AddonSelection"; // Import the new component
 import SelectedAddonsSummary from "./SelectedAddonsSummary"; // Import the summary component
-import { formatSelectedAddonsForApi, formatAreaForApi, formatCustomerDetails } from "../utils/apiFormatter"; // Import formatters
+import {
+  formatSelectedAddonsForApi,
+  formatAddonsForDisplay,
+  formatAreaForApi,
+  formatCustomerDetails
+} from "../utils/apiFormatter"; // Import formatters
 import AreaSelection from "./AreaSelection"; // NEW – import the area selector component
 import { useHoldBooking, useUpdateHold } from "../hooks/booking";
 import { BookingDetailsModal } from "./booking";
@@ -678,7 +683,9 @@ export default function ReservationForm() {
     const numericGuests = parseInt(guests, 10);
     const formattedDate = format(selectedDate, 'yyyy-MM-dd');
     const formattedTime = selectedShiftTime.selectedTime; // This is already in decimal format like 12.25
-    const formattedAddons = formatSelectedAddonsForApi(selectedAddons, numericGuests);
+    // Split addon formatting: UID string for API vs. friendly string for UI
+    const formattedAddonsUid      = formatSelectedAddonsForApi(selectedAddons, numericGuests, false);
+    const formattedAddonsDisplay  = formatAddonsForDisplay(selectedAddons, numericGuests);
     const formattedArea = formatAreaForApi(selectedArea);
 
     const bookingDataForHold = {
@@ -687,7 +694,8 @@ export default function ReservationForm() {
       covers: numericGuests,
       date: formattedDate,
       time: formattedTime,
-      addons: formattedAddons, // May be an empty string if no addons selected
+      // UID/quantity string required by Eveve API
+      addons: formattedAddonsUid, // May be an empty string if no addons selected
       area: formattedArea,     // Formatted area ('' if none, 'any', or specific UID)
     };
 
@@ -696,7 +704,8 @@ export default function ReservationForm() {
       ...bookingDataForHold,
       formattedDate,
       areaName: selectedAreaName,
-      formattedAddons: formattedAddons ? formattedAddons : 'None'
+      // Friendly names for UI
+      formattedAddons: formattedAddonsDisplay ? formattedAddonsDisplay : 'None'
     });
 
     try {
