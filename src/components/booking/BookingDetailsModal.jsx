@@ -971,10 +971,10 @@ export default function BookingDetailsModal({
                     {timerExpired && (
                       <div className="mt-2 mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-center">
                         <p className="text-red-600 font-medium">
-                          Your booking session has expired
+                          Your booking session has expired / Your card has not been charged.
                         </p>
                         <p className="text-red-600 text-sm mt-1">
-                          Please close this window and start a new booking to continue.
+                          Please go back and re-submit your booking request.
                         </p>
                       </div>
                     )}
@@ -1251,11 +1251,19 @@ export default function BookingDetailsModal({
                             className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                             onClick={() => {
                               logWithTimestamp('Back button clicked, returning to personal details');
-                              setCurrentStep(STEPS.PERSONAL_DETAILS);
+                              // If timer expired, close the modal instead of going back
+                              if (timerExpired) {
+                                onClose();
+                              } else {
+                                setCurrentStep(STEPS.PERSONAL_DETAILS);
+                              }
                             }}
-                            disabled={isLoading || paymentProcessing || timerExpired}
+                            // Always enable back button when timer expired
+                            disabled={isLoading || paymentProcessing && !timerExpired}
                           >
-                            {appConfig?.lng?.backButton || "Back"}
+                            {timerExpired 
+                              ? (appConfig?.lng?.bookingCloseButton || "Close") 
+                              : (appConfig?.lng?.backButton || "Back")}
                           </button>
                           <button
                             type="submit"
