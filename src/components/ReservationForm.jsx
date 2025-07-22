@@ -1074,10 +1074,10 @@ export default function ReservationForm() {
       </h1>
 
       {showDateTimePicker && (
-        <div className="grid grid-cols-1 md:grid-cols-10 gap-6">
-          {/* Responsive grid: stacks on mobile, 60/40 split from md+ */}
-          {/* Calendar � full width on mobile, 60 % on md+ */}
-          <div className="flex justify-center md:justify-start md:col-span-6">
+        {/* Stack calendar and guest selector vertically */}
+        <div className="flex flex-col items-center gap-6">
+          {/* Calendar – full width */}
+          <div className="flex justify-center w-full">
             {/* Added wrapper to give calendar consistent styling */}
             <div className="mt-6 p-4 border border-gray-200 rounded-lg shadow bg-white w-full">
               <ReactCalendarPicker
@@ -1094,10 +1094,9 @@ export default function ReservationForm() {
             </div>
           </div>
 
-          {/* Guest selector � full width on mobile, 40 % on md+ */}
-          {/* Show GuestSelector only AFTER a date has been chosen */}
+          {/* Guest selector – appears below calendar after date is chosen */}
           {selectedDate && (
-            <div className="flex justify-center md:justify-start md:col-span-4">
+            <div className="flex justify-center w-full">
               {/* Wrapper added for consistent styling with calendar */}
               <div className="mt-6 p-4 border border-gray-200 rounded-lg shadow bg-white w-full">
                 <GuestSelector
