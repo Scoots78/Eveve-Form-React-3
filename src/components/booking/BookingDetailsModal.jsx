@@ -2,6 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { formatDecimalTime } from "../../utils/time";
 import { formatCustomerDetails } from "../../utils/apiFormatter";
+import { Elements, useStripe, useElements } from "@stripe/react-stripe-js";
+import StripeCardElement from "./StripeCardElement";
+import StripeProvider from "./StripeProvider";
+import { useStripePayment } from "../../hooks/booking/useStripePayment";
 
 /**
  * BookingDetailsModal - A modal dialog for collecting customer details and confirming the reservation
@@ -44,6 +48,31 @@ export default function BookingDetailsModal({
   // Form validation state
   const [validationErrors, setValidationErrors] = useState({});
   const [formTouched, setFormTouched] = useState(false);
+  
+  // Stripe payment state
+  const [cardComplete, setCardComplete] = useState(false);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [paymentError, setPaymentError] = useState(null);
+  const [stripePublicKey, setStripePublicKey] = useState(null);
+  
+  // Initialize stripe payment hook
+  const {
+    isLoading: isStripeLoading,
+    error: stripeError,
+    stripeKeys,
+    depositInfo,
+    fetchStripeKeys,
+    fetchDepositInfo,
+    processPayment,
+    attachPaymentMethod,
+    completePaymentFlow,
+    reset: resetStripePayment
+  } = useStripePayment();
+
+  // Check if card is required
+  const isCardRequired = holdData && holdData.card > 0;
+  const isDepositRequired = holdData && holdData.card === 2;
+  const isNoShowProtection = holdData && holdData.card === 1;
 
   // Reset form when modal opens with new hold data
   useEffect(() => {
@@ -62,8 +91,35 @@ export default function BookingDetailsModal({
       });
       setValidationErrors({});
       setFormTouched(false);
+      setCardComplete(false);
+      setPaymentProcessing(false);
+      setPaymentError(null);
+      resetStripePayment();
+      
+      // Fetch Stripe keys if card is required
+      if (isCardRequired && holdData.uid && holdData.created) {
+        fetchStripeKeys({
+          est: bookingData.est || holdData.est,
+          uid: holdData.uid,
+          created: holdData.created
+        }).then(keys => {
+          if (keys && keys.publicKey) {
+            setStripePublicKey(keys.publicKey);
+            
+            // Fetch deposit information
+            return fetchDepositInfo({
+              est: bookingData.est || holdData.est,
+              uid: holdData.uid,
+              created: holdData.created
+            });
+          }
+        }).catch(err => {
+          console.error("Error initializing payment:", err);
+          setPaymentError(err.message || "Failed to initialize payment system");
+        });
+      }
     }
-  }, [isOpen, holdData]);
+  }, [isOpen, holdData, bookingData, fetchStripeKeys, fetchDepositInfo, resetStripePayment, isCardRequired]);
 
   // Handle input changes
   const handleInputChange = (e) => {
@@ -102,6 +158,16 @@ export default function BookingDetailsModal({
       setFormTouched(true);
     }
   };
+  
+  // Handle card element change
+  const handleCardChange = (event) => {
+    setCardComplete(event.complete);
+    if (event.error) {
+      setPaymentError(event.error.message);
+    } else {
+      setPaymentError(null);
+    }
+  };
 
   // Validate the form
   const validateForm = () => {
@@ -130,12 +196,17 @@ export default function BookingDetailsModal({
       errors["allergy.details"] = appConfig?.lng?.requiredFieldError || "This field is required";
     }
     
+    // Validate card completion if card is required
+    if (isCardRequired && !cardComplete) {
+      errors.card = appConfig?.lng?.cardRequiredError || "Please complete your card details";
+    }
+    
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Validate form
@@ -146,13 +217,100 @@ export default function BookingDetailsModal({
         // Format customer data for API
         const formattedData = formatCustomerDetails(customerData);
         
-        // Call onSubmit with holdData.uid and formatted customer data
-        // This will update and confirm the booking in one step
-        onSubmit(holdData.uid, customerData);
+        // If card is required, process payment first
+        if (isCardRequired) {
+          setPaymentProcessing(true);
+          
+          // Get card element
+          const cardElement = document.getElementById('card-element');
+          
+          if (!cardElement) {
+            throw new Error("Card element not found");
+          }
+          
+          // Process payment flow
+          const paymentResult = await completePaymentFlow({
+            est: bookingData.est || holdData.est,
+            uid: holdData.uid,
+            created: holdData.created,
+            firstName: customerData.firstName,
+            lastName: customerData.lastName,
+            email: customerData.email,
+            cardElement: cardElement
+          });
+          
+          if (!paymentResult.success) {
+            throw new Error(paymentResult.error || "Payment processing failed");
+          }
+          
+          // Payment successful, now update booking
+          onSubmit(holdData.uid, customerData);
+        } else {
+          // No card required, just update booking
+          onSubmit(holdData.uid, customerData);
+        }
       } catch (err) {
-        console.error("Error formatting customer data:", err);
+        console.error("Error processing booking:", err);
+        setPaymentError(err.message || "Failed to process payment");
+        setPaymentProcessing(false);
       }
     }
+  };
+
+  // Render content based on card requirement
+  const renderCardSection = () => {
+    if (!isCardRequired) return null;
+    
+    return (
+      <div className="mb-6">
+        <h4 className="font-medium text-gray-700 mb-2">
+          {isDepositRequired 
+            ? (appConfig?.lng?.depositTitle || "Deposit Payment") 
+            : (appConfig?.lng?.cardDetailsTitle || "Card Details for No-Show Protection")}
+        </h4>
+        
+        {/* Payment type info */}
+        <div className="mb-4 p-3 bg-blue-50 rounded-md">
+          <p className="text-sm text-blue-800">
+            {isDepositRequired ? (
+              <>
+                <span className="font-semibold">Deposit Required:</span> ${(holdData.perHead * bookingData.covers / 100).toFixed(2)}
+                <span className="block mt-1 text-xs">Your card will be charged immediately.</span>
+              </>
+            ) : (
+              <>
+                <span className="font-semibold">No-Show Protection:</span> ${(holdData.perHead * bookingData.covers / 100).toFixed(2)}
+                <span className="block mt-1 text-xs">Your card will only be charged in case of a no-show.</span>
+              </>
+            )}
+          </p>
+        </div>
+        
+        {/* Stripe Card Element */}
+        {stripePublicKey ? (
+          <StripeProvider stripeKey={stripePublicKey}>
+            <StripeCardElement
+              onChange={handleCardChange}
+              disabled={paymentProcessing}
+              showTestCards={true}
+              label={appConfig?.lng?.cardDetailsLabel || "Card Details"}
+            />
+          </StripeProvider>
+        ) : (
+          <div className="p-3 bg-gray-100 rounded border border-gray-200 text-gray-500 text-sm">
+            {isStripeLoading ? "Loading payment form..." : "Payment system unavailable"}
+          </div>
+        )}
+        
+        {/* Payment error */}
+        {paymentError && (
+          <div className="mt-3 p-2 bg-red-50 text-red-700 text-sm rounded">
+            <p className="font-medium">Payment Error:</p>
+            <p>{paymentError}</p>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -162,7 +320,7 @@ export default function BookingDetailsModal({
         className="fixed inset-0 z-10 overflow-y-auto"
         onClose={() => {
           // Only allow closing if not in loading state
-          if (!isLoading) {
+          if (!isLoading && !paymentProcessing) {
             onClose();
           }
         }}
@@ -199,12 +357,14 @@ export default function BookingDetailsModal({
           >
             <div className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
               {/* Loading overlay */}
-              {isLoading && (
+              {(isLoading || paymentProcessing) && (
                 <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
                   <div className="flex flex-col items-center">
                     <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-600"></div>
                     <p className="mt-4 text-purple-600 font-medium">
-                      {appConfig?.lng?.bookingLoadingMessage || "Confirming your reservation..."}
+                      {paymentProcessing 
+                        ? (appConfig?.lng?.paymentProcessingMessage || "Processing payment...") 
+                        : (appConfig?.lng?.bookingLoadingMessage || "Confirming your reservation...")}
                     </p>
                   </div>
                 </div>
@@ -324,7 +484,7 @@ export default function BookingDetailsModal({
                         {/* Display price if available in hold data */}
                         {holdData && holdData.perHead && (
                           <div className="mt-2 text-sm font-bold">
-                            <span>{appConfig?.lng?.bookingTotalPrice || "Total Price"}:</span> ${(holdData.perHead * bookingData.covers).toFixed(2)}
+                            <span>{appConfig?.lng?.bookingTotalPrice || "Total Price"}:</span> ${(holdData.perHead * bookingData.covers / 100).toFixed(2)}
                           </div>
                         )}
                       </div>
@@ -414,6 +574,9 @@ export default function BookingDetailsModal({
                           </div>
                         </div>
                       </div>
+                      
+                      {/* Card Details Section - Only shown if card is required */}
+                      {renderCardSection()}
                       
                       {/* Allergies section */}
                       <div className="mb-6">
@@ -527,16 +690,18 @@ export default function BookingDetailsModal({
                           type="button"
                           className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                           onClick={onClose}
-                          disabled={isLoading}
+                          disabled={isLoading || paymentProcessing}
                         >
                           {appConfig?.lng?.bookingCloseButton || "Cancel"}
                         </button>
                         <button
                           type="submit"
                           className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                          disabled={isLoading}
+                          disabled={isLoading || paymentProcessing || (isCardRequired && !cardComplete)}
                         >
-                          {appConfig?.lng?.bookingConfirmButton || "Confirm Booking"}
+                          {isCardRequired 
+                            ? (appConfig?.lng?.bookingConfirmWithPaymentButton || "Complete Payment & Book") 
+                            : (appConfig?.lng?.bookingConfirmButton || "Confirm Booking")}
                         </button>
                       </div>
                     </form>
