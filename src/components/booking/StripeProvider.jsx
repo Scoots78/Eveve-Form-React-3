@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 
@@ -19,36 +19,38 @@ const StripeProvider = ({
   onLoad,
   onError
 }) => {
-  const [stripePromise, setStripePromise] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Load Stripe when the component mounts or when the stripeKey changes
-  useEffect(() => {
+  /**
+   * Memo-ise the promise returned by `loadStripe`.  
+   * This guarantees the same Stripe instance is reused for the same key,
+   * preventing “Please use the same instance of Stripe…” errors.
+   */
+  const stripePromise = useMemo(() => {
     if (!stripeKey) {
       setError('Stripe key is required');
-      setLoading(false);
       if (onError) onError('Stripe key is required');
-      return;
+      return null;
     }
 
-    const initializeStripe = async () => {
-      try {
-        setLoading(true);
-        const stripe = await loadStripe(stripeKey);
-        setStripePromise(stripe);
-        setLoading(false);
-        if (onLoad) onLoad(stripe);
-      } catch (err) {
-        console.error('Error loading Stripe:', err);
-        setError(err.message || 'Failed to load Stripe');
-        setLoading(false);
-        if (onError) onError(err);
-      }
-    };
+    console.debug('[StripeProvider] Initialising Stripe for key:', stripeKey.slice(0, 8) + '…');
 
-    initializeStripe();
-  }, [stripeKey, onLoad, onError]);
+    const promise = loadStripe(stripeKey);
+
+    promise
+      .then((stripe) => {
+        console.debug('[StripeProvider] Stripe loaded');
+        if (onLoad) onLoad(stripe);
+      })
+      .catch((err) => {
+        console.error('[StripeProvider] Error loading Stripe:', err);
+        setError(err.message || 'Failed to load Stripe');
+        if (onError) onError(err);
+      });
+
+    return promise;
+    // Re-run only when publishable key changes
+  }, [stripeKey]);
 
   // Default options for the Elements provider
   const defaultOptions = {
@@ -59,8 +61,8 @@ const StripeProvider = ({
     ],
   };
 
-  // If still loading and no error, show loading state
-  if (loading && !error) {
+  // If promise still pending and no error, show loading state
+  if (!error && !stripePromise) {
     return <div className="stripe-loading">Loading payment system...</div>;
   }
 
