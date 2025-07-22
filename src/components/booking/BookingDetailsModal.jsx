@@ -5,6 +5,7 @@ import { CardElement } from "@stripe/react-stripe-js";
 import StripeCardElement from "./StripeCardElement";
 import StripeProvider from "./StripeProvider";
 import { useStripePayment } from "../../hooks/booking/useStripePayment";
+import { formatAddonsForDisplay } from "../../utils/apiFormatter";
 
 /**
  * BookingDetailsModal - A modal dialog for collecting customer details and confirming the reservation
@@ -767,6 +768,33 @@ export default function BookingDetailsModal({
   const renderBookingSummary = () => {
     if (!bookingData) return null;
     
+    // Check if formattedAddons contains UIDs (like "1003") and format them if needed
+    const hasUids = bookingData.formattedAddons && /\b\d{4}\b/.test(bookingData.formattedAddons);
+    let displayAddons = bookingData.formattedAddons;
+    
+    // If UIDs are detected and we have the raw addon data, try to format them nicely
+    if (hasUids && bookingData.addons && bookingData.covers) {
+      try {
+        // Create a simple object structure that formatAddonsForDisplay can use
+        const rawAddons = bookingData.addons.split(',').reduce((acc, item) => {
+          const [uid, qty] = item.split(':');
+          if (uid && qty) {
+            acc.options[uid] = parseInt(qty, 10);
+          }
+          return acc;
+        }, { menus: [], options: {} });
+        
+        // Try to format using the utility function
+        const formatted = formatAddonsForDisplay(rawAddons, bookingData.covers);
+        if (formatted) {
+          displayAddons = formatted || displayAddons;
+        }
+      } catch (err) {
+        console.error('Error formatting addons:', err);
+        // Fall back to original format if there's an error
+      }
+    }
+    
     return (
       <div className="mt-4 bg-gray-50 p-4 rounded-lg">
         <h4 className="font-medium text-gray-700">
@@ -788,11 +816,11 @@ export default function BookingDetailsModal({
             </div>
           )}
         </div>
-        {/* Display selected addons if any */}
-        {bookingData.formattedAddons && (
+        {/* Display selected addons if any, using the friendly names when possible */}
+        {displayAddons && (
           <div className="mt-2 text-sm">
             <div className="font-medium">{appConfig?.lng?.addons || "Add-ons"}:</div>
-            <div className="pl-2">{bookingData.formattedAddons}</div>
+            <div className="pl-2">{displayAddons}</div>
           </div>
         )}
         {/* Display price if available in hold data */}
