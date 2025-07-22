@@ -40,7 +40,11 @@ export default function ReservationForm() {
   const urlParams = new URLSearchParams(window.location.search);
   const est = urlParams.get("est"); // Removed fallback to "testnza"
 
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  /* ------------------------------------------------------------------
+     Treat date as “unset” on initial load so the GuestSelector container
+     does NOT appear until the user actively picks a date.
+  ------------------------------------------------------------------ */
+  const [selectedDate, setSelectedDate] = useState(null);
   const [guests, setGuests] = useState(''); // Initial state: empty string for placeholder
   const [selectedDateForSummary, setSelectedDateForSummary] = useState(null);
   const [selectedGuestsForSummary, setSelectedGuestsForSummary] = useState(null);
@@ -1077,7 +1081,10 @@ export default function ReservationForm() {
             {/* Added wrapper to give calendar consistent styling */}
             <div className="mt-6 p-4 border border-gray-200 rounded-lg shadow bg-white w-full">
               <ReactCalendarPicker
-                date={selectedDate}
+                /* When selectedDate is null (initial load) show today in the
+                   calendar control but keep our controlled value unset so the
+                   GuestSelector remains hidden until user selection. */
+                date={selectedDate ?? new Date()}
                 onChange={handleDateChange}
                 dateFormat={appConfig?.dateFormat} // Pass dateFormat from config
                 disablePast={true} // Pass disablePast from config
