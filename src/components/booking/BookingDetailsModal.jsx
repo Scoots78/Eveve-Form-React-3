@@ -763,6 +763,48 @@ export default function BookingDetailsModal({
     );
   };
 
+  // Render booking summary for both form and success views
+  const renderBookingSummary = () => {
+    if (!bookingData) return null;
+    
+    return (
+      <div className="mt-4 bg-gray-50 p-4 rounded-lg">
+        <h4 className="font-medium text-gray-700">
+          {appConfig?.lng?.bookingSummaryTitle || "Booking Summary"}
+        </h4>
+        <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+          <div>
+            <span className="font-medium">{appConfig?.lng?.date || "Date"}:</span> {bookingData.formattedDate}
+          </div>
+          <div>
+            <span className="font-medium">{appConfig?.lng?.time || "Time"}:</span> {formatDecimalTime(bookingData.time, appConfig?.timeFormat)}
+          </div>
+          <div>
+            <span className="font-medium">{appConfig?.lng?.pax || "Guests"}:</span> {bookingData.covers}
+          </div>
+          {bookingData.areaName && (
+            <div>
+              <span className="font-medium">Area:</span> {bookingData.areaName}
+            </div>
+          )}
+        </div>
+        {/* Display selected addons if any */}
+        {bookingData.formattedAddons && (
+          <div className="mt-2 text-sm">
+            <div className="font-medium">{appConfig?.lng?.addons || "Add-ons"}:</div>
+            <div className="pl-2">{bookingData.formattedAddons}</div>
+          </div>
+        )}
+        {/* Display price if available in hold data */}
+        {holdData && holdData.perHead && (
+          <div className="mt-2 text-sm font-bold">
+            <span>{appConfig?.lng?.bookingTotalPrice || "Total Price"}:</span> ${(holdData.perHead * bookingData.covers / 100).toFixed(2)}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <Transition show={isOpen} as={React.Fragment}>
       <Dialog
@@ -846,6 +888,12 @@ export default function BookingDetailsModal({
                   <p className="mt-2 text-gray-600">
                     {appConfig?.lng?.bookingSuccessMessage || "Your reservation has been confirmed. We look forward to seeing you!"}
                   </p>
+                  
+                  {/* Show booking summary in the success screen */}
+                  <div className="mt-4 max-w-md mx-auto">
+                    {renderBookingSummary()}
+                  </div>
+                  
                   <div className="mt-6">
                     <button
                       type="button"
@@ -905,42 +953,7 @@ export default function BookingDetailsModal({
                     </Dialog.Title>
 
                     {/* Booking summary */}
-                    {bookingData && (
-                      <div className="mt-4 bg-gray-50 p-4 rounded-lg">
-                        <h4 className="font-medium text-gray-700">
-                          {appConfig?.lng?.bookingSummaryTitle || "Booking Summary"}
-                        </h4>
-                        <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
-                          <div>
-                            <span className="font-medium">{appConfig?.lng?.date || "Date"}:</span> {bookingData.formattedDate}
-                          </div>
-                          <div>
-                            <span className="font-medium">{appConfig?.lng?.time || "Time"}:</span> {formatDecimalTime(bookingData.time, appConfig?.timeFormat)}
-                          </div>
-                          <div>
-                            <span className="font-medium">{appConfig?.lng?.pax || "Guests"}:</span> {bookingData.covers}
-                          </div>
-                          {bookingData.areaName && (
-                            <div>
-                              <span className="font-medium">Area:</span> {bookingData.areaName}
-                            </div>
-                          )}
-                        </div>
-                        {/* Display selected addons if any */}
-                        {bookingData.formattedAddons && (
-                          <div className="mt-2 text-sm">
-                            <div className="font-medium">{appConfig?.lng?.addons || "Add-ons"}:</div>
-                            <div className="pl-2">{bookingData.formattedAddons}</div>
-                          </div>
-                        )}
-                        {/* Display price if available in hold data */}
-                        {holdData && holdData.perHead && (
-                          <div className="mt-2 text-sm font-bold">
-                            <span>{appConfig?.lng?.bookingTotalPrice || "Total Price"}:</span> ${(holdData.perHead * bookingData.covers / 100).toFixed(2)}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    {renderBookingSummary()}
 
                     {/* Countdown Timer */}
                     <div className="mt-3 mb-2 text-center">
@@ -1213,7 +1226,7 @@ export default function BookingDetailsModal({
                             onClick={onClose}
                             disabled={isLoading || isInitializingStripe}
                           >
-                            {appConfig?.lng?.bookingCloseButton || "Cancel"}
+                            {appConfig?.lng?.bookingCloseButton || "Close"}
                           </button>
                           
                           {isCardRequired ? (

@@ -96,7 +96,7 @@
   "bookingTotalPrice": "Total Price",
   "bookingConfirmButton": "Confirm Booking",
   "bookingConfirmWithPaymentButton": "Complete Payment & Book",
-  "bookingCloseButton": "Cancel",
+  "bookingCloseButton": "Close",
   "continueToPaymentButton": "Continue to Payment",
   "backButton": "Back",
   "bookingSuccessTitle": "Booking Confirmed!",
