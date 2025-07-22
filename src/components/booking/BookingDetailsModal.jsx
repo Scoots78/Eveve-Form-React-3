@@ -1,49 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { formatDecimalTime } from "../../utils/time";
-import { formatCustomerDetails } from "../../utils/apiFormatter";
-import { Elements, useStripe, useElements, CardElement } from "@stripe/react-stripe-js";
+import { CardElement } from "@stripe/react-stripe-js";
 import StripeCardElement from "./StripeCardElement";
 import StripeProvider from "./StripeProvider";
 import { useStripePayment } from "../../hooks/booking/useStripePayment";
-
-/**
- * CardForm - Inner component that uses Stripe hooks
- * This component must be rendered inside a Stripe Elements provider
- */
-function CardForm({ onChange, disabled, label, showTestCards }) {
-  const stripe = useStripe();
-  const elements = useElements();
-  
-  // Log Stripe availability for debugging
-  useEffect(() => {
-    console.debug('[CardForm] Stripe availability:', !!stripe);
-    console.debug('[CardForm] Elements availability:', !!elements);
-  }, [stripe, elements]);
-  
-  const handleCardChange = (event) => {
-    if (onChange) {
-      // Pass the stripe and elements instances back to the parent
-      onChange({
-        complete: event.complete,
-        error: event.error,
-        empty: event.empty,
-        brand: event.brand,
-        stripe,
-        elements
-      });
-    }
-  };
-  
-  return (
-    <StripeCardElement
-      onChange={handleCardChange}
-      disabled={disabled}
-      showTestCards={showTestCards}
-      label={label}
-    />
-  );
-}
 
 /**
  * BookingDetailsModal - A modal dialog for collecting customer details and confirming the reservation
@@ -96,13 +57,14 @@ export default function BookingDetailsModal({
   const [formTouched, setFormTouched] = useState(false);
   
   // Stripe payment state
-  const [cardComplete, setCardComplete] = useState(false);
+  const [cardState, setCardState] = useState({
+    complete: false,
+    error: null,
+    empty: true,
+    brand: null
+  });
   const [paymentProcessing, setPaymentProcessing] = useState(false);
-  const [paymentError, setPaymentError] = useState(null);
   const [stripePublicKey, setStripePublicKey] = useState(null);
-  const [stripeElements, setStripeElements] = useState(null);
-  const [stripeInstance, setStripeInstance] = useState(null);
-  const [cardElement, setCardElement] = useState(null);
   const [isInitializingStripe, setIsInitializingStripe] = useState(false);
   
   // Initialize stripe payment hook
@@ -113,8 +75,6 @@ export default function BookingDetailsModal({
     depositInfo,
     fetchStripeKeys,
     fetchDepositInfo,
-    processPayment,
-    attachPaymentMethod,
     completePaymentFlow,
     reset: resetStripePayment
   } = useStripePayment();
@@ -148,12 +108,14 @@ export default function BookingDetailsModal({
       });
       setValidationErrors({});
       setFormTouched(false);
-      setCardComplete(false);
+      setCardState({
+        complete: false,
+        error: null,
+        empty: true,
+        brand: null
+      });
       setPaymentProcessing(false);
-      setPaymentError(null);
-      setStripeElements(null);
-      setStripeInstance(null);
-      setCardElement(null);
+      setStripePublicKey(null);
       resetStripePayment();
       
       // Always start with personal details step
@@ -209,28 +171,14 @@ export default function BookingDetailsModal({
       elements: !!event.elements
     });
     
-    setCardComplete(event.complete);
-    
-    if (event.error) {
-      setPaymentError(event.error.message);
-    } else {
-      setPaymentError(null);
-    }
-    
-    // Store Stripe and Elements instances for later use
-    if (event.stripe && event.elements) {
-      setStripeInstance(event.stripe);
-      setStripeElements(event.elements);
-      
-      // Get and store the CardElement for later use
-      if (event.elements && !cardElement) {
-        const element = event.elements.getElement(CardElement);
-        if (element) {
-          console.debug('[BookingDetailsModal] Card element retrieved and stored');
-          setCardElement(element);
-        }
-      }
-    }
+    setCardState({
+      complete: event.complete,
+      error: event.error ? event.error.message : null,
+      empty: event.empty,
+      brand: event.brand,
+      stripe: event.stripe,
+      elements: event.elements
+    });
   };
 
   // Validate just the personal details section
@@ -274,12 +222,12 @@ export default function BookingDetailsModal({
     }
     
     // Validate card completion if card is required
-    if (isCardRequired && !cardComplete) {
+    if (isCardRequired && !cardState.complete) {
       errors.card = appConfig?.lng?.cardRequiredError || "Please complete your card details";
     }
     
     // Validate Stripe initialization if card is required
-    if (isCardRequired && (!stripeInstance || !stripeElements || !cardElement)) {
+    if (isCardRequired && (!cardState.stripe || !cardState.elements)) {
       errors.stripe = "Payment system not properly initialized. Please refresh and try again.";
     }
     
@@ -307,7 +255,10 @@ export default function BookingDetailsModal({
         est: bookingData.est || holdData.est,
         uid: holdData.uid,
         created: holdData.created,
-        desc: `${customerData.firstName}_${customerData.lastName}_-_${customerData.email}`
+        desc: `${customerData.firstName}_${customerData.lastName}_-_${customerData.email}`,
+        firstName: customerData.firstName,
+        lastName: customerData.lastName,
+        email: customerData.email
       });
       
       if (keys && keys.publicKey) {
@@ -328,7 +279,10 @@ export default function BookingDetailsModal({
       }
     } catch (err) {
       console.error("[BookingDetailsModal] Error initializing payment:", err);
-      setPaymentError(err.message || "Failed to initialize payment system");
+      setCardState(prev => ({
+        ...prev,
+        error: err.message || "Failed to initialize payment system"
+      }));
     } finally {
       setIsInitializingStripe(false);
     }
@@ -368,21 +322,18 @@ export default function BookingDetailsModal({
         setPaymentProcessing(true);
         
         // Double-check that we have everything we need for Stripe
-        if (!stripeInstance) {
+        if (!cardState.stripe) {
           throw new Error("Stripe not initialized properly");
         }
         
-        if (!stripeElements) {
+        if (!cardState.elements) {
           throw new Error("Stripe Elements not initialized properly");
         }
         
+        // Get the card element
+        const cardElement = cardState.elements.getElement(CardElement);
         if (!cardElement) {
-          // Try to get the card element one more time
-          const element = stripeElements.getElement(CardElement);
-          if (!element) {
-            throw new Error("Card element not found");
-          }
-          setCardElement(element);
+          throw new Error("Card element not found");
         }
         
         console.debug('[BookingDetailsModal] Starting payment flow with:', {
@@ -432,7 +383,10 @@ export default function BookingDetailsModal({
         setCurrentStep(STEPS.COMPLETE);
       } catch (err) {
         console.error("[BookingDetailsModal] Error processing booking:", err);
-        setPaymentError(err.message || "Failed to process payment");
+        setCardState(prev => ({
+          ...prev,
+          error: err.message || "Failed to process payment"
+        }));
         setPaymentProcessing(false);
       }
     }
@@ -450,14 +404,16 @@ export default function BookingDetailsModal({
         stripeKey={stripePublicKey}
         onLoad={(stripe) => {
           console.debug('[BookingDetailsModal] Stripe loaded in provider');
-          setStripeInstance(stripe);
         }}
         onError={(err) => {
           console.error('[BookingDetailsModal] Stripe provider error:', err);
-          setPaymentError(`Payment system error: ${err.message || 'Unknown error'}`);
+          setCardState(prev => ({
+            ...prev,
+            error: `Payment system error: ${err.message || 'Unknown error'}`
+          }));
         }}
       >
-        <CardForm
+        <StripeCardElement
           onChange={handleCardChange}
           disabled={paymentProcessing}
           showTestCards={true}
@@ -506,10 +462,10 @@ export default function BookingDetailsModal({
         )}
         
         {/* Payment error */}
-        {paymentError && (
+        {cardState.error && (
           <div className="mt-3 p-2 bg-red-50 text-red-700 text-sm rounded">
             <p className="font-medium">Payment Error:</p>
-            <p>{paymentError}</p>
+            <p>{cardState.error}</p>
           </div>
         )}
         
@@ -964,7 +920,7 @@ export default function BookingDetailsModal({
                           <button
                             type="submit"
                             className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                            disabled={isLoading || paymentProcessing || !cardComplete}
+                            disabled={isLoading || paymentProcessing || !cardState.complete}
                           >
                             {appConfig?.lng?.bookingConfirmWithPaymentButton || "Complete Payment & Book"}
                           </button>

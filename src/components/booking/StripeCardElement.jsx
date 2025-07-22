@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
 /**
- * StripeCardElement - A component that renders the Stripe Card Element
- * with proper styling and error handling
+ * StripeCardElement - A simplified component that renders the Stripe Card Element
  * 
  * @param {Object} props - Component props
  * @param {Function} props.onChange - Callback when card input changes
@@ -23,28 +22,20 @@ const StripeCardElement = ({
   labelProps = {},
   label = 'Card Details'
 }) => {
-  const [error, setError] = useState(null);
-  const [cardComplete, setCardComplete] = useState(false);
-  const [cardEmpty, setCardEmpty] = useState(true);
-  const [cardBrand, setCardBrand] = useState(null);
+  // Track card state
+  const [cardState, setCardState] = useState({
+    error: null,
+    complete: false,
+    empty: true,
+    brand: null
+  });
 
-  // Grab the current Stripe & Elements instances so the parent
-  // component can use them (e.g. to call elements.getElement).
+  // Get Stripe instances - these are critical for payment processing
   const stripe = useStripe();
   const elements = useElements();
 
-  // Log when Stripe/Elements availability changes
-  useEffect(() => {
-    console.debug('[StripeCardElement] Stripe availability:', !!stripe);
-    console.debug('[StripeCardElement] Elements availability:', !!elements);
-    
-    if (!stripe || !elements) {
-      console.warn('[StripeCardElement] Stripe or Elements not available yet');
-    }
-  }, [stripe, elements]);
-
   // Default card element styling options
-  const defaultOptions = {
+  const cardElementOptions = {
     style: {
       base: {
         fontSize: '16px',
@@ -60,65 +51,32 @@ const StripeCardElement = ({
       },
     },
     hidePostalCode: true,
-  };
-
-  // Merge default options with provided options
-  const cardElementOptions = {
-    ...defaultOptions,
     ...options
   };
 
+  // Notify parent when Stripe is ready or card state changes
+  useEffect(() => {
+    if (onChange && stripe && elements) {
+      onChange({
+        ...cardState,
+        error: cardState.error ? { message: cardState.error } : null,
+        stripe,
+        elements
+      });
+    }
+  }, [onChange, cardState, stripe, elements]);
+
   // Handle card element change
   const handleCardChange = (event) => {
-    console.debug('[StripeCardElement] Card change event:', {
+    const updatedState = {
+      error: event.error ? event.error.message : null,
       complete: event.complete,
       empty: event.empty,
-      error: event.error ? true : false,
-      brand: event.brand || 'unknown'
-    });
+      brand: event.brand || cardState.brand
+    };
     
-    setError(event.error ? event.error.message : '');
-    setCardComplete(event.complete);
-    setCardEmpty(event.empty);
-    
-    if (event.brand) {
-      setCardBrand(event.brand);
-    }
-    
-    // Call parent onChange if provided
-    if (onChange) {
-      onChange({
-        error: event.error,
-        complete: event.complete,
-        empty: event.empty,
-        brand: event.brand,
-        stripe,
-        elements
-      });
-    }
+    setCardState(updatedState);
   };
-
-  // Notify parent component when card completion status changes
-  useEffect(() => {
-    if (onChange) {
-      console.debug('[StripeCardElement] Notifying parent of state change:', {
-        cardComplete,
-        hasError: !!error,
-        cardEmpty,
-        cardBrand
-      });
-      
-      onChange({
-        error: error ? { message: error } : null,
-        complete: cardComplete,
-        empty: cardEmpty,
-        brand: cardBrand,
-        stripe,
-        elements
-      });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cardComplete, error, cardEmpty, cardBrand, stripe, elements]); // ignore onChange ref in deps to avoid infinite loop
 
   // Handle cases where Stripe isn't initialized
   if (!stripe || !elements) {
@@ -138,14 +96,19 @@ const StripeCardElement = ({
             Loading payment system...
           </div>
         </div>
-        {showTestCards && (
-          <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded mt-2">
-            <p className="font-medium mb-1">Test Cards:</p>
-            <p>Success: 4242 4242 4242 4242</p>
-            <p>Decline: 4000 0000 0000 0002</p>
-            <p>Use any future date, any 3 digits for CVC, and any postal code.</p>
-          </div>
-        )}
+        {showTestCards && renderTestCards()}
+      </div>
+    );
+  }
+
+  // Helper function to render test cards section
+  function renderTestCards() {
+    return (
+      <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded mt-2">
+        <p className="font-medium mb-1">Test Cards:</p>
+        <p>Success: 4242 4242 4242 4242</p>
+        <p>Decline: 4000 0000 0000 0002</p>
+        <p>Use any future date, any 3 digits for CVC, and any postal code.</p>
       </div>
     );
   }
@@ -164,7 +127,7 @@ const StripeCardElement = ({
       
       <div 
         className={`p-3 border rounded-md ${
-          error ? 'border-red-500' : 'border-gray-300'
+          cardState.error ? 'border-red-500' : 'border-gray-300'
         } ${disabled ? 'bg-gray-100 opacity-50' : 'bg-white'}`}
       >
         <CardElement
@@ -172,28 +135,20 @@ const StripeCardElement = ({
           options={cardElementOptions}
           onChange={handleCardChange}
           disabled={disabled}
-          onReady={() => console.debug('[StripeCardElement] Card element mounted and ready')}
         />
       </div>
       
-      {error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
+      {cardState.error && (
+        <p className="mt-1 text-sm text-red-600">{cardState.error}</p>
       )}
       
-      {cardBrand && !error && !cardEmpty && (
+      {cardState.brand && !cardState.error && !cardState.empty && (
         <p className="mt-1 text-xs text-gray-500">
-          Card type: {cardBrand.charAt(0).toUpperCase() + cardBrand.slice(1)}
+          Card type: {cardState.brand.charAt(0).toUpperCase() + cardState.brand.slice(1)}
         </p>
       )}
       
-      {showTestCards && (
-        <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded mt-2">
-          <p className="font-medium mb-1">Test Cards:</p>
-          <p>Success: 4242 4242 4242 4242</p>
-          <p>Decline: 4000 0000 0000 0002</p>
-          <p>Use any future date, any 3 digits for CVC, and any postal code.</p>
-        </div>
-      )}
+      {showTestCards && renderTestCards()}
     </div>
   );
 };

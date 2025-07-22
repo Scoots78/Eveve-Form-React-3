@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 
@@ -21,35 +21,48 @@ const StripeProvider = ({
 }) => {
   const [error, setError] = useState(null);
 
-  /**
-   * Memo-ise the promise returned by `loadStripe`.  
-   * This guarantees the same Stripe instance is reused for the same key,
-   * preventing “Please use the same instance of Stripe…” errors.
-   */
+  /* ------------------------------------------------------------------ *
+   * Global  Promise  Cache                                             *
+   * ------------------------------------------------------------------ */
+  // Share Stripe instance across the entire bundle to avoid
+  // “Please use the same instance of Stripe…” errors.
+  // Keyed by publishable key so multiple keys can coexist in theory.
+  const stripePromiseCache = globalThis.__EVEVE_STRIPE_PROMISES__ ||
+    (globalThis.__EVEVE_STRIPE_PROMISES__ = {});
+
+  const getStripePromise = (pk) => {
+    if (!pk) return null;
+    if (!stripePromiseCache[pk]) {
+      console.debug('[StripeProvider] Loading Stripe.js for', pk.slice(0, 8) + '…');
+      stripePromiseCache[pk] = loadStripe(pk)
+        .then((stripe) => {
+          console.debug('[StripeProvider] Stripe instance ready');
+          return stripe;
+        })
+        .catch((err) => {
+          console.error('[StripeProvider] Failed to load Stripe.js', err);
+          throw err;
+        });
+    }
+    return stripePromiseCache[pk];
+  };
+
+  // Memo to avoid recalculating promise while key unchanged in this render
   const stripePromise = useMemo(() => {
     if (!stripeKey) {
       setError('Stripe key is required');
       if (onError) onError('Stripe key is required');
       return null;
     }
-
-    console.debug('[StripeProvider] Initialising Stripe for key:', stripeKey.slice(0, 8) + '…');
-
-    const promise = loadStripe(stripeKey);
-
+    const promise = getStripePromise(stripeKey);
     promise
-      .then((stripe) => {
-        console.debug('[StripeProvider] Stripe loaded');
-        if (onLoad) onLoad(stripe);
-      })
+      .then((stripe) => onLoad && onLoad(stripe))
       .catch((err) => {
-        console.error('[StripeProvider] Error loading Stripe:', err);
         setError(err.message || 'Failed to load Stripe');
-        if (onError) onError(err);
+        onError && onError(err);
       });
-
     return promise;
-    // Re-run only when publishable key changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stripeKey]);
 
   // Default options for the Elements provider

@@ -3,6 +3,46 @@ import { loadStripe } from '@stripe/stripe-js';
 // Store the Stripe instance once loaded
 let stripeInstance = null;
 
+// ---------------------------------------------------------------------------+
+// Global  Promise  Cache                                                     |
+// ---------------------------------------------------------------------------+
+// We memo-ise the promise returned by `loadStripe` and keep it on the
+// `globalThis` object so the same Stripe instance is always reused for a given
+// publishable key, even across multiple bundles/components.  This is crucial
+// for preventing the “Please use the same instance of Stripe…” error.
+const stripePromiseCache =
+  globalThis.__EVEVE_STRIPE_PROMISES__ ||
+  (globalThis.__EVEVE_STRIPE_PROMISES__ = {});
+
+/**
+ * Get (or create) a cached promise for a Stripe instance keyed by publishable
+ * key.  The resolved Stripe object is memo-ised, ensuring Elements and payment
+ * confirmation calls all share the **exact same** Stripe instance.
+ *
+ * @param {string} publicKey - Stripe publishable key
+ * @returns {Promise<Stripe>} - Promise resolving to a Stripe instance
+ */
+const getStripePromise = (publicKey) => {
+  if (!publicKey) {
+    throw new Error('Stripe public key is required');
+  }
+
+  // If we already have a promise for this key, return it
+  if (stripePromiseCache[publicKey]) {
+    return stripePromiseCache[publicKey];
+  }
+
+  // Otherwise create, store, and return a new promise
+  stripePromiseCache[publicKey] = loadStripe(publicKey).then((stripe) => {
+    // Cache the concrete instance so subsequent `getStripe()` calls resolve
+    // synchronously without awaiting the promise.
+    stripeInstance = stripe;
+    return stripe;
+  });
+
+  return stripePromiseCache[publicKey];
+};
+
 /**
  * Initialize Stripe with the public key
  * @param {string} publicKey - Stripe public key from Eveve
@@ -10,13 +50,9 @@ let stripeInstance = null;
  */
 export const initializeStripe = async (publicKey) => {
   try {
-    if (!publicKey) {
-      throw new Error('Stripe public key is required');
-    }
-
-    // Load and initialize Stripe
-    stripeInstance = await loadStripe(publicKey);
-    return stripeInstance;
+    const stripe = await getStripePromise(publicKey);
+    stripeInstance = stripe;
+    return stripe;
   } catch (error) {
     console.error('Error initializing Stripe:', error);
     throw error;
@@ -30,8 +66,13 @@ export const initializeStripe = async (publicKey) => {
  */
 export const getStripe = async (publicKey = null) => {
   if (stripeInstance) return stripeInstance;
-  if (!publicKey) throw new Error('Stripe not initialized and no public key provided');
-  return initializeStripe(publicKey);
+  if (!publicKey) {
+    throw new Error('Stripe not initialized and no public key provided');
+  }
+
+  // Await the cached promise to ensure a single Stripe instance is produced
+  stripeInstance = await getStripePromise(publicKey);
+  return stripeInstance;
 };
 
 /**
