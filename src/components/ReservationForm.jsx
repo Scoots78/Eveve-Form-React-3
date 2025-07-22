@@ -1088,16 +1088,22 @@ export default function ReservationForm() {
           </div>
 
           {/* Guest selector � full width on mobile, 40 % on md+ */}
-          <div className="flex justify-center md:justify-start md:col-span-4">
-            <GuestSelector
-              value={guests}
-              onChange={handleGuestsChange}
-              minGuests={appConfig?.partyMin || 1}
-              maxGuests={appConfig?.partyMax || 10}
-              guestLabel={appConfig?.lng?.guest}
-              guestsLabel={appConfig?.lng?.guests || appConfig?.lng?.partySize}
-            />
-          </div>
+          {/* Show GuestSelector only AFTER a date has been chosen */}
+          {selectedDate && (
+            <div className="flex justify-center md:justify-start md:col-span-4">
+              {/* Wrapper added for consistent styling with calendar */}
+              <div className="mt-6 p-4 border border-gray-200 rounded-lg shadow bg-white w-full">
+                <GuestSelector
+                  value={guests}
+                  onChange={handleGuestsChange}
+                  minGuests={appConfig?.partyMin || 1}
+                  maxGuests={appConfig?.partyMax || 10}
+                  guestLabel={appConfig?.lng?.guest}
+                  guestsLabel={appConfig?.lng?.guests || appConfig?.lng?.partySize}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
