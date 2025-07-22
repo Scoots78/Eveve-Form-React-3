@@ -1078,7 +1078,7 @@ export default function ReservationForm() {
           {/* Calendar – full width */}
           <div className="flex justify-center w-full">
             {/* Added wrapper to give calendar consistent styling */}
-            <div className="mt-6 p-4 rounded-lg shadow bg-white">
+            <div className="mt-6 p-4 rounded-lg shadow bg-white border border-gray-200">
               <ReactCalendarPicker
                 /* When selectedDate is null (initial load) show today in the
                    calendar control but keep our controlled value unset so the
@@ -1097,7 +1097,7 @@ export default function ReservationForm() {
           {selectedDate && (
             <div className="flex justify-center w-full">
               {/* Wrapper added for consistent styling with calendar */}
-              <div className="mt-6 p-4 rounded-lg shadow bg-white text-center">
+              <div className="mt-6 p-4 rounded-lg shadow bg-white border border-gray-200 text-center">
                 <GuestSelector
                   value={guests}
                   onChange={handleGuestsChange}
