@@ -1,0 +1,10 @@
+/* 
+ * Override specific react-calendar default styles
+ * This file targets only the width and border properties
+ * while leaving all other default styles intact
+ */
+
+.react-calendar {
+  width: 100%; /* Override fixed width of 350px */
+  border: none; /* Remove the 1px border */
+}

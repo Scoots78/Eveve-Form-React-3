@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
+// Override specific default styles (removes fixed width & border)
+import './calendar-override.css';
 
 /**
  * ReactCalendarPicker - A modern React calendar component using react-calendar
@@ -119,7 +121,7 @@ const ReactCalendarPicker = ({
         :global(.react-calendar-custom) {
           width: 100%;
           max-width: 100%;
-          border: 1px solid #e2e8f0;
+          //border: 1px solid #e2e8f0;
           border-radius: 0.5rem;
           padding: 0.5rem;
           font-family: inherit;
