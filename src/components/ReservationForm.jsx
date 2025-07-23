@@ -14,7 +14,12 @@ import { formatDecimalTime } from "../utils/time"; // Import the utility functio
 import { useDebounce } from "../hooks/useDebounce"; // Import the custom hook
 import AddonSelection from "./AddonSelection"; // Import the new component
 import SelectedAddonsSummary from "./SelectedAddonsSummary"; // Import the summary component
-import { formatSelectedAddonsForApi, formatAreaForApi, formatCustomerDetails } from "../utils/apiFormatter"; // Import formatters
+import {
+  formatSelectedAddonsForApi,
+  formatAddonsForDisplay,
+  formatAreaForApi,
+  formatCustomerDetails
+} from "../utils/apiFormatter"; // Import formatters
 import AreaSelection from "./AreaSelection"; // NEW – import the area selector component
 import { useHoldBooking, useUpdateHold } from "../hooks/booking";
 import { BookingDetailsModal } from "./booking";
@@ -35,7 +40,11 @@ export default function ReservationForm() {
   const urlParams = new URLSearchParams(window.location.search);
   const est = urlParams.get("est"); // Removed fallback to "testnza"
 
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  /* ------------------------------------------------------------------
+     Treat date as "unset" on initial load so the GuestSelector container
+     does NOT appear until the user actively picks a date.
+  ------------------------------------------------------------------ */
+  const [selectedDate, setSelectedDate] = useState(null);
   const [guests, setGuests] = useState(''); // Initial state: empty string for placeholder
   const [selectedDateForSummary, setSelectedDateForSummary] = useState(null);
   const [selectedGuestsForSummary, setSelectedGuestsForSummary] = useState(null);
@@ -678,7 +687,37 @@ export default function ReservationForm() {
     const numericGuests = parseInt(guests, 10);
     const formattedDate = format(selectedDate, 'yyyy-MM-dd');
     const formattedTime = selectedShiftTime.selectedTime; // This is already in decimal format like 12.25
-    const formattedAddons = formatSelectedAddonsForApi(selectedAddons, numericGuests);
+
+    /* ------------------------------------------------------------------
+       Build optionsMeta so optional-addon UIDs map to friendly names.
+       This allows formatAddonsForDisplay to show names instead of raw
+       UIDs (e.g. "1003") in the booking summary.
+    ------------------------------------------------------------------ */
+    const optionsMeta = {};
+    currentShiftAddons
+      .filter((a) => a.type === 'Option')
+      .forEach((opt) => {
+        if (opt.uid && opt.name) {
+          optionsMeta[String(opt.uid)] = { name: opt.name };
+        }
+      });
+
+    // Attach meta without mutating original state object
+    const selectedAddonsWithMeta = {
+      ...selectedAddons,
+      optionsMeta
+    };
+
+    // Split addon formatting: UID string for API vs. friendly string for UI
+    const formattedAddonsUid     = formatSelectedAddonsForApi(
+      selectedAddonsWithMeta,
+      numericGuests,
+      false
+    );
+    const formattedAddonsDisplay = formatAddonsForDisplay(
+      selectedAddonsWithMeta,
+      numericGuests
+    );
     const formattedArea = formatAreaForApi(selectedArea);
 
     const bookingDataForHold = {
@@ -687,7 +726,8 @@ export default function ReservationForm() {
       covers: numericGuests,
       date: formattedDate,
       time: formattedTime,
-      addons: formattedAddons, // May be an empty string if no addons selected
+      // UID/quantity string required by Eveve API
+      addons: formattedAddonsUid, // May be an empty string if no addons selected
       area: formattedArea,     // Formatted area ('' if none, 'any', or specific UID)
     };
 
@@ -696,7 +736,8 @@ export default function ReservationForm() {
       ...bookingDataForHold,
       formattedDate,
       areaName: selectedAreaName,
-      formattedAddons: formattedAddons ? formattedAddons : 'None'
+      // Friendly names for UI
+      formattedAddons: formattedAddonsDisplay ? formattedAddonsDisplay : 'None'
     });
 
     try {
@@ -1033,31 +1074,41 @@ export default function ReservationForm() {
       </h1>
 
       {showDateTimePicker && (
-        <div className="grid grid-cols-1 md:grid-cols-10 gap-6">
-          {/* Responsive grid: stacks on mobile, 60/40 split from md+ */}
-          {/* Calendar � full width on mobile, 60 % on md+ */}
-          <div className="flex justify-center md:justify-start md:col-span-6">
-            <ReactCalendarPicker
-              date={selectedDate}
-              onChange={handleDateChange}
-              dateFormat={appConfig?.dateFormat} // Pass dateFormat from config
-              disablePast={true} // Pass disablePast from config
-              disabledDates={disabledDates}
-              onMonthChange={handleMonthChange}
-            />
+        <div className="flex flex-col items-center gap-6">
+          {/* Calendar – full width */}
+          <div className="flex justify-center w-full">
+            {/* Added wrapper to give calendar consistent styling */}
+            <div className="mt-6 p-4 rounded-lg shadow bg-white border border-gray-200">
+              <ReactCalendarPicker
+                /* When selectedDate is null (initial load) show today in the
+                   calendar control but keep our controlled value unset so the
+                   GuestSelector remains hidden until user selection. */
+                date={selectedDate ?? new Date()}
+                onChange={handleDateChange}
+                dateFormat={appConfig?.dateFormat} // Pass dateFormat from config
+                disablePast={true} // Pass disablePast from config
+                disabledDates={disabledDates}
+                onMonthChange={handleMonthChange}
+              />
+            </div>
           </div>
 
-          {/* Guest selector � full width on mobile, 40 % on md+ */}
-          <div className="flex justify-center md:justify-start md:col-span-4">
-            <GuestSelector
-              value={guests}
-              onChange={handleGuestsChange}
-              minGuests={appConfig?.partyMin || 1}
-              maxGuests={appConfig?.partyMax || 10}
-              guestLabel={appConfig?.lng?.guest}
-              guestsLabel={appConfig?.lng?.guests || appConfig?.lng?.partySize}
-            />
-          </div>
+          {/* Guest selector – appears below calendar after date is chosen */}
+          {selectedDate && (
+            <div className="flex justify-center w-full">
+              {/* Wrapper added for consistent styling with calendar */}
+              <div className="mt-6 p-4 rounded-lg shadow bg-white border border-gray-200 text-center">
+                <GuestSelector
+                  value={guests}
+                  onChange={handleGuestsChange}
+                  minGuests={appConfig?.partyMin || 1}
+                  maxGuests={appConfig?.partyMax || 10}
+                  guestLabel={appConfig?.lng?.guest}
+                  guestsLabel={appConfig?.lng?.guests || appConfig?.lng?.partySize}
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 

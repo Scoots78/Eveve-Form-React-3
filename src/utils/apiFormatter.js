@@ -5,9 +5,14 @@
  * @param {object} addonsObject - The selected addons state (e.g., state.currentSelectedAddons).
  *   Expected structure: { menus: array, options: object }
  * @param {number} [guestCount=null] - The number of guests for the booking, used for usage=1 addons
+ * @param {boolean} [useFriendlyNames=false] - When true, use addon.name instead of addon.uid
  * @returns {string} A comma-separated string of selected addon UIDs and quantities.
  */
-export function formatSelectedAddonsForApi(selectedAddons, guestCount = null) {
+export function formatSelectedAddonsForApi(
+  selectedAddons,
+  guestCount = null,
+  useFriendlyNames = false
+) {
   if (!selectedAddons || (!selectedAddons.menus?.length && !Object.keys(selectedAddons.options || {}).length)) {
     return "";
   }
@@ -18,18 +23,21 @@ export function formatSelectedAddonsForApi(selectedAddons, guestCount = null) {
   // Process selected menus
   if (selectedAddons.menus && selectedAddons.menus.length > 0) {
     selectedAddons.menus.forEach(menu => {
-      if (menu.uid) {
+      // Decide which identifier to use – UID for API, name for UI
+      const idOrName = useFriendlyNames ? menu.name ?? menu.uid : menu.uid;
+
+      if (idOrName) {
         if (typeof menu.quantity === 'number' && menu.quantity > 0) {
           // This case is for menus selected under usage:2 (quantity selectors)
-          apiParams.push(`${menu.uid}:${menu.quantity}`);
+          apiParams.push(`${idOrName}:${menu.quantity}`);
         } else if (menu.usagePolicy === 1 && numericGuestCount && numericGuestCount > 0) {
           // For usage=1 menus (same menu for all guests), include the guest count
-          apiParams.push(`${menu.uid}:${numericGuestCount}`);
+          apiParams.push(`${idOrName}:${numericGuestCount}`);
         } else {
           // This case is for menus selected under usage:3 (checkbox)
           // or usage:2 menus with quantity 0 that somehow didn't get removed (shouldn't happen with current logic)
           // For simplicity, if quantity is not present or not > 0, just send UID.
-          apiParams.push(menu.uid);
+          apiParams.push(idOrName);
         }
       }
     });
@@ -40,12 +48,57 @@ export function formatSelectedAddonsForApi(selectedAddons, guestCount = null) {
     for (const optionUid in selectedAddons.options) {
       const quantity = selectedAddons.options[optionUid];
       if (quantity > 0) { // Ensure only options with quantity > 0 are included
-        apiParams.push(`${optionUid}:${quantity}`);
+        const idOrName = useFriendlyNames
+          ? selectedAddons.optionsMeta?.[optionUid]?.name || optionUid
+          : optionUid;
+        apiParams.push(`${idOrName}:${quantity}`);
       }
     }
   }
 
   return apiParams.join(',');
+}
+
+/**
+ * Returns a user-friendly, comma-separated string of selected addon names for UI
+ * display. Quantities are appended “×N” when the quantity is greater than 1.
+ *
+ * NOTE: This helper never exposes UIDs – it is purely for presentation.
+ *
+ * @param {object} selectedAddons – Same structure as in formatSelectedAddonsForApi
+ * @param {number|null} [guestCount=null] – Needed for usage=1 menus to infer qty
+ * @returns {string} Friendly string such as “Set Menu ×2, Children’s Menu ×1”
+ */
+export function formatAddonsForDisplay(selectedAddons, guestCount = null) {
+  const parts = [];
+  const numericGuestCount = guestCount !== null ? parseInt(guestCount, 10) : null;
+
+  if (!selectedAddons) return '';
+
+  // Menus
+  selectedAddons.menus?.forEach((menu) => {
+    if (!menu.name) return; // skip if no friendly name
+    let qty = 1;
+    if (typeof menu.quantity === 'number' && menu.quantity > 0) {
+      qty = menu.quantity;
+    } else if (menu.usagePolicy === 1 && numericGuestCount) {
+      qty = numericGuestCount;
+    }
+    parts.push(qty > 1 ? `${menu.name} ×${qty}` : menu.name);
+  });
+
+  // Options
+  if (selectedAddons.options) {
+    for (const optionUid in selectedAddons.options) {
+      const quantity = selectedAddons.options[optionUid];
+      if (quantity > 0) {
+        const friendly = selectedAddons.optionsMeta?.[optionUid]?.name || optionUid;
+        parts.push(quantity > 1 ? `${friendly} ×${quantity}` : friendly);
+      }
+    }
+  }
+
+  return parts.join(', ');
 }
 
 /**
