@@ -122,6 +122,13 @@ export default function ReservationForm() {
   // Prevent concurrent month-availability fetches
   const monthFetchInProgressRef = useRef(false);
 
+  // Helper function to check if a shift has available times
+  const hasAvailableTimes = (shift) => {
+    return shift.times && shift.times.some(timeObj => {
+      const timeValue = typeof timeObj === 'object' ? timeObj.time : timeObj;
+      return timeValue >= 0;
+    });
+  };
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -1185,7 +1192,22 @@ export default function ReservationForm() {
                     >
                       <div className="flex justify-between items-center">
                         <h5 className="text-lg font-bold text-blue-600">{shift.name}
-                          <span className="text-sm font-normal text-gray-500 ml-2">({shift.type})</span>
+                          <span className="text-sm font-normal ml-2" title={hasAvailableTimes(shift) ? "Available times" : "No times available"}>
+                            <svg 
+                              className={`inline-block w-4 h-4 ${hasAvailableTimes(shift) ? "text-green-500" : "text-gray-400"}`} 
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24" 
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round" 
+                                strokeWidth="2" 
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                              ></path>
+                            </svg>
+                          </span>
                         </h5>
                         <span className={`transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : 'rotate-0'}`}>
                           <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
