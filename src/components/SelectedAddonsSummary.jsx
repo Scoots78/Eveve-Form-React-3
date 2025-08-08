@@ -1,6 +1,13 @@
 import React from 'react';
 
-const SelectedAddonsSummary = ({ selectedAddons, currencySymbol, languageStrings, guestCount, currentShiftAddons }) => {
+const SelectedAddonsSummary = ({
+  selectedAddons,
+  currencySymbol,
+  languageStrings,
+  guestCount,
+  currentShiftAddons,
+  debugMode = false,      // default false
+}) => {
   const numericGuestCount = parseInt(guestCount, 10) || 1; // Default to 1 if guestCount is not valid, for per-guest calculation
   const displaySymbol = currencySymbol || '$';
 
@@ -180,6 +187,149 @@ const SelectedAddonsSummary = ({ selectedAddons, currencySymbol, languageStrings
         <p className="text-sm text-gray-500 italic">
           {languageStrings?.noAddonsSelected || 'No addons selected.'}
         </p>
+      )}
+
+      {/* Debug Mode Information */}
+      {debugMode && (
+        <div className="mt-4 p-3 border-2 border-yellow-400 rounded-lg bg-yellow-50">
+          <h6 className="text-sm font-bold text-yellow-800 mb-2">
+            🐛 Debug Information (Dev Mode)
+          </h6>
+          <div className="text-xs text-yellow-700 space-y-1">
+            <div className="flex justify-between">
+              <span className="font-mono">totalAddonCost:</span>
+              <span className="font-mono">{totalAddonCost}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-mono">totalAddonCost&nbsp;(formatted):</span>
+              <span className="font-mono">
+                {displaySymbol}
+                {(totalAddonCost / 100).toFixed(2)}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-mono">
+                selectedAddons.menus.length:
+              </span>
+              <span className="font-mono">
+                {selectedAddons.menus.length}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-mono">
+                Object.keys(selectedAddons.options).length:
+              </span>
+              <span className="font-mono">
+                {Object.keys(selectedAddons.options).length}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-mono">guestCount:</span>
+              <span className="font-mono">{guestCount}</span>
+            </div>
+
+            {/* ------------------------------------------------------------------
+                 Detailed list of selected menus
+            ------------------------------------------------------------------ */}
+            <div className="mt-3 pt-2 border-t border-yellow-300">
+              <div className="text-sm font-bold text-yellow-800 mb-1">
+                Selected Menus:
+              </div>
+              {selectedAddons.menus.length > 0 ? (
+                selectedAddons.menus.map((menu, idx) => (
+                  <div key={idx} className="ml-2 mb-1 text-xs">
+                    <div className="flex justify-between">
+                      <span className="font-mono">menu[{idx}].uid:</span>
+                      <span className="font-mono">{menu.uid}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-mono">menu[{idx}].name:</span>
+                      <span className="font-mono">"{menu.name}"</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-mono">menu[{idx}].price:</span>
+                      <span className="font-mono">{typeof menu.price === 'number' ? menu.price : 'null'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-mono">menu[{idx}].quantity:</span>
+                      <span className="font-mono">{menu.quantity || 1}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-mono">menu[{idx}].per:</span>
+                      <span className="font-mono">{menu.per ? `"${menu.per}"` : 'null'}</span>
+                    </div>
+                    {idx < selectedAddons.menus.length - 1 && (
+                      <div className="border-b border-yellow-200 my-1"></div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="ml-2 text-xs text-yellow-600">
+                  No menus selected
+                </div>
+              )}
+            </div>
+
+            {/* ------------------------------------------------------------------
+                 Detailed list of selected options
+            ------------------------------------------------------------------ */}
+            <div className="mt-3 pt-2 border-t border-yellow-300">
+              <div className="text-sm font-bold text-yellow-800 mb-1">
+                Selected Options:
+              </div>
+              {Object.keys(selectedAddons.options).length > 0 ? (
+                Object.entries(selectedAddons.options).map(
+                  ([optionUid, quantity], idx) => {
+                    const optionAddon = findAddonByUid(optionUid);
+                    return (
+                      <div key={optionUid} className="ml-2 mb-1 text-xs">
+                        <div className="flex justify-between">
+                          <span className="font-mono">option[{idx}].uid:</span>
+                          <span className="font-mono">{optionUid}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-mono">option[{idx}].quantity:</span>
+                          <span className="font-mono">{quantity}</span>
+                        </div>
+                        {optionAddon && (
+                          <>
+                            <div className="flex justify-between">
+                              <span className="font-mono">option[{idx}].name:</span>
+                              <span className="font-mono">
+                                "{optionAddon.name}"
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="font-mono">option[{idx}].price:</span>
+                              <span className="font-mono">
+                                {typeof optionAddon.price === 'number'
+                                  ? optionAddon.price
+                                  : 'null'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="font-mono">option[{idx}].per:</span>
+                              <span className="font-mono">
+                                {optionAddon.per ? `"${optionAddon.per}"` : 'null'}
+                              </span>
+                            </div>
+                          </>
+                        )}
+                        {idx < Object.keys(selectedAddons.options).length - 1 && (
+                          <div className="border-b border-yellow-200 my-1"></div>
+                        )}
+                      </div>
+                    );
+                  }
+                )
+              ) : (
+                <div className="ml-2 text-xs text-yellow-600">
+                  No options selected
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
