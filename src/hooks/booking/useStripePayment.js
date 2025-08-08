@@ -357,6 +357,22 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
       } else {
         console.log(`🔄 STRIPE INTENT: [STORE CARD - NO CHARGE] - Source: [${depositSource}]`);
       }
+
+      // ────────────────────────────────────────────────────────────
+      // EXTRA DEBUG (intent-type vs deposit information)
+      // Shows if Stripe will *charge* (payment_intent) or *store* (setup_intent)
+      // and whether that matches Eveve / pre-calculated deposit logic.
+      // Example output:
+      //   🔍 INTENT DEBUG → intentType=payment_intent  isDeposit=true  isNoShow=false  amount=500  mismatch=false
+      // ────────────────────────────────────────────────────────────
+      const mismatch =
+        (depositInfo.isDeposit && intentType !== 'payment_intent') ||
+        (depositInfo.isNoShow && intentType !== 'setup_intent');
+      console.log(
+        `🔍 INTENT DEBUG → intentType=${intentType}  ` +
+        `isDeposit=${depositInfo.isDeposit}  isNoShow=${depositInfo.isNoShow}  ` +
+        `amount=${depositInfo.amount}  mismatch=${mismatch}`
+      );
       
       // Step 3: Process payment
       const paymentResult = await processPayment({
