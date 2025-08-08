@@ -71,26 +71,8 @@ export function getChargeReason(
     }
   };
 
-  // Flag to track if *anything* in this booking obliges a charge.
-  // It starts true when the shift itself has charge === 2.
-  let chargeableFlag = selectedShiftTime?.charge === 2;
-
-  // Check if holdData is missing or invalid
-  if (!holdData) {
-    if (debugMode) console.warn('[chargeDetection] Missing holdData, defaulting to no payment required');
-    return result;
-  }
-
-  // CASE 1: Check if the hold API response indicates payment is required
-  if (holdData.card > 0) {
-    result.isRequired = true;
-    result.reason = holdData.card === 1 
-      ? 'No-show protection required (holdData.card = 1)' 
-      : 'Deposit required (holdData.card = 2)';
-    return result;
-  }
-
-  // CASE 2: Check if the selected shift requires a charge (charge = 2)
+  // CASE 1: Check if the selected shift requires a charge (charge = 2)
+  // This check comes FIRST, before holdData check, to handle missing holdData
   if (selectedShiftTime && selectedShiftTime.charge === 2) {
     result.isRequired = true;
     result.reason = 'Shift requires deposit (shift.charge = 2)';
@@ -98,8 +80,8 @@ export function getChargeReason(
     return result;
   }
 
-  // CASE 3: Check if any selected addons come from a shift with charge = 2
-  // First check if we have addons and shift addons to examine
+  // CASE 2: Check if any selected addons come from a shift with charge = 2
+  // This also comes before holdData check to handle missing holdData
   if (selectedAddons && currentShiftAddons && currentShiftAddons.length > 0) {
     // Check menus
     if (selectedAddons.menus && selectedAddons.menus.length > 0) {
@@ -108,7 +90,7 @@ export function getChargeReason(
         if (menuAddon && menuAddon.charge === 2) {
           result.isRequired = true;
           result.reason = `Menu addon "${menuAddon.name}" requires deposit (addon.charge = 2)`;
-          chargeableFlag = true;
+          result.details.hasChargeableAddons = true;
           return result;
         }
       }
@@ -122,7 +104,7 @@ export function getChargeReason(
           if (optionAddon && optionAddon.charge === 2) {
             result.isRequired = true;
             result.reason = `Option addon "${optionAddon.name}" requires deposit (addon.charge = 2)`;
-            chargeableFlag = true;
+            result.details.hasChargeableAddons = true;
             return result;
           }
         }
@@ -130,8 +112,23 @@ export function getChargeReason(
     }
   }
 
+  // Check if holdData is missing or invalid - AFTER checking shift/addon charges
+  if (!holdData) {
+    if (debugMode) console.warn('[chargeDetection] Missing holdData, but no shift/addon charges detected');
+    return result;
+  }
+
+  // CASE 3: Check if the hold API response indicates payment is required
+  if (holdData.card > 0) {
+    result.isRequired = true;
+    result.reason = holdData.card === 1 
+      ? 'No-show protection required (holdData.card = 1)' 
+      : 'Deposit required (holdData.card = 2)';
+    return result;
+  }
+
   // Update details with final flag value
-  result.details.hasChargeableAddons = chargeableFlag;
+  result.details.hasChargeableAddons = result.isRequired;
 
   // If we get here, no payment is required
   return result;
