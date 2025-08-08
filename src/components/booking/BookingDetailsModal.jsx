@@ -19,6 +19,7 @@ import { formatAddonsForDisplay } from "../../utils/apiFormatter";
  * @param {boolean} props.isLoading - Whether the form is submitting
  * @param {string} props.error - Error message if submission failed
  * @param {boolean} props.success - Whether submission was successful
+ * @param {boolean} [props.debugMode=false] - Enable developer debug panel
  */
 export default function BookingDetailsModal({
   isOpen,
@@ -29,7 +30,8 @@ export default function BookingDetailsModal({
   appConfig,
   isLoading = false,
   error = null,
-  success = false
+  success = false,
+  debugMode = false
 }) {
   // Form step state
   const STEPS = {
@@ -827,6 +829,77 @@ export default function BookingDetailsModal({
         {holdData && holdData.perHead && (
           <div className="mt-2 text-sm font-bold">
             <span>{appConfig?.lng?.bookingTotalPrice || "Total Price"}:</span> ${(holdData.perHead * bookingData.covers / 100).toFixed(2)}
+          </div>
+        )}
+
+        {/* Debug Mode Information for Booking Summary */}
+        {debugMode && (
+          <div className="mt-4 p-3 border-2 border-blue-400 rounded-lg bg-blue-50">
+            <h6 className="text-sm font-bold text-blue-800 mb-2">
+              🐛 Booking Summary Debug (Dev Mode)
+            </h6>
+            <div className="text-xs text-blue-700 space-y-1">
+              <div className="flex justify-between">
+                <span className="font-mono">bookingData.formattedDate:</span>
+                <span className="font-mono">{bookingData?.formattedDate || 'null'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-mono">bookingData.time:</span>
+                <span className="font-mono">{bookingData?.time || 'null'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-mono">bookingData.covers:</span>
+                <span className="font-mono">{bookingData?.covers || 'null'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-mono">bookingData.areaName:</span>
+                <span className="font-mono">{bookingData?.areaName || 'null'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-mono">bookingData.formattedAddons:</span>
+                <span className="font-mono">{bookingData?.formattedAddons || 'null'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-mono">bookingData.addons:</span>
+                <span className="font-mono">{bookingData?.addons || 'null'}</span>
+              </div>
+              {/* -------------------------------------------------------
+                   Total Add-on Cost (raw + formatted) – passed from the
+                   first page in bookingData.totalAddonCost (cents)
+                 ------------------------------------------------------- */}
+              <div className="flex justify-between">
+                <span className="font-mono">totalAddonCost:</span>
+                <span className="font-mono">
+                  {bookingData?.totalAddonCost !== undefined
+                    ? bookingData.totalAddonCost
+                    : 'null'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-mono">totalAddonCost&nbsp;(formatted):</span>
+                <span className="font-mono">
+                  {bookingData?.totalAddonCost !== undefined
+                    ? `$${(bookingData.totalAddonCost / 100).toFixed(2)}`
+                    : 'null'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-mono">bookingData.area:</span>
+                <span className="font-mono">{bookingData?.area || 'null'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-mono">holdData.perHead:</span>
+                <span className="font-mono">{holdData?.perHead || 'null'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-mono">holdData.uid:</span>
+                <span className="font-mono">{holdData?.uid || 'null'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-mono">holdData.card:</span>
+                <span className="font-mono">{holdData?.card || 'null'}</span>
+              </div>
+            </div>
           </div>
         )}
       </div>

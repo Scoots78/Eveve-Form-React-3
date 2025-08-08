@@ -39,6 +39,8 @@ export default function ReservationForm() {
 
   const urlParams = new URLSearchParams(window.location.search);
   const est = urlParams.get("est"); // Removed fallback to "testnza"
+  // Toggle developer debug features with ?debug=true in the URL
+  const debugMode = urlParams.get("debug") === "true";
 
   /* ------------------------------------------------------------------
      Treat date as "unset" on initial load so the GuestSelector container
@@ -727,6 +729,39 @@ export default function ReservationForm() {
     );
     const formattedArea = formatAreaForApi(selectedArea);
 
+    /* ------------------------------------------------------------------
+       Calculate total addon cost (in cents) so we can surface it in the
+       details-page debug panel.  Logic mirrors SelectedAddonsSummary.
+    ------------------------------------------------------------------ */
+    let totalAddonCost = 0;
+
+    // --- Menus ---
+    selectedAddons.menus.forEach(menu => {
+      const quantity = menu.quantity || 1;
+      if (typeof menu.price === 'number') {
+        if (menu.per === 'Guest') {
+          totalAddonCost += menu.price * numericGuests * quantity;
+        } else {
+          totalAddonCost += menu.price * quantity;
+        }
+      }
+    });
+
+    // --- Options ---
+    for (const optionUid in selectedAddons.options) {
+      const quantity = selectedAddons.options[optionUid];
+      if (quantity > 0) {
+        const optionAddon = currentShiftAddons.find(a => String(a.uid) === optionUid);
+        if (optionAddon && typeof optionAddon.price === 'number') {
+          if (optionAddon.per === 'Guest') {
+            totalAddonCost += optionAddon.price * numericGuests * quantity;
+          } else {
+            totalAddonCost += optionAddon.price * quantity;
+          }
+        }
+      }
+    }
+
     const bookingDataForHold = {
       est: est, // From URL params
       lng: appConfig?.usrLang || 'en', // From appConfig
@@ -744,7 +779,9 @@ export default function ReservationForm() {
       formattedDate,
       areaName: selectedAreaName,
       // Friendly names for UI
-      formattedAddons: formattedAddonsDisplay ? formattedAddonsDisplay : 'None'
+      formattedAddons: formattedAddonsDisplay ? formattedAddonsDisplay : 'None',
+      // Raw addon cost in cents for debug display
+      totalAddonCost
     });
 
     try {
@@ -1302,6 +1339,7 @@ export default function ReservationForm() {
                               languageStrings={appConfig?.lng}
                               guestCount={guests}
                               currentShiftAddons={currentShiftAddons}
+                              debugMode={debugMode}
                             />
                           </div>
                         )}
@@ -1322,6 +1360,49 @@ export default function ReservationForm() {
                                 </div>
                               )}
                             </button>
+                            
+                            {/* Debug Mode Information for Booking Button */}
+                            {debugMode && (
+                              <div className="mt-4 p-3 border-2 border-orange-400 rounded-lg bg-orange-50 text-left">
+                                <h6 className="text-sm font-bold text-orange-800 mb-2">
+                                  🐛 Booking Button Debug (Dev Mode)
+                                </h6>
+                                <div className="text-xs text-orange-700 space-y-1">
+                                  <div className="flex justify-between">
+                                    <span className="font-mono">selectedShiftTime.name:</span>
+                                    <span className="font-mono">{selectedShiftTime?.name || 'null'}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="font-mono">selectedDate:</span>
+                                    <span className="font-mono">{selectedDate ? format(selectedDate, 'yyyy-MM-dd') : 'null'}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="font-mono">guests:</span>
+                                    <span className="font-mono">{guests}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="font-mono">selectedShiftTime.selectedTime:</span>
+                                    <span className="font-mono">{selectedShiftTime?.selectedTime || 'null'}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="font-mono">selectedAreaName:</span>
+                                    <span className="font-mono">{selectedAreaName || 'null'}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="font-mono">selectedArea:</span>
+                                    <span className="font-mono">{selectedArea || 'null'}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="font-mono">proceedButtonState.text:</span>
+                                    <span className="font-mono">"{proceedButtonState.text}"</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="font-mono">proceedButtonState.disabled:</span>
+                                    <span className="font-mono">{proceedButtonState.disabled ? 'true' : 'false'}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1356,6 +1437,7 @@ export default function ReservationForm() {
         isLoading={bookingState.isUpdating || bookingState.isBooking}
         error={bookingState.updateError || bookingState.bookingError}
         success={bookingState.bookingSuccess}
+        debugMode={debugMode}
       />
     </div>
   );
