@@ -114,7 +114,7 @@ export function getChargeReason(
 
   // Check if holdData is missing or invalid - AFTER checking shift/addon charges
   if (!holdData) {
-    if (debugMode) console.warn('[chargeDetection] Missing holdData, but no shift/addon charges detected');
+    // Silent when not in debug mode; no need to warn in production
     return result;
   }
 
