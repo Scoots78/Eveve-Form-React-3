@@ -1,0 +1,16 @@
+{
+  "name": "Restaurant Booking Widget",
+  "short_name": "Booking",
+  "description": "Make restaurant reservations easily with this booking widget",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#6b46c1",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}
