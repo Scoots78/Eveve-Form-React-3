@@ -931,7 +931,7 @@ export default function BookingDetailsModal({
                 <span className="font-mono">{isCardRequired ? 'true' : 'false'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="font-mono">holdData.card > 0 (old logic):</span>
+                <span className="font-mono">holdData.card &gt; 0 (old logic):</span>
                 <span className="font-mono">{holdData && holdData.card > 0 ? 'true' : 'false'}</span>
               </div>
               <div className="flex justify-between">
