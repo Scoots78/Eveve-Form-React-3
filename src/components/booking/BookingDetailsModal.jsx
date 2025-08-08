@@ -106,7 +106,8 @@ export default function BookingDetailsModal({
       selectedShiftTime,
       selectedAddons,
       currentShiftAddons,
-      bookingData?.covers || 0
+      bookingData?.covers || 0,
+      debugMode
     );
   }, [holdData, selectedShiftTime, selectedAddons, currentShiftAddons, bookingData]);
 
@@ -116,7 +117,8 @@ export default function BookingDetailsModal({
     selectedShiftTime,
     selectedAddons,
     currentShiftAddons,
-    bookingData?.covers || 0
+    bookingData?.covers || 0,
+    debugMode
   );
   
   // We still need to check effectiveHoldData.card for specific distinction between deposit and no-show
@@ -145,7 +147,7 @@ export default function BookingDetailsModal({
       });
       
       logWithTimestamp('Charge detection factors:', 
-        debugChargeFactors(effectiveHoldData, selectedShiftTime, selectedAddons, currentShiftAddons));
+        debugChargeFactors(effectiveHoldData, selectedShiftTime, selectedAddons, currentShiftAddons, debugMode));
     }
   }, [debugMode, holdData, effectiveHoldData, selectedShiftTime, selectedAddons, currentShiftAddons]);
 

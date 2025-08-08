@@ -739,7 +739,8 @@ export default function ReservationForm() {
       selectedAddons,
       currentShiftAddons,
       numericGuests,
-      selectedShiftTime
+      selectedShiftTime,
+      debugMode
     );
 
     const bookingDataForHold = {

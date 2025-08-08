@@ -18,7 +18,8 @@ export function isPaymentRequired(
   selectedShiftTime,
   selectedAddons = {},
   currentShiftAddons = [],
-  guestCount = 0
+  guestCount = 0,
+  debugMode = false
 ) {
   // Apply effective hold transformation first
   const effectiveHold = getEffectiveHoldData(
@@ -26,7 +27,8 @@ export function isPaymentRequired(
     selectedShiftTime,
     selectedAddons,
     currentShiftAddons,
-    guestCount
+    guestCount,
+    debugMode
   );
 
   // Get detailed charge reason for logging
@@ -34,11 +36,9 @@ export function isPaymentRequired(
     effectiveHold,
     selectedShiftTime,
     selectedAddons,
-    currentShiftAddons
+    currentShiftAddons,
+    debugMode
   );
-  
-  // Log the decision for debugging
-  console.log('[chargeDetection] Payment required:', chargeReason.isRequired, 'Reason:', chargeReason.reason);
   
   return chargeReason.isRequired;
 }
@@ -52,7 +52,13 @@ export function isPaymentRequired(
  * @param {Array} currentShiftAddons - Available addons for the current shift
  * @returns {Object} - Object containing isRequired (boolean) and reason (string)
  */
-export function getChargeReason(holdData, selectedShiftTime, selectedAddons = {}, currentShiftAddons = []) {
+export function getChargeReason(
+  holdData,
+  selectedShiftTime,
+  selectedAddons = {},
+  currentShiftAddons = [],
+  debugMode = false
+) {
   // Default result object
   const result = {
     isRequired: false,
@@ -71,7 +77,7 @@ export function getChargeReason(holdData, selectedShiftTime, selectedAddons = {}
 
   // Check if holdData is missing or invalid
   if (!holdData) {
-    console.warn('[chargeDetection] Missing holdData, defaulting to no payment required');
+    if (debugMode) console.warn('[chargeDetection] Missing holdData, defaulting to no payment required');
     return result;
   }
 
@@ -144,13 +150,12 @@ export function calculateTotalAddonCost(
   selectedAddons = {},
   currentShiftAddons = [],
   guestCount = 0,
-  selectedShiftTime = {}
+  selectedShiftTime = {},
+  debugMode = false
 ) {
   let total = 0;
   const isUsage2 = selectedShiftTime?.usage === 2;
   
-  console.log(`[chargeDetection] Calculating addon cost with shift.usage=${selectedShiftTime?.usage}, guestCount=${guestCount}`);
-
   // --- Menus ---
   (selectedAddons.menus || []).forEach((menu) => {
     const qty = menu.quantity || 1;
@@ -162,14 +167,11 @@ export function calculateTotalAddonCost(
         // because the user has already selected the appropriate quantity
         if (isUsage2) {
           menuCost = menu.price * qty;
-          console.log(`[chargeDetection] Menu ${menu.name} (${menu.uid}): ${menu.price} × ${qty} = ${menuCost} (usage=2, not multiplying by guest count)`);
         } else {
           menuCost = menu.price * guestCount * qty;
-          console.log(`[chargeDetection] Menu ${menu.name} (${menu.uid}): ${menu.price} × ${guestCount} × ${qty} = ${menuCost}`);
         }
       } else {
         menuCost = menu.price * qty;
-        console.log(`[chargeDetection] Menu ${menu.name} (${menu.uid}): ${menu.price} × ${qty} = ${menuCost}`);
       }
       
       total += menuCost;
@@ -188,14 +190,11 @@ export function calculateTotalAddonCost(
             // For options, check if parent shift has usage=2
             if (isUsage2) {
               optionCost = addon.price * qty;
-              console.log(`[chargeDetection] Option ${addon.name} (${addon.uid}): ${addon.price} × ${qty} = ${optionCost} (parent shift usage=2, not multiplying by guest count)`);
             } else {
               optionCost = addon.price * guestCount * qty;
-              console.log(`[chargeDetection] Option ${addon.name} (${addon.uid}): ${addon.price} × ${guestCount} × ${qty} = ${optionCost}`);
             }
           } else {
             optionCost = addon.price * qty;
-            console.log(`[chargeDetection] Option ${addon.name} (${addon.uid}): ${addon.price} × ${qty} = ${optionCost}`);
           }
           
           total += optionCost;
@@ -203,8 +202,8 @@ export function calculateTotalAddonCost(
       }
     });
   }
-  
-  console.log(`[chargeDetection] Total addon cost: ${total} cents`);
+
+  if (debugMode) console.log(`[chargeDetection] Total addon cost: ${total} cents`);
   return total;
 }
 
@@ -225,17 +224,19 @@ export function getEffectiveHoldData(
   selectedShiftTime = {},
   selectedAddons = {},
   currentShiftAddons = [],
-  guestCount = 0
+  guestCount = 0,
+  debugMode = false
 ) {
   if (selectedShiftTime?.charge === 2) {
     const totalAddonCost = calculateTotalAddonCost(
       selectedAddons,
       currentShiftAddons,
       guestCount,
-      selectedShiftTime
+      selectedShiftTime,
+      debugMode
     );
 
-    console.log(`[chargeDetection] Overriding holdData: shift.charge=2, setting card=2, perHead=${totalAddonCost}`);
+    if (debugMode) console.log(`[chargeDetection] Overriding holdData: shift.charge=2, setting card=2, perHead=${totalAddonCost}`);
     
     return {
       ...holdData,
@@ -254,7 +255,15 @@ export function getEffectiveHoldData(
  * @param {Object} selectedAddons - The addons selected by the user
  * @param {Array} currentShiftAddons - Available addons for the current shift
  */
-export function debugChargeFactors(holdData, selectedShiftTime, selectedAddons = {}, currentShiftAddons = []) {
+export function debugChargeFactors(
+  holdData,
+  selectedShiftTime,
+  selectedAddons = {},
+  currentShiftAddons = [],
+  debugMode = false
+) {
+  if (!debugMode) return getChargeReason(holdData, selectedShiftTime, selectedAddons, currentShiftAddons, false);
+
   console.group('[chargeDetection] Debug Payment Factors');
   
   console.log('Hold Data:', {
@@ -278,7 +287,7 @@ export function debugChargeFactors(holdData, selectedShiftTime, selectedAddons =
   console.log('Addons requiring charge:', chargeableAddons.map(a => `${a.name} (${a.uid})`));
   
   // Get final decision
-  const decision = getChargeReason(holdData, selectedShiftTime, selectedAddons, currentShiftAddons);
+  const decision = getChargeReason(holdData, selectedShiftTime, selectedAddons, currentShiftAddons, true);
   console.log('Final Decision:', decision);
   
   console.groupEnd();
