@@ -1339,6 +1339,8 @@ export default function ReservationForm() {
                               languageStrings={appConfig?.lng}
                               guestCount={guests}
                               currentShiftAddons={currentShiftAddons}
+                              /* expose shift meta for 🐛 debug panel */
+                              selectedShiftTime={selectedShiftTime}
                               debugMode={debugMode}
                             />
                           </div>

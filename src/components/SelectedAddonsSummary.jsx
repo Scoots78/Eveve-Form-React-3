@@ -6,6 +6,7 @@ const SelectedAddonsSummary = ({
   languageStrings,
   guestCount,
   currentShiftAddons,
+  selectedShiftTime,      // ← new prop (provides shift meta for debug)
   debugMode = false,      // default false
 }) => {
   const numericGuestCount = parseInt(guestCount, 10) || 1; // Default to 1 if guestCount is not valid, for per-guest calculation
@@ -328,6 +329,61 @@ const SelectedAddonsSummary = ({
                 </div>
               )}
             </div>
+
+            {/* ------------------------------------------------------------------
+                 Selected Shift meta (charge / usage etc.)
+            ------------------------------------------------------------------ */}
+            {selectedShiftTime && (
+              <div className="mt-3 pt-2 border-t border-yellow-300">
+                <div className="text-sm font-bold text-yellow-800 mb-1">
+                  Selected Shift Information:
+                </div>
+                <div className="ml-2 mb-1 text-xs space-y-1">
+                  <div className="flex justify-between">
+                    <span className="font-mono">name:</span>
+                    <span className="font-mono">
+                      {selectedShiftTime.name ?? 'null'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-mono">type:</span>
+                    <span className="font-mono">
+                      {selectedShiftTime.type ?? 'null'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-mono">charge:</span>
+                    <span className="font-mono">
+                      {selectedShiftTime.charge ?? 'null'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-mono">usage:</span>
+                    <span className="font-mono">
+                      {selectedShiftTime.usage ?? 'null'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-mono">start:</span>
+                    <span className="font-mono">
+                      {selectedShiftTime.start ?? 'null'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-mono">end:</span>
+                    <span className="font-mono">
+                      {selectedShiftTime.end ?? 'null'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-mono">selectedTime:</span>
+                    <span className="font-mono">
+                      {selectedShiftTime.selectedTime ?? 'null'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
