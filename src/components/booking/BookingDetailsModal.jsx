@@ -1093,10 +1093,11 @@ export default function BookingDetailsModal({
                 )}
               </div>
               
-              {/* Charge reason from getChargeReason */}
+              {/* Charge reason from getChargeReason - Using effectiveHoldData instead of holdData */}
               <div className="mt-2 pt-2 border-t border-green-200">
-                <span className="font-mono font-semibold">Charge reason:</span>
+                <span className="font-mono font-semibold">Charge reason (using effective values):</span>
                 {(() => {
+                  // Pass effectiveHoldData instead of holdData to show the actual values being used
                   const chargeReason = getChargeReason(effectiveHoldData, selectedShiftTime, selectedAddons, currentShiftAddons);
                   return (
                     <div className="pl-2 mt-1 border-l-2 border-green-300">
@@ -1109,14 +1110,14 @@ export default function BookingDetailsModal({
                         <span className="font-mono">{chargeReason.reason}</span>
                       </div>
                       <div className="mt-1">
-                        <span className="font-mono font-semibold">Details:</span>
+                        <span className="font-mono font-semibold">Details (effective values):</span>
                         <div className="pl-2">
                           <div className="flex justify-between">
-                            <span className="font-mono">holdData.card:</span>
+                            <span className="font-mono">effectiveHoldData.card:</span>
                             <span className="font-mono">{chargeReason.details.holdDataCard}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="font-mono">holdData.perHead:</span>
+                            <span className="font-mono">effectiveHoldData.perHead:</span>
                             <span className="font-mono">{chargeReason.details.holdDataPerHead}</span>
                           </div>
                           <div className="flex justify-between">

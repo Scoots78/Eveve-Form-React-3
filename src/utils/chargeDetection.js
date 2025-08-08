@@ -61,9 +61,13 @@ export function getChargeReason(holdData, selectedShiftTime, selectedAddons = {}
       holdDataCard: holdData?.card || 0,
       holdDataPerHead: holdData?.perHead || 0,
       shiftCharge: selectedShiftTime?.charge || 0,
-      hasChargeableAddons: false
+      hasChargeableAddons: false // will be updated below
     }
   };
+
+  // Flag to track if *anything* in this booking obliges a charge.
+  // It starts true when the shift itself has charge === 2.
+  let chargeableFlag = selectedShiftTime?.charge === 2;
 
   // Check if holdData is missing or invalid
   if (!holdData) {
@@ -84,6 +88,7 @@ export function getChargeReason(holdData, selectedShiftTime, selectedAddons = {}
   if (selectedShiftTime && selectedShiftTime.charge === 2) {
     result.isRequired = true;
     result.reason = 'Shift requires deposit (shift.charge = 2)';
+    result.details.hasChargeableAddons = true; // shift itself counts as chargeable
     return result;
   }
 
@@ -97,7 +102,7 @@ export function getChargeReason(holdData, selectedShiftTime, selectedAddons = {}
         if (menuAddon && menuAddon.charge === 2) {
           result.isRequired = true;
           result.reason = `Menu addon "${menuAddon.name}" requires deposit (addon.charge = 2)`;
-          result.details.hasChargeableAddons = true;
+          chargeableFlag = true;
           return result;
         }
       }
@@ -111,13 +116,16 @@ export function getChargeReason(holdData, selectedShiftTime, selectedAddons = {}
           if (optionAddon && optionAddon.charge === 2) {
             result.isRequired = true;
             result.reason = `Option addon "${optionAddon.name}" requires deposit (addon.charge = 2)`;
-            result.details.hasChargeableAddons = true;
+            chargeableFlag = true;
             return result;
           }
         }
       }
     }
   }
+
+  // Update details with final flag value
+  result.details.hasChargeableAddons = chargeableFlag;
 
   // If we get here, no payment is required
   return result;
@@ -132,7 +140,7 @@ export function getChargeReason(holdData, selectedShiftTime, selectedAddons = {}
  * @param {Object} selectedShiftTime - The currently selected shift/time
  * @returns {number} - Total cost in cents
  */
-function calculateTotalAddonCost(
+export function calculateTotalAddonCost(
   selectedAddons = {},
   currentShiftAddons = [],
   guestCount = 0,
