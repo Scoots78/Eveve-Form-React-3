@@ -446,6 +446,7 @@ export default function BookingDetailsModal({
     
     try {
       setIsInitializingStripe(true);
+      const isShiftDepositOverride = selectedShiftTime?.charge === 2;
       
       logWithTimestamp('Initializing Stripe with customer details:', {
         firstName: customerData.firstName,
@@ -454,7 +455,7 @@ export default function BookingDetailsModal({
         uid: effectiveHoldData.uid
       });
       
-      // Fetch Stripe keys with customer details
+      // Fetch Stripe keys (or reuse cached) – always required
       const keys = await fetchStripeKeys({
         est: bookingData.est || effectiveHoldData.est,
         uid: effectiveHoldData.uid,
@@ -464,33 +465,40 @@ export default function BookingDetailsModal({
         lastName: customerData.lastName,
         email: customerData.email
       });
-      
-      if (keys && keys.publicKey) {
-        logWithTimestamp('Stripe keys fetched successfully', {
-          publicKey: keys.publicKey.substring(0, 8) + '...',
-          hasClientSecret: !!keys.clientSecret
+
+      if (!keys || !keys.publicKey) {
+        throw new Error("Failed to retrieve Stripe keys");
+      }
+
+      logWithTimestamp('Stripe keys ready', {
+        publicKey: keys.publicKey.substring(0, 8) + '...',
+        hasClientSecret: !!keys.clientSecret
+      });
+      setStripePublicKey(keys.publicKey);
+
+      if (isShiftDepositOverride) {
+        // Skip deposit-get as we already calculated amounts
+        logWithTimestamp('Skipping deposit-get (shift.charge=2 override) – using internal addon calculations', {
+          perHead: effectiveHoldData.perHead
         });
-        setStripePublicKey(keys.publicKey);
-        
-        // Fetch deposit information
-        logWithTimestamp('Fetching deposit information');
+      } else {
+        // Fetch deposit information from Eveve
+        logWithTimestamp('Fetching deposit information via deposit-get');
         const depositData = await fetchDepositInfo({
           est: bookingData.est || effectiveHoldData.est,
           uid: effectiveHoldData.uid,
           created: effectiveHoldData.created
         });
-        
+
         logWithTimestamp('Deposit info received', {
           isDeposit: depositData.isDeposit,
           isNoShow: depositData.isNoShow,
           amount: depositData.amount
         });
-        
-        // Move to payment step
-        setCurrentStep(STEPS.PAYMENT);
-      } else {
-        throw new Error("Failed to retrieve Stripe keys");
       }
+
+      // Move to payment step
+      setCurrentStep(STEPS.PAYMENT);
     } catch (err) {
       console.error(`${new Date().toISOString()} [BookingDetailsModal] Error initializing payment:`, err);
       setCardState(prev => ({
