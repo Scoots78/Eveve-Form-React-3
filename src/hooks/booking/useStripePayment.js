@@ -363,6 +363,11 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
    * @param {string} params.lastName - Customer last name
    * @param {string} params.email - Customer email
    * @param {Object} params.cardElement - Stripe CardElement instance
+ * @param {Object} [params.preCalculatedDeposit=null] - Optional pre-calculated
+ *        deposit info (when shift.charge = 2).  If provided the hook will skip
+ *        the Eveve `deposit-get` call and use this object instead.  Expected
+ *        shape: { isDeposit:boolean, isNoShow:boolean, amount:number,
+ *        currency:string }
    * @returns {Promise<Object>} - Result of the payment flow
    */
   const completePaymentFlow = useCallback(async (params) => {
@@ -394,13 +399,19 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
         });
       }
       
-      // Step 2: Fetch deposit info
-      console.log('Step 2: Fetching deposit info');
-      const depositInfo = await fetchDepositInfo({
-        est: params.est,
-        uid: params.uid,
-        created: params.created
-      });
+      // Step 2: Deposit information
+      let depositInfo;
+      if (params.preCalculatedDeposit) {
+        console.log('Step 2: Using pre-calculated deposit info, skipping deposit-get');
+        depositInfo = params.preCalculatedDeposit;
+      } else {
+        console.log('Step 2: Fetching deposit info via deposit-get');
+        depositInfo = await fetchDepositInfo({
+          est: params.est,
+          uid: params.uid,
+          created: params.created
+        });
+      }
       
       // Step 3: Process payment
       console.log('Step 3: Processing payment');

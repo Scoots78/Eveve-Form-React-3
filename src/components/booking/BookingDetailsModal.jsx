@@ -622,6 +622,26 @@ export default function BookingDetailsModal({
         });
         
         // Process payment flow
+        /* -----------------------------------------------------------
+           Determine if we should pass a pre-calculated deposit object
+           (shift.charge === 2) to bypass Eveve deposit-get amounts.
+        ----------------------------------------------------------- */
+        const isShiftDeposit = selectedShiftTime?.charge === 2;
+        let preCalculatedDeposit = null;
+        if (isShiftDeposit) {
+          preCalculatedDeposit = {
+            isDeposit: true,
+            isNoShow: false,
+            amount: effectiveHoldData.perHead,        // already total cents
+            currency: appConfig?.currency || 'USD'
+          };
+          if (debugMode) {
+            /* eslint-disable no-console */
+            console.log('[BookingDetailsModal] Using preCalculatedDeposit object', preCalculatedDeposit);
+            /* eslint-enable no-console */
+          }
+        }
+
         const paymentResult = await completePaymentFlow({
           est: bookingData.est || effectiveHoldData.est,
           uid: effectiveHoldData.uid,
@@ -629,7 +649,9 @@ export default function BookingDetailsModal({
           firstName: customerData.firstName,
           lastName: customerData.lastName,
           email: customerData.email,
-          cardElement: cardElement
+          cardElement: cardElement,
+          // pass only when applicable
+          ...(preCalculatedDeposit ? { preCalculatedDeposit } : {})
         });
         
         logWithTimestamp('Payment flow result', {
