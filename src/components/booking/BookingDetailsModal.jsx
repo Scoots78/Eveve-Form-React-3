@@ -6,7 +6,7 @@ import StripeCardElement from "./StripeCardElement";
 import StripeProvider from "./StripeProvider";
 import { useStripePayment } from "../../hooks/booking/useStripePayment";
 import { formatAddonsForDisplay } from "../../utils/apiFormatter";
-import { isPaymentRequired, debugChargeFactors, getChargeReason } from "../../utils/chargeDetection";
+import { isPaymentRequired, debugChargeFactors, getChargeReason, getEffectiveHoldData } from "../../utils/chargeDetection";
 
 /**
  * BookingDetailsModal - A modal dialog for collecting customer details and confirming the reservation
@@ -99,12 +99,29 @@ export default function BookingDetailsModal({
     reset: resetStripePayment
   } = useStripePayment();
 
-  // Check if card is required using the charge detection utility
-  const isCardRequired = isPaymentRequired(holdData, selectedShiftTime, selectedAddons, currentShiftAddons);
+  // Calculate effective hold data based on shift.charge = 2 override
+  const effectiveHoldData = useMemo(() => {
+    return getEffectiveHoldData(
+      holdData,
+      selectedShiftTime,
+      selectedAddons,
+      currentShiftAddons,
+      bookingData?.covers || 0
+    );
+  }, [holdData, selectedShiftTime, selectedAddons, currentShiftAddons, bookingData]);
+
+  // Check if card is required using the charge detection utility with guest count
+  const isCardRequired = isPaymentRequired(
+    effectiveHoldData,
+    selectedShiftTime,
+    selectedAddons,
+    currentShiftAddons,
+    bookingData?.covers || 0
+  );
   
-  // We still need to check holdData.card for specific distinction between deposit and no-show
-  const isDepositRequired = holdData && holdData.card === 2;
-  const isNoShowProtection = holdData && holdData.card === 1;
+  // We still need to check effectiveHoldData.card for specific distinction between deposit and no-show
+  const isDepositRequired = effectiveHoldData && effectiveHoldData.card === 2;
+  const isNoShowProtection = effectiveHoldData && effectiveHoldData.card === 1;
 
   // Helper for timestamp logs
   const logWithTimestamp = (message, data) => {
@@ -114,9 +131,23 @@ export default function BookingDetailsModal({
   // Log charge detection factors when in debug mode
   useEffect(() => {
     if (debugMode && holdData) {
-      logWithTimestamp('Charge detection factors:', debugChargeFactors(holdData, selectedShiftTime, selectedAddons, currentShiftAddons));
+      logWithTimestamp('Original holdData:', {
+        uid: holdData.uid,
+        card: holdData.card,
+        perHead: holdData.perHead
+      });
+      
+      logWithTimestamp('Effective holdData (after shift.charge=2 override):', {
+        uid: effectiveHoldData.uid,
+        card: effectiveHoldData.card,
+        perHead: effectiveHoldData.perHead,
+        isOverridden: holdData.card !== effectiveHoldData.card || holdData.perHead !== effectiveHoldData.perHead
+      });
+      
+      logWithTimestamp('Charge detection factors:', 
+        debugChargeFactors(effectiveHoldData, selectedShiftTime, selectedAddons, currentShiftAddons));
     }
-  }, [debugMode, holdData, selectedShiftTime, selectedAddons, currentShiftAddons]);
+  }, [debugMode, holdData, effectiveHoldData, selectedShiftTime, selectedAddons, currentShiftAddons]);
 
   // Format time remaining as MM:SS
   const formatTimeRemaining = () => {
@@ -181,7 +212,9 @@ export default function BookingDetailsModal({
       logWithTimestamp('Modal opened with holdData:', {
         uid: holdData.uid,
         card: holdData.card,
-        perHead: holdData.perHead
+        perHead: holdData.perHead,
+        effectiveCard: effectiveHoldData.card,
+        effectivePerHead: effectiveHoldData.perHead
       });
       
       // Reset form state
@@ -219,7 +252,7 @@ export default function BookingDetailsModal({
         paymentTimeoutRef.current = null;
       }
     }
-  }, [isOpen, holdData, resetStripePayment, STEPS.PERSONAL_DETAILS]);
+  }, [isOpen, holdData, effectiveHoldData, resetStripePayment, STEPS.PERSONAL_DETAILS]);
 
   // Monitor success prop changes from parent
   useEffect(() => {
@@ -396,7 +429,7 @@ export default function BookingDetailsModal({
 
   // Initialize Stripe with customer details
   const initializeStripe = async () => {
-    if (!isCardRequired || !holdData || !holdData.uid || !holdData.created) {
+    if (!isCardRequired || !effectiveHoldData || !effectiveHoldData.uid || !effectiveHoldData.created) {
       return;
     }
     
@@ -408,7 +441,7 @@ export default function BookingDetailsModal({
       return;
     }
     
-    const timerLabel = `[BookingDetailsModal] initializeStripe-${holdData.uid}`;
+    const timerLabel = `[BookingDetailsModal] initializeStripe-${effectiveHoldData.uid}`;
     console.time(timerLabel);
     
     try {
@@ -418,14 +451,14 @@ export default function BookingDetailsModal({
         firstName: customerData.firstName,
         lastName: customerData.lastName,
         email: customerData.email,
-        uid: holdData.uid
+        uid: effectiveHoldData.uid
       });
       
       // Fetch Stripe keys with customer details
       const keys = await fetchStripeKeys({
-        est: bookingData.est || holdData.est,
-        uid: holdData.uid,
-        created: holdData.created,
+        est: bookingData.est || effectiveHoldData.est,
+        uid: effectiveHoldData.uid,
+        created: effectiveHoldData.created,
         desc: `${customerData.firstName}_${customerData.lastName}_-_${customerData.email}`,
         firstName: customerData.firstName,
         lastName: customerData.lastName,
@@ -442,9 +475,9 @@ export default function BookingDetailsModal({
         // Fetch deposit information
         logWithTimestamp('Fetching deposit information');
         const depositData = await fetchDepositInfo({
-          est: bookingData.est || holdData.est,
-          uid: holdData.uid,
-          created: holdData.created
+          est: bookingData.est || effectiveHoldData.est,
+          uid: effectiveHoldData.uid,
+          created: effectiveHoldData.created
         });
         
         logWithTimestamp('Deposit info received', {
@@ -511,7 +544,7 @@ export default function BookingDetailsModal({
     logWithTimestamp(`Form submission started (${submissionId})`, {
       isCardRequired,
       currentStep: currentStep,
-      bookingUid: holdData?.uid
+      bookingUid: effectiveHoldData?.uid
     });
     
     // For non-card bookings, validate and submit directly
@@ -519,7 +552,7 @@ export default function BookingDetailsModal({
       if (validateForm()) {
         try {
           logWithTimestamp('Submitting non-card booking');
-          onSubmit(holdData.uid, customerData);
+          onSubmit(effectiveHoldData.uid, customerData);
           
           // Set local success state in case parent doesn't update
           setTimeout(() => {
@@ -543,7 +576,7 @@ export default function BookingDetailsModal({
       try {
         logWithTimestamp('Processing payment for card-required booking', {
           step: 'start',
-          uid: holdData.uid,
+          uid: effectiveHoldData.uid,
           cardComplete: cardState.complete,
           hasStripe: !!cardState.stripe,
           hasElements: !!cardState.elements
@@ -574,17 +607,17 @@ export default function BookingDetailsModal({
         }
         
         logWithTimestamp('Starting payment flow', {
-          uid: holdData.uid,
-          created: holdData.created,
+          uid: effectiveHoldData.uid,
+          created: effectiveHoldData.created,
           cardElementExists: !!cardElement,
           step: 'before-completePaymentFlow'
         });
         
         // Process payment flow
         const paymentResult = await completePaymentFlow({
-          est: bookingData.est || holdData.est,
-          uid: holdData.uid,
-          created: holdData.created,
+          est: bookingData.est || effectiveHoldData.est,
+          uid: effectiveHoldData.uid,
+          created: effectiveHoldData.created,
           firstName: customerData.firstName,
           lastName: customerData.lastName,
           email: customerData.email,
@@ -631,7 +664,7 @@ export default function BookingDetailsModal({
         
         // Payment successful, now update booking
         try {
-          onSubmit(holdData.uid, updatedCustomerData);
+          onSubmit(effectiveHoldData.uid, updatedCustomerData);
           
           logWithTimestamp('Booking update submitted', {
             step: 'after-onSubmit'
@@ -743,12 +776,12 @@ export default function BookingDetailsModal({
           <p className="text-sm text-blue-800">
             {isDepositRequired ? (
               <>
-                <span className="font-semibold">Deposit Required:</span> ${(holdData.perHead * bookingData.covers / 100).toFixed(2)}
+                <span className="font-semibold">Deposit Required:</span> ${(effectiveHoldData.perHead * bookingData.covers / 100).toFixed(2)}
                 <span className="block mt-1 text-xs">Your card will be charged immediately.</span>
               </>
             ) : (
               <>
-                <span className="font-semibold">No-Show Protection:</span> ${(holdData.perHead * bookingData.covers / 100).toFixed(2)}
+                <span className="font-semibold">No-Show Protection:</span> ${(effectiveHoldData.perHead * bookingData.covers / 100).toFixed(2)}
                 <span className="block mt-1 text-xs">Your card will only be charged in case of a no-show.</span>
               </>
             )}
@@ -842,9 +875,9 @@ export default function BookingDetailsModal({
           </div>
         )}
         {/* Display price if available in hold data */}
-        {holdData && holdData.perHead && (
+        {effectiveHoldData && effectiveHoldData.perHead && (
           <div className="mt-2 text-sm font-bold">
-            <span>{appConfig?.lng?.bookingTotalPrice || "Total Price"}:</span> ${(holdData.perHead * bookingData.covers / 100).toFixed(2)}
+            <span>{appConfig?.lng?.bookingTotalPrice || "Total Price"}:</span> ${(effectiveHoldData.perHead * bookingData.covers / 100).toFixed(2)}
           </div>
         )}
 
@@ -903,17 +936,43 @@ export default function BookingDetailsModal({
                 <span className="font-mono">bookingData.area:</span>
                 <span className="font-mono">{bookingData?.area || 'null'}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="font-mono">holdData.perHead:</span>
-                <span className="font-mono">{holdData?.perHead || 'null'}</span>
+              
+              {/* Original vs Effective Hold Data */}
+              <div className="mt-2 pt-2 border-t border-blue-200">
+                <div className="font-medium mb-1">Original Hold Data:</div>
+                <div className="flex justify-between">
+                  <span className="font-mono">holdData.perHead:</span>
+                  <span className="font-mono">{holdData?.perHead || 'null'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-mono">holdData.uid:</span>
+                  <span className="font-mono">{holdData?.uid || 'null'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-mono">holdData.card:</span>
+                  <span className="font-mono">{holdData?.card || 'null'}</span>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="font-mono">holdData.uid:</span>
-                <span className="font-mono">{holdData?.uid || 'null'}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-mono">holdData.card:</span>
-                <span className="font-mono">{holdData?.card || 'null'}</span>
+              
+              <div className="mt-2 pt-2 border-t border-blue-200">
+                <div className="font-medium mb-1">Effective Hold Data (after shift.charge=2 override):</div>
+                <div className="flex justify-between">
+                  <span className="font-mono">effectiveHoldData.perHead:</span>
+                  <span className="font-mono">{effectiveHoldData?.perHead || 'null'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-mono">effectiveHoldData.card:</span>
+                  <span className="font-mono">{effectiveHoldData?.card || 'null'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-mono">isOverridden:</span>
+                  <span className="font-mono">
+                    {holdData && effectiveHoldData && 
+                     (holdData.card !== effectiveHoldData.card || 
+                      holdData.perHead !== effectiveHoldData.perHead) 
+                      ? 'true' : 'false'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -933,6 +992,10 @@ export default function BookingDetailsModal({
               <div className="flex justify-between">
                 <span className="font-mono">holdData.card &gt; 0 (old logic):</span>
                 <span className="font-mono">{holdData && holdData.card > 0 ? 'true' : 'false'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-mono">effectiveHoldData.card &gt; 0:</span>
+                <span className="font-mono">{effectiveHoldData && effectiveHoldData.card > 0 ? 'true' : 'false'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="font-mono">selectedShiftTime?.charge:</span>
@@ -960,7 +1023,7 @@ export default function BookingDetailsModal({
               <div className="mt-2 pt-2 border-t border-green-200">
                 <span className="font-mono font-semibold">Charge reason:</span>
                 {(() => {
-                  const chargeReason = getChargeReason(holdData, selectedShiftTime, selectedAddons, currentShiftAddons);
+                  const chargeReason = getChargeReason(effectiveHoldData, selectedShiftTime, selectedAddons, currentShiftAddons);
                   return (
                     <div className="pl-2 mt-1 border-l-2 border-green-300">
                       <div className="flex justify-between">
