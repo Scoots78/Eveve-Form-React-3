@@ -776,12 +776,62 @@ export default function BookingDetailsModal({
           <p className="text-sm text-blue-800">
             {isDepositRequired ? (
               <>
-                <span className="font-semibold">Deposit Required:</span> ${(effectiveHoldData.perHead * bookingData.covers / 100).toFixed(2)}
+                {(() => {
+                  // When shift.charge === 2, perHead already contains the TOTAL
+                  const isShiftDeposit = selectedShiftTime?.charge === 2;
+                  const amountCents = isShiftDeposit
+                    ? effectiveHoldData.perHead
+                    : effectiveHoldData.perHead * bookingData.covers;
+
+                  // Debug
+                  if (debugMode) {
+                    /* eslint-disable no-console */
+                    console.log(
+                      `[BookingDetailsModal] renderCardSection – ` +
+                        (isShiftDeposit
+                          ? 'Using perHead as TOTAL (shift.charge=2)'
+                          : 'Using perHead × covers'),
+                      { amountCents }
+                    );
+                    /* eslint-enable no-console */
+                  }
+
+                  return (
+                    <>
+                      <span className="font-semibold">Deposit Required:</span>{' '}
+                      ${(amountCents / 100).toFixed(2)}
+                    </>
+                  );
+                })()}
                 <span className="block mt-1 text-xs">Your card will be charged immediately.</span>
               </>
             ) : (
               <>
-                <span className="font-semibold">No-Show Protection:</span> ${(effectiveHoldData.perHead * bookingData.covers / 100).toFixed(2)}
+                {(() => {
+                  const isShiftDeposit = selectedShiftTime?.charge === 2;
+                  const amountCents = isShiftDeposit
+                    ? effectiveHoldData.perHead
+                    : effectiveHoldData.perHead * bookingData.covers;
+
+                  if (debugMode) {
+                    /* eslint-disable no-console */
+                    console.log(
+                      `[BookingDetailsModal] renderCardSection – ` +
+                        (isShiftDeposit
+                          ? 'Using perHead as TOTAL (shift.charge=2)'
+                          : 'Using perHead × covers'),
+                      { amountCents }
+                    );
+                    /* eslint-enable no-console */
+                  }
+
+                  return (
+                    <>
+                      <span className="font-semibold">No-Show Protection:</span>{' '}
+                      ${(amountCents / 100).toFixed(2)}
+                    </>
+                  );
+                })()}
                 <span className="block mt-1 text-xs">Your card will only be charged in case of a no-show.</span>
               </>
             )}
@@ -877,7 +927,31 @@ export default function BookingDetailsModal({
         {/* Display price if available in hold data */}
         {effectiveHoldData && effectiveHoldData.perHead && (
           <div className="mt-2 text-sm font-bold">
-            <span>{appConfig?.lng?.bookingTotalPrice || "Total Price"}:</span> ${(effectiveHoldData.perHead * bookingData.covers / 100).toFixed(2)}
+            {(() => {
+              const isShiftDeposit = selectedShiftTime?.charge === 2;
+              const amountCents = isShiftDeposit
+                ? effectiveHoldData.perHead
+                : effectiveHoldData.perHead * bookingData.covers;
+
+              if (debugMode) {
+                /* eslint-disable no-console */
+                console.log(
+                  `[BookingDetailsModal] renderBookingSummary – ` +
+                    (isShiftDeposit
+                      ? 'Using perHead as TOTAL (shift.charge=2)'
+                      : 'Using perHead × covers'),
+                  { amountCents }
+                );
+                /* eslint-enable no-console */
+              }
+
+              return (
+                <>
+                  <span>{appConfig?.lng?.bookingTotalPrice || 'Total Price'}:</span>{' '}
+                  ${(amountCents / 100).toFixed(2)}
+                </>
+              );
+            })()}
           </div>
         )}
 
