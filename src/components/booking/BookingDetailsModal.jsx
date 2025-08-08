@@ -6,6 +6,7 @@ import StripeCardElement from "./StripeCardElement";
 import StripeProvider from "./StripeProvider";
 import { useStripePayment } from "../../hooks/booking/useStripePayment";
 import { formatAddonsForDisplay } from "../../utils/apiFormatter";
+import { isPaymentRequired, debugChargeFactors, getChargeReason } from "../../utils/chargeDetection";
 
 /**
  * BookingDetailsModal - A modal dialog for collecting customer details and confirming the reservation
@@ -20,6 +21,9 @@ import { formatAddonsForDisplay } from "../../utils/apiFormatter";
  * @param {string} props.error - Error message if submission failed
  * @param {boolean} props.success - Whether submission was successful
  * @param {boolean} [props.debugMode=false] - Enable developer debug panel
+ * @param {Object} [props.selectedShiftTime] - The currently selected shift/time with charge information
+ * @param {Object} [props.selectedAddons] - The addons selected by the user
+ * @param {Array} [props.currentShiftAddons] - Available addons for the current shift
  */
 export default function BookingDetailsModal({
   isOpen,
@@ -31,7 +35,10 @@ export default function BookingDetailsModal({
   isLoading = false,
   error = null,
   success = false,
-  debugMode = false
+  debugMode = false,
+  selectedShiftTime,
+  selectedAddons,
+  currentShiftAddons
 }) {
   // Form step state
   const STEPS = {
@@ -92,8 +99,10 @@ export default function BookingDetailsModal({
     reset: resetStripePayment
   } = useStripePayment();
 
-  // Check if card is required
-  const isCardRequired = holdData && holdData.card > 0;
+  // Check if card is required using the charge detection utility
+  const isCardRequired = isPaymentRequired(holdData, selectedShiftTime, selectedAddons, currentShiftAddons);
+  
+  // We still need to check holdData.card for specific distinction between deposit and no-show
   const isDepositRequired = holdData && holdData.card === 2;
   const isNoShowProtection = holdData && holdData.card === 1;
 
@@ -101,6 +110,13 @@ export default function BookingDetailsModal({
   const logWithTimestamp = (message, data) => {
     console.log(`${new Date().toISOString()} [BookingDetailsModal] ${message}`, data || '');
   };
+
+  // Log charge detection factors when in debug mode
+  useEffect(() => {
+    if (debugMode && holdData) {
+      logWithTimestamp('Charge detection factors:', debugChargeFactors(holdData, selectedShiftTime, selectedAddons, currentShiftAddons));
+    }
+  }, [debugMode, holdData, selectedShiftTime, selectedAddons, currentShiftAddons]);
 
   // Format time remaining as MM:SS
   const formatTimeRemaining = () => {
@@ -898,6 +914,87 @@ export default function BookingDetailsModal({
               <div className="flex justify-between">
                 <span className="font-mono">holdData.card:</span>
                 <span className="font-mono">{holdData?.card || 'null'}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* New Debug Panel for Charge Detection Information */}
+        {debugMode && (
+          <div className="mt-4 p-3 border-2 border-green-400 rounded-lg bg-green-50">
+            <h6 className="text-sm font-bold text-green-800 mb-2">
+              🐛 Charge Detection Debug (Dev Mode)
+            </h6>
+            <div className="text-xs text-green-700 space-y-1">
+              <div className="flex justify-between">
+                <span className="font-mono">isCardRequired (new logic):</span>
+                <span className="font-mono">{isCardRequired ? 'true' : 'false'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-mono">holdData.card > 0 (old logic):</span>
+                <span className="font-mono">{holdData && holdData.card > 0 ? 'true' : 'false'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-mono">selectedShiftTime?.charge:</span>
+                <span className="font-mono">{selectedShiftTime?.charge || 'null'}</span>
+              </div>
+              
+              {/* Addons with charge === 2 */}
+              <div className="mt-1">
+                <span className="font-mono font-semibold">Addons requiring charge (charge === 2):</span>
+                {currentShiftAddons && currentShiftAddons.filter(addon => addon.charge === 2).length > 0 ? (
+                  <div className="pl-2 mt-1 border-l-2 border-green-300">
+                    {currentShiftAddons.filter(addon => addon.charge === 2).map((addon, index) => (
+                      <div key={index} className="flex justify-between">
+                        <span className="font-mono">{addon.name} (UID: {addon.uid}):</span>
+                        <span className="font-mono">charge: {addon.charge}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="pl-2 mt-1 italic">None found</div>
+                )}
+              </div>
+              
+              {/* Charge reason from getChargeReason */}
+              <div className="mt-2 pt-2 border-t border-green-200">
+                <span className="font-mono font-semibold">Charge reason:</span>
+                {(() => {
+                  const chargeReason = getChargeReason(holdData, selectedShiftTime, selectedAddons, currentShiftAddons);
+                  return (
+                    <div className="pl-2 mt-1 border-l-2 border-green-300">
+                      <div className="flex justify-between">
+                        <span className="font-mono">isRequired:</span>
+                        <span className="font-mono">{chargeReason.isRequired ? 'true' : 'false'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-mono">reason:</span>
+                        <span className="font-mono">{chargeReason.reason}</span>
+                      </div>
+                      <div className="mt-1">
+                        <span className="font-mono font-semibold">Details:</span>
+                        <div className="pl-2">
+                          <div className="flex justify-between">
+                            <span className="font-mono">holdData.card:</span>
+                            <span className="font-mono">{chargeReason.details.holdDataCard}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-mono">holdData.perHead:</span>
+                            <span className="font-mono">{chargeReason.details.holdDataPerHead}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-mono">shift.charge:</span>
+                            <span className="font-mono">{chargeReason.details.shiftCharge}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="font-mono">hasChargeableAddons:</span>
+                            <span className="font-mono">{chargeReason.details.hasChargeableAddons ? 'true' : 'false'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           </div>

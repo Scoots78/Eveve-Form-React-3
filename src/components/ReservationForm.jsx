@@ -1438,6 +1438,10 @@ export default function ReservationForm() {
         error={bookingState.updateError || bookingState.bookingError}
         success={bookingState.bookingSuccess}
         debugMode={debugMode}
+        /* --- extra context for charge-detection in modal --- */
+        selectedShiftTime={selectedShiftTime}
+        selectedAddons={selectedAddons}
+        currentShiftAddons={currentShiftAddons}
       />
     </div>
   );
