@@ -125,23 +125,46 @@ export function getChargeReason(holdData, selectedShiftTime, selectedAddons = {}
 
 /**
  * Calculate total addon cost (in cents)
+ * 
+ * @param {Object} selectedAddons - The addons selected by the user
+ * @param {Array} currentShiftAddons - Available addons for the current shift
+ * @param {number} guestCount - Number of guests
+ * @param {Object} selectedShiftTime - The currently selected shift/time
+ * @returns {number} - Total cost in cents
  */
 function calculateTotalAddonCost(
   selectedAddons = {},
   currentShiftAddons = [],
-  guestCount = 0
+  guestCount = 0,
+  selectedShiftTime = {}
 ) {
   let total = 0;
+  const isUsage2 = selectedShiftTime?.usage === 2;
+  
+  console.log(`[chargeDetection] Calculating addon cost with shift.usage=${selectedShiftTime?.usage}, guestCount=${guestCount}`);
 
   // --- Menus ---
   (selectedAddons.menus || []).forEach((menu) => {
     const qty = menu.quantity || 1;
     if (typeof menu.price === "number") {
+      let menuCost = 0;
+      
       if (menu.per === "Guest") {
-        total += menu.price * guestCount * qty;
+        // For usage=2 (quantity-based menus), don't multiply by guestCount
+        // because the user has already selected the appropriate quantity
+        if (isUsage2) {
+          menuCost = menu.price * qty;
+          console.log(`[chargeDetection] Menu ${menu.name} (${menu.uid}): ${menu.price} × ${qty} = ${menuCost} (usage=2, not multiplying by guest count)`);
+        } else {
+          menuCost = menu.price * guestCount * qty;
+          console.log(`[chargeDetection] Menu ${menu.name} (${menu.uid}): ${menu.price} × ${guestCount} × ${qty} = ${menuCost}`);
+        }
       } else {
-        total += menu.price * qty;
+        menuCost = menu.price * qty;
+        console.log(`[chargeDetection] Menu ${menu.name} (${menu.uid}): ${menu.price} × ${qty} = ${menuCost}`);
       }
+      
+      total += menuCost;
     }
   });
 
@@ -151,15 +174,29 @@ function calculateTotalAddonCost(
       if (qty > 0) {
         const addon = currentShiftAddons.find((a) => String(a.uid) === uid);
         if (addon && typeof addon.price === "number") {
+          let optionCost = 0;
+          
           if (addon.per === "Guest") {
-            total += addon.price * guestCount * qty;
+            // For options, check if parent shift has usage=2
+            if (isUsage2) {
+              optionCost = addon.price * qty;
+              console.log(`[chargeDetection] Option ${addon.name} (${addon.uid}): ${addon.price} × ${qty} = ${optionCost} (parent shift usage=2, not multiplying by guest count)`);
+            } else {
+              optionCost = addon.price * guestCount * qty;
+              console.log(`[chargeDetection] Option ${addon.name} (${addon.uid}): ${addon.price} × ${guestCount} × ${qty} = ${optionCost}`);
+            }
           } else {
-            total += addon.price * qty;
+            optionCost = addon.price * qty;
+            console.log(`[chargeDetection] Option ${addon.name} (${addon.uid}): ${addon.price} × ${qty} = ${optionCost}`);
           }
+          
+          total += optionCost;
         }
       }
     });
   }
+  
+  console.log(`[chargeDetection] Total addon cost: ${total} cents`);
   return total;
 }
 
@@ -186,9 +223,12 @@ export function getEffectiveHoldData(
     const totalAddonCost = calculateTotalAddonCost(
       selectedAddons,
       currentShiftAddons,
-      guestCount
+      guestCount,
+      selectedShiftTime
     );
 
+    console.log(`[chargeDetection] Overriding holdData: shift.charge=2, setting card=2, perHead=${totalAddonCost}`);
+    
     return {
       ...holdData,
       card: 2,
@@ -216,7 +256,8 @@ export function debugChargeFactors(holdData, selectedShiftTime, selectedAddons =
   
   console.log('Selected Shift:', {
     name: selectedShiftTime?.name || 'None',
-    charge: selectedShiftTime?.charge || 0
+    charge: selectedShiftTime?.charge || 0,
+    usage: selectedShiftTime?.usage || 'null'
   });
   
   console.log('Selected Addons:', {
