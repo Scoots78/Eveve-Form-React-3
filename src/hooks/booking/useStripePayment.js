@@ -169,6 +169,8 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
       // Determine the intent type from the client secret
       const intentType = stripeApi.getIntentType(stripeKeys.clientSecret);
       
+      console.log(`🔄 Processing payment with intent type: ${intentType}`);
+      
       let result;
       
       // Process payment based on intent type
@@ -344,10 +346,11 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
       }
       
       // Log intent type vs deposit info mismatch warning if needed
-      if ((depositInfo.isDeposit && intentType === 'payment_intent') || 
-          (depositInfo.isNoShow && intentType === 'setup_intent')) {
-        // Good match, no need to log
-      } else {
+      const mismatch =
+        (depositInfo.isDeposit && intentType !== 'payment_intent') ||
+        (depositInfo.isNoShow && intentType !== 'setup_intent');
+      
+      if (mismatch) {
         console.warn('⚠️ Intent type does not match deposit info - may cause issues');
       }
       
@@ -365,14 +368,32 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
       // Example output:
       //   🔍 INTENT DEBUG → intentType=payment_intent  isDeposit=true  isNoShow=false  amount=500  mismatch=false
       // ────────────────────────────────────────────────────────────
-      const mismatch =
-        (depositInfo.isDeposit && intentType !== 'payment_intent') ||
-        (depositInfo.isNoShow && intentType !== 'setup_intent');
       console.log(
         `🔍 INTENT DEBUG → intentType=${intentType}  ` +
         `isDeposit=${depositInfo.isDeposit}  isNoShow=${depositInfo.isNoShow}  ` +
         `amount=${depositInfo.amount}  mismatch=${mismatch}`
       );
+      
+      // If we have a mismatch between intent type and deposit requirement, throw an error
+      if (depositInfo.isDeposit && intentType !== 'payment_intent') {
+        const errorMessage = `
+          ⚠️ CONFIGURATION ERROR: Eveve is configured for no-show protection (setup_intent),
+          but this booking requires an immediate charge (payment_intent).
+          
+          The restaurant's Eveve configuration needs to be updated to support deposits
+          for addon bookings. Please contact Eveve support to update the restaurant's
+          deposit settings.
+          
+          Technical details:
+          - Intent type from Eveve: ${intentType}
+          - Deposit required: ${depositInfo.isDeposit}
+          - Amount: $${(depositInfo.amount / 100).toFixed(2)}
+          - Source: ${depositSource}
+        `;
+        
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+      }
       
       // Step 3: Process payment
       const paymentResult = await processPayment({
