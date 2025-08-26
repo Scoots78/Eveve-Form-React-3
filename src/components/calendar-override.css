@@ -142,7 +142,7 @@
   border: 1px dashed hsl(var(--b2));
 }
 
-/* Ensure “today” tile still looks disabled when it is not selectable */
+/* Ensure "today" tile still looks disabled when it is not selectable */
 .react-calendar-custom .react-calendar__tile--now:disabled,
 .react-calendar-custom .react-calendar__tile--now.react-calendar__tile--disabled {
   background-color: hsl(var(--b2) / 0.8);
@@ -174,11 +174,15 @@
 /* Circle on hover / focus */
 .react-calendar-custom .react-calendar__tile:enabled:hover abbr,
 .react-calendar-custom .react-calendar__tile:enabled:focus abbr {
-  background-color: hsl(var(--b2));
+  background-color: hsl(var(--p) / 0.18);
+  color: hsl(var(--bc));
+  border: 1px solid hsl(var(--p) / 0.4);
+  transition: background-color 120ms ease, box-shadow 120ms ease;
+  box-shadow: 0 0 0 2px hsl(var(--p) / 0.08);
+  min-width: 2.25rem;
+  height: 2.25rem;
   border-radius: 9999px;
   display: inline-flex;
-  min-width: 2rem;
-  height: 2rem;
   align-items: center;
   justify-content: center;
 }
@@ -189,9 +193,11 @@
   color: hsl(var(--bc));
 }
 
+/* Keep selected day dominant and slightly stronger on hover */
 .react-calendar-custom .react-calendar__tile--active abbr {
   background: hsl(var(--p));
   color: hsl(var(--pc, var(--b1)));
+  border: 1px solid hsl(var(--p) / 0.6);
   border-radius: 9999px;
   display: inline-flex;
   min-width: 2rem;
@@ -202,5 +208,6 @@
 
 .react-calendar-custom .react-calendar__tile--active:enabled:hover abbr,
 .react-calendar-custom .react-calendar__tile--active:enabled:focus abbr {
-  background: hsl(var(--p) / 0.9);
+  background: hsl(var(--p) / 0.92);
+  box-shadow: 0 0 0 2px hsl(var(--p) / 0.12);
 }
