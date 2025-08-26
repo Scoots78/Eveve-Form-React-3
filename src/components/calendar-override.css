@@ -1,11 +1,137 @@
 /* 
  * Override specific react-calendar default styles
- * This file targets only the width and border properties
- * while leaving all other default styles intact
+ * Comprehensive styling with DaisyUI token integration
  */
 
+/* Base calendar override - removes default constraints */
 .react-calendar {
   width: 100%; /* Override fixed width of 350px */
-  max-width: 400px; /* Constrain calendar to a reasonable width */
-  border: none; /* Remove the 1px border */
+  border: none; /* Remove the default border */
+  font-family: inherit;
+  line-height: 1.125em;
+}
+
+/* Main calendar container with theme tokens */
+.react-calendar-custom {
+  width: 100%;
+  background: hsl(var(--b1));
+  color: hsl(var(--bc));
+  border: 1px solid hsl(var(--b2));
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  box-shadow: 0 1px 3px 0 hsl(var(--bc) / 0.1);
+}
+
+/* Remove underlines from abbreviations */
+.react-calendar-custom abbr {
+  text-decoration: none;
+  cursor: default;
+}
+
+/* Navigation section */
+.react-calendar-custom .react-calendar__navigation {
+  display: flex;
+  margin-bottom: 0.5rem;
+}
+
+.react-calendar-custom .react-calendar__navigation button {
+  min-width: 2.5rem;
+  background: transparent;
+  color: hsl(var(--bc));
+  border-radius: 0.25rem;
+  padding: 0.5rem;
+}
+
+.react-calendar-custom .react-calendar__navigation button:disabled {
+  color: hsl(var(--bc) / 0.5);
+  cursor: not-allowed;
+}
+
+.react-calendar-custom .react-calendar__navigation button:enabled:hover,
+.react-calendar-custom .react-calendar__navigation button:enabled:focus {
+  background-color: hsl(var(--b2));
+}
+
+/* Month view container */
+.react-calendar-custom .react-calendar__viewContainer {
+  padding: 0.25rem 0;
+}
+
+/* Weekday headers */
+.react-calendar-custom .react-calendar__month-view__weekdays {
+  text-align: center;
+  text-transform: uppercase;
+  font-size: 0.75em;
+  font-weight: 600;
+  color: hsl(var(--bc) / 0.7);
+  margin-bottom: 0.5rem;
+}
+
+.react-calendar-custom .react-calendar__month-view__weekdays__weekday {
+  padding: 0.25rem;
+}
+
+/* Day tiles */
+.react-calendar-custom .react-calendar__tile {
+  padding: 0.5rem;
+  background: none;
+  text-align: center;
+  border-radius: 0.25rem;
+  color: hsl(var(--bc));
+  font-weight: 500;
+}
+
+.react-calendar-custom .react-calendar__tile:enabled:hover,
+.react-calendar-custom .react-calendar__tile:enabled:focus {
+  background-color: hsl(var(--b2));
+  outline: none;
+}
+
+/* Today's date */
+.react-calendar-custom .react-calendar__tile--now {
+  background: hsl(var(--b2));
+  font-weight: 600;
+}
+
+.react-calendar-custom .react-calendar__tile--now:enabled:hover,
+.react-calendar-custom .react-calendar__tile--now:enabled:focus {
+  background: hsl(var(--b2) / 0.8);
+}
+
+/* Selected date */
+.react-calendar-custom .react-calendar__tile--active {
+  background: hsl(var(--p));
+  color: hsl(var(--pc, var(--b1)));
+}
+
+.react-calendar-custom .react-calendar__tile--active:enabled:hover,
+.react-calendar-custom .react-calendar__tile--active:enabled:focus {
+  background: hsl(var(--p) / 0.9);
+}
+
+/* Range selection (between dates in a range) */
+.react-calendar-custom .react-calendar__tile--rangeStart,
+.react-calendar-custom .react-calendar__tile--rangeEnd {
+  background: hsl(var(--p));
+  color: hsl(var(--pc, var(--b1)));
+}
+
+.react-calendar-custom .react-calendar__tile--inRange {
+  background: hsl(var(--p) / 0.2);
+}
+
+.react-calendar-custom .react-calendar__tile--inRange:hover {
+  background: hsl(var(--p) / 0.3);
+}
+
+/* Disabled tiles */
+.react-calendar-custom .react-calendar__tile:disabled {
+  background-color: hsl(var(--b2) / 0.5);
+  color: hsl(var(--bc) / 0.5);
+  cursor: not-allowed;
+}
+
+/* Neighboring month days */
+.react-calendar-custom .react-calendar__month-view__days__day--neighboringMonth {
+  color: hsl(var(--bc) / 0.5);
 }
