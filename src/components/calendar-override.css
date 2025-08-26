@@ -211,3 +211,13 @@
   background: hsl(var(--p) / 0.92);
   box-shadow: 0 0 0 2px hsl(var(--p) / 0.12);
 }
+
+/* ------------------------------------------------------------- */
+/* Ensure hover tint is never overridden (comes last + !important)*/
+/* ------------------------------------------------------------- */
+.react-calendar-custom .react-calendar__tile:enabled:hover,
+.react-calendar-custom .react-calendar__tile:enabled:focus,
+.react-calendar-custom .react-calendar__tile--active:enabled:hover,
+.react-calendar-custom .react-calendar__tile--active:enabled:focus {
+  background-color: hsl(var(--b2) / 0.5) !important;
+}
