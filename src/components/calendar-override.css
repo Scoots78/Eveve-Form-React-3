@@ -279,9 +279,16 @@
 .react-calendar-custom .react-calendar__tile:enabled:hover abbr,
 .react-calendar-custom .react-calendar__tile:enabled:focus abbr {
   /* fallback then theme – if second invalid, first stays */
-  background-color: rgba(59, 130, 246, 0.18);
-  background-color: hsl(var(--p, 220 90% 56%) / 0.18);
-  border: 1px solid rgba(59, 130, 246, 0.4);
-  border: 1px solid hsl(var(--p, 220 90% 56%) / 0.4);
+  background-color: rgba(59, 130, 246, 0.20) !important;
+  background-color: hsl(var(--p, 220 90% 56%) / 0.20) !important;
+  color: hsl(var(--bc));
+  border: 1px solid rgba(59, 130, 246, 0.45) !important;
+  border: 1px solid hsl(var(--p, 220 90% 56%) / 0.45) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.10) !important;
+  min-width: 2.25rem;
+  height: 2.25rem;
   border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
