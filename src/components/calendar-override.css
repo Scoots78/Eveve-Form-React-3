@@ -168,7 +168,7 @@
 /* Remove existing hover bg so circle stands out */
 .react-calendar-custom .react-calendar__tile:enabled:hover,
 .react-calendar-custom .react-calendar__tile:enabled:focus {
-  background-color: transparent;
+  background-color: hsl(var(--b2) / 0.5); /* subtle tint on hover */
 }
 
 /* Circle on hover / focus */
