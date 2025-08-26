@@ -220,6 +220,6 @@
 .react-calendar-custom .react-calendar__tile--active:enabled:hover,
 .react-calendar-custom .react-calendar__tile--active:enabled:focus {
   background-color: hsl(var(--b2, 0 0% 98%) / 0.5) !important;
-  /* inset overlay ensures tint is visible even when background-color fails */
-  box-shadow: inset 0 0 0 9999px hsl(var(--b2, 0 0% 98%) / 0.5) !important;
+  /* inset overlay switched to primary tint for clearer feedback */
+  box-shadow: inset 0 0 0 9999px hsl(var(--p) / 0.15) !important;
 }
