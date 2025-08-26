@@ -38,7 +38,7 @@ const AddonSelection = ({
   if ((!shouldRenderMenus || finalMenuAddons.length === 0) && finalOptionAddons.length === 0) {
     if (numericGuestCount > 0 && currentShiftAddons.length > 0) { // Only show this if addons existed before filtering
        return (
-        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-md">
+        <div className="mt-4 p-3 bg-warning/10 border border-warning text-warning rounded-md">
           <p>{languageStrings?.noAddonsAvailableGuests || 'No addons currently available for the selected number of guests.'}</p>
         </div>
       );
@@ -74,7 +74,7 @@ const AddonSelection = ({
       const addon = filteredAddons[0];
       const isChecked = selectedAddons.usage1 && selectedAddons.usage1.uid === addon.uid;
       return (
-        <div className="addon-item usage1-single p-2 border rounded-md hover:bg-gray-50 transition-colors">
+        <div className="addon-item usage1-single p-2 border rounded-md hover:bg-base-300 transition-colors">
           <label htmlFor={`addon-${addon.uid}`} className="flex items-center space-x-3 cursor-pointer">
             <input
               type="checkbox"
@@ -82,7 +82,7 @@ const AddonSelection = ({
               value={addon.uid}
               checked={isChecked}
               onChange={(e) => onAddonChange('usage1', addon, e.target.checked)}
-              className="form-checkbox h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+              className="form-checkbox h-5 w-5 text-primary rounded border-base-300 focus:ring-primary"
               data-addon-uid={addon.uid}
               data-addon-name={addon.name}
               data-addon-price={addon.price}
@@ -91,9 +91,9 @@ const AddonSelection = ({
               data-addon-type={addon.type}
             />
             <div className="flex-grow">
-              <span className="addon-name font-medium text-gray-800">{addon.name}</span>
-              {addon.price >= 0 && <span className="addon-price text-sm text-gray-600 ml-2">({getAddonPriceString(addon)})</span>}
-              {addon.desc && <p className="text-xs text-gray-500 mt-1">{addon.desc}</p>}
+              <span className="addon-name font-medium text-base-content">{addon.name}</span>
+              {addon.price >= 0 && <span className="addon-price text-sm text-base-content/70 ml-2">({getAddonPriceString(addon)})</span>}
+              {addon.desc && <p className="text-xs text-base-content/60 mt-1">{addon.desc}</p>}
             </div>
           </label>
         </div>
@@ -105,7 +105,7 @@ const AddonSelection = ({
           {filteredAddons.map(addon => {
             const isChecked = selectedAddons.usage1 && selectedAddons.usage1.uid === addon.uid;
             return (
-              <div key={addon.uid} className="addon-item usage1-radio p-2 border rounded-md hover:bg-gray-50 transition-colors">
+              <div key={addon.uid} className="addon-item usage1-radio p-2 border rounded-md hover:bg-base-300 transition-colors">
                 <label htmlFor={`addon-${addon.uid}`} className="flex items-center space-x-3 cursor-pointer">
                   <input
                     type="radio"
@@ -114,7 +114,7 @@ const AddonSelection = ({
                     value={addon.uid}
                     checked={isChecked}
                     onChange={(e) => onAddonChange('usage1', addon, e.target.checked)}
-                    className="form-radio h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    className="form-radio h-5 w-5 text-primary border-base-300 focus:ring-primary"
                     data-addon-uid={addon.uid}
                     data-addon-name={addon.name}
                     data-addon-price={addon.price}
@@ -123,9 +123,9 @@ const AddonSelection = ({
                     data-addon-type={addon.type}
                   />
                   <div className="flex-grow">
-                    <span className="addon-name font-medium text-gray-800">{addon.name}</span>
-                    {addon.price >= 0 && <span className="addon-price text-sm text-gray-600 ml-2">({getAddonPriceString(addon)})</span>}
-                    {addon.desc && <p className="text-xs text-gray-500 mt-1">{addon.desc}</p>}
+                    <span className="addon-name font-medium text-base-content">{addon.name}</span>
+                    {addon.price >= 0 && <span className="addon-price text-sm text-base-content/70 ml-2">({getAddonPriceString(addon)})</span>}
+                    {addon.desc && <p className="text-xs text-base-content/60 mt-1">{addon.desc}</p>}
                   </div>
                 </label>
               </div>
@@ -148,24 +148,24 @@ const AddonSelection = ({
           const canIncrement = numericGuestCount === 0 || totalUsage2Quantity < maxTotalQuantity; // Allow increment if guest count is 0 (treat as fixed item) or total is less than guests
 
           return (
-            <div key={addon.uid} className="addon-item usage2-item p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-gray-50 transition-colors">
+            <div key={addon.uid} className="addon-item usage2-item p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-base-300 transition-colors">
               <div className="addon-info mb-2 sm:mb-0 sm:mr-4 flex-grow">
-                <span className="addon-name font-medium text-gray-800">{addon.name}</span>
-                {addon.price >= 0 && <span className="addon-price text-sm text-gray-600 ml-2">({getAddonPriceString(addon)})</span>}
-                {addon.desc && <p className="text-xs text-gray-500 mt-1">{addon.desc}</p>}
+                <span className="addon-name font-medium text-base-content">{addon.name}</span>
+                {addon.price >= 0 && <span className="addon-price text-sm text-base-content/70 ml-2">({getAddonPriceString(addon)})</span>}
+                {addon.desc && <p className="text-xs text-base-content/60 mt-1">{addon.desc}</p>}
               </div>
               <div className="addon-quantity-selector flex items-center space-x-2">
                 <button
                   type="button"
                   onClick={() => onAddonChange('usage2', addon, currentQuantity - 1)}
                   disabled={currentQuantity === 0}
-                  className="qty-btn minus-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="qty-btn minus-btn px-3 py-1 bg-base-200 text-base-content rounded-md hover:bg-base-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   -
                 </button>
                 <input
                   type="text"
-                  className="qty-input w-12 text-center border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                  className="qty-input w-12 text-center border-base-300 rounded-md shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
                   value={currentQuantity}
                   readOnly
                   data-addon-uid={addon.uid}
@@ -174,7 +174,7 @@ const AddonSelection = ({
                   type="button"
                   onClick={() => onAddonChange('usage2', addon, currentQuantity + 1)}
                   disabled={!canIncrement && numericGuestCount > 0} // Only disable based on guest count if guest count is a factor
-                  className="qty-btn plus-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="qty-btn plus-btn px-3 py-1 bg-base-200 text-base-content rounded-md hover:bg-base-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   +
                 </button>
@@ -183,7 +183,7 @@ const AddonSelection = ({
           );
         })}
         {numericGuestCount > 0 && (filteredAddons.some(a => a.per === 'Guest') || currentShiftUsagePolicy === 2) && (
-             <p className="text-xs text-gray-500 mt-2">
+             <p className="text-xs text-base-content/60 mt-2">
                 {languageStrings?.addonPolicy2Note || `Total quantity for these items cannot exceed ${languageStrings?.guest?.toLowerCase() || 'guest'} count (${maxTotalQuantity}).`}
              </p>
         )}
@@ -197,7 +197,7 @@ const AddonSelection = ({
         {filteredAddons.map(addon => {
           const isChecked = selectedAddons.usage3.some(item => item.uid === addon.uid);
           return (
-            <div key={addon.uid} className="addon-item usage3-item p-2 border rounded-md hover:bg-gray-50 transition-colors">
+            <div key={addon.uid} className="addon-item usage3-item p-2 border rounded-md hover:bg-base-300 transition-colors">
               <label htmlFor={`addon-${addon.uid}`} className="flex items-center space-x-3 cursor-pointer">
                 <input
                   type="checkbox"
@@ -205,7 +205,7 @@ const AddonSelection = ({
                   value={addon.uid}
                   checked={isChecked}
                   onChange={(e) => onAddonChange('usage3', addon, e.target.checked)}
-                  className="form-checkbox h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  className="form-checkbox h-5 w-5 text-primary rounded border-base-300 focus:ring-primary"
                   data-addon-uid={addon.uid}
                   data-addon-name={addon.name}
                   data-addon-price={addon.price}
@@ -214,9 +214,9 @@ const AddonSelection = ({
                   data-addon-type={addon.type}
                 />
                 <div className="flex-grow">
-                  <span className="addon-name font-medium text-gray-800">{addon.name}</span>
-                  {addon.price >= 0 && <span className="addon-price text-sm text-gray-600 ml-2">({getAddonPriceString(addon)})</span>}
-                  {addon.desc && <p className="text-xs text-gray-500 mt-1">{addon.desc}</p>}
+                  <span className="addon-name font-medium text-base-content">{addon.name}</span>
+                  {addon.price >= 0 && <span className="addon-price text-sm text-base-content/70 ml-2">({getAddonPriceString(addon)})</span>}
+                  {addon.desc && <p className="text-xs text-base-content/60 mt-1">{addon.desc}</p>}
                 </div>
               </label>
             </div>
@@ -233,10 +233,10 @@ const AddonSelection = ({
         // This case means menus would normally be shown, but none are available after guest filtering for this specific guest count
         return (
           <div className="mb-4">
-            <h5 className="text-md font-semibold text-gray-600 mb-1">
+            <h5 className="text-md font-semibold text-base-content mb-1">
               {languageStrings?.menusTitle || 'Menus'}
             </h5>
-            <p className="text-sm text-gray-500 italic">
+            <p className="text-sm text-base-content/60 italic">
               {languageStrings?.noMenusAvailableGuests || 'No menus available for the current guest count.'}
             </p>
           </div>
@@ -257,10 +257,10 @@ const AddonSelection = ({
       case 0: // No menu required - hide all Menu addons
         return (
             <div className="mb-4">
-                <h5 className="text-md font-semibold text-gray-600 mb-1">
+                <h5 className="text-md font-semibold text-base-content mb-1">
                     {languageStrings?.menusTitle || 'Menus'}
                 </h5>
-                <p className="text-sm text-gray-500 italic">{languageStrings?.noMenuRequired || 'No menu selection is required for this time.'}</p>
+                <p className="text-sm text-base-content/60 italic">{languageStrings?.noMenuRequired || 'No menu selection is required for this time.'}</p>
             </div>
         );
 
@@ -270,7 +270,7 @@ const AddonSelection = ({
             {finalMenuAddons.map(addon => {
               const isChecked = selectedAddons.menus.length > 0 && selectedAddons.menus[0].uid === addon.uid;
               return (
-                <div key={addon.uid} className="addon-item usage1-radio p-2 border rounded-md hover:bg-gray-50 transition-colors">
+                <div key={addon.uid} className="addon-item usage1-radio p-2 border rounded-md hover:bg-base-300 transition-colors">
                   <label htmlFor={`menu-${addon.uid}`} className="flex items-center space-x-3 cursor-pointer">
                     <input
                       type="radio"
@@ -279,12 +279,12 @@ const AddonSelection = ({
                       value={addon.uid}
                       checked={isChecked}
                       onChange={(e) => commonMenuChangeHandler(addon, e.target.checked, 'radio')}
-                      className="form-radio h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      className="form-radio h-5 w-5 text-primary border-base-300 focus:ring-primary"
                     />
                     <div className="flex-grow">
-                      <span className="addon-name font-medium text-gray-800">{addon.name}</span>
-                      {addon.price >= 0 && <span className="addon-price text-sm text-gray-600 ml-2">({getAddonPriceString(addon)})</span>}
-                      {addon.desc && <p className="text-xs text-gray-500 mt-1">{addon.desc}</p>}
+                      <span className="addon-name font-medium text-base-content">{addon.name}</span>
+                      {addon.price >= 0 && <span className="addon-price text-sm text-base-content/70 ml-2">({getAddonPriceString(addon)})</span>}
+                      {addon.desc && <p className="text-xs text-base-content/60 mt-1">{addon.desc}</p>}
                     </div>
                   </label>
                 </div>
@@ -322,24 +322,24 @@ const AddonSelection = ({
               }
 
               return (
-                <div key={addon.uid} className={`addon-item usage2-item p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-gray-50 transition-colors ${effectivePlusDisabled && currentQuantity === 0 ? 'opacity-60 cursor-not-allowed' : ''}`}>
+                <div key={addon.uid} className={`addon-item usage2-item p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-base-300 transition-colors ${effectivePlusDisabled && currentQuantity === 0 ? 'opacity-60 cursor-not-allowed' : ''}`}>
                   <div className="addon-info mb-2 sm:mb-0 sm:mr-4 flex-grow">
-                    <span className="addon-name font-medium text-gray-800">{addon.name}</span>
-                    {addon.price >= 0 && <span className="addon-price text-sm text-gray-600 ml-2">({getAddonPriceString(addon)})</span>}
-                    {addon.desc && <p className="text-xs text-gray-500 mt-1">{addon.desc}</p>}
+                    <span className="addon-name font-medium text-base-content">{addon.name}</span>
+                    {addon.price >= 0 && <span className="addon-price text-sm text-base-content/70 ml-2">({getAddonPriceString(addon)})</span>}
+                    {addon.desc && <p className="text-xs text-base-content/60 mt-1">{addon.desc}</p>}
                   </div>
                   <div className="addon-quantity-selector flex items-center space-x-2">
                     <button
                       type="button"
                       onClick={() => commonMenuChangeHandler(addon, currentQuantity - 1, 'quantity')}
                       disabled={currentQuantity === 0}
-                      className="qty-btn minus-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="qty-btn minus-btn px-3 py-1 bg-base-200 text-base-content rounded-md hover:bg-base-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       -
                     </button>
                     <input
                       type="text"
-                      className="qty-input w-12 text-center border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                      className="qty-input w-12 text-center border-base-300 rounded-md shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
                       value={currentQuantity}
                       readOnly
                     />
@@ -347,7 +347,7 @@ const AddonSelection = ({
                       type="button"
                       onClick={() => commonMenuChangeHandler(addon, currentQuantity + 1, 'quantity')}
                       disabled={effectivePlusDisabled}
-                      className="qty-btn plus-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="qty-btn plus-btn px-3 py-1 bg-base-200 text-base-content rounded-md hover:bg-base-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
                       +
                     </button>
@@ -356,7 +356,7 @@ const AddonSelection = ({
               );
             })}
             {numericGuestCount > 0 && finalMenuAddons.length > 0 && (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-base-content/60 mt-1">
                 {languageStrings?.menuUsage2TotalQuantityNote || `Total quantity of all selected menus cannot exceed guest count (${numericGuestCount}).`} ({currentTotalMenuUsage2Quantity}/{numericGuestCount} total quantity selected)
               </p>
             )}
@@ -375,7 +375,7 @@ const AddonSelection = ({
               const isChecked = selectedAddons.menus.some(m => m.uid === addon.uid);
               const isDisabled = !isChecked && !canSelectMoreMenus;
               return (
-                <div key={addon.uid} className={`addon-item usage3-item p-2 border rounded-md hover:bg-gray-50 transition-colors ${isDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}>
+                <div key={addon.uid} className={`addon-item usage3-item p-2 border rounded-md hover:bg-base-300 transition-colors ${isDisabled ? 'opacity-60 cursor-not-allowed' : ''}`}>
                   <label htmlFor={`menu-${addon.uid}`} className={`flex items-center space-x-3 ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                     <input
                       type="checkbox"
@@ -384,19 +384,19 @@ const AddonSelection = ({
                       checked={isChecked}
                       disabled={isDisabled}
                       onChange={(e) => commonMenuChangeHandler(addon, e.target.checked, 'checkbox')}
-                      className="form-checkbox h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                      className="form-checkbox h-5 w-5 text-primary rounded border-base-300 focus:ring-primary"
                     />
                      <div className="flex-grow">
-                      <span className="addon-name font-medium text-gray-800">{addon.name}</span>
-                      {addon.price >= 0 && <span className="addon-price text-sm text-gray-600 ml-2">({getAddonPriceString(addon)})</span>}
-                      {addon.desc && <p className="text-xs text-gray-500 mt-1">{addon.desc}</p>}
+                      <span className="addon-name font-medium text-base-content">{addon.name}</span>
+                      {addon.price >= 0 && <span className="addon-price text-sm text-base-content/70 ml-2">({getAddonPriceString(addon)})</span>}
+                      {addon.desc && <p className="text-xs text-base-content/60 mt-1">{addon.desc}</p>}
                     </div>
                   </label>
                 </div>
               );
             })}
             {maxSelections > 0 && maxSelections < Infinity && (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-base-content/60 mt-1">
                 {languageStrings?.maxMenuSelectionNote || `Select up to ${maxSelections} menu(s).`} ({currentSelectionsCount}/{maxSelections} selected)
               </p>
             )}
@@ -404,12 +404,12 @@ const AddonSelection = ({
         );
         break;
       default: // Should ideally not happen if currentShiftUsagePolicy is validated upstream
-        menuContent = <p className="text-sm text-red-500">{languageStrings?.invalidMenuUsage || 'Invalid menu configuration.'}</p>;
+        menuContent = <p className="text-sm text-error">{languageStrings?.invalidMenuUsage || 'Invalid menu configuration.'}</p>;
     }
 
     return (
       <div className="mb-6">
-        <h4 className="text-lg font-semibold text-gray-700 mb-3">
+        <h4 className="text-lg font-semibold text-base-content mb-3">
           {languageStrings?.menusTitle || 'Menus'}
         </h4>
         {menuContent}
@@ -433,10 +433,10 @@ const AddonSelection = ({
       if (finalOptionAddons.length > 0 || (optionAddonsFromShift.length > 0 && numericGuestCount > 0)) {
          return (
             <div className="mt-4">
-                <h4 className="text-lg font-semibold text-gray-700 mb-3 border-t pt-4 mt-4">
+                <h4 className="text-lg font-semibold text-base-content mb-3 border-t pt-4 mt-4">
                     {languageStrings?.optionsTitle || 'Optional Add-ons'}
                 </h4>
-                <p className="text-sm text-gray-500 italic">
+                <p className="text-sm text-base-content/60 italic">
                     {selectedAddons.menus.length === 0 && currentShiftUsagePolicy !==0 && finalMenuAddons.length > 0 && optionAddonsFromShift.some(o => o.parent !== -1) ?
                      (languageStrings?.selectMenuForOptions || 'Please select a menu to see available options.') :
                      (languageStrings?.noOptionsAvailable || 'No optional add-ons currently available.')}
@@ -453,7 +453,7 @@ const AddonSelection = ({
 
     return (
       <div className="mt-4">
-        <h4 className="text-lg font-semibold text-gray-700 mb-3 border-t pt-4 mt-4">
+        <h4 className="text-lg font-semibold text-base-content mb-3 border-t pt-4 mt-4">
           {languageStrings?.optionsTitle || 'Optional Add-ons'}
         </h4>
         <div className="space-y-3">
@@ -499,24 +499,24 @@ const AddonSelection = ({
 
 
             return (
-              <div key={addon.uid} className="addon-item option-item p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-gray-50 transition-colors">
+              <div key={addon.uid} className="addon-item option-item p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-base-300 transition-colors">
                 <div className="addon-info mb-2 sm:mb-0 sm:mr-4 flex-grow">
-                  <span className="addon-name font-medium text-gray-800">{addon.name}</span>
-                  {addon.price >= 0 && <span className="addon-price text-sm text-gray-600 ml-2">({getAddonPriceString(addon)})</span>}
-                  {addon.desc && <p className="text-xs text-gray-500 mt-1">{addon.desc}</p>}
+                  <span className="addon-name font-medium text-base-content">{addon.name}</span>
+                  {addon.price >= 0 && <span className="addon-price text-sm text-base-content/70 ml-2">({getAddonPriceString(addon)})</span>}
+                  {addon.desc && <p className="text-xs text-base-content/60 mt-1">{addon.desc}</p>}
                 </div>
                 <div className="addon-quantity-selector flex items-center space-x-2">
                   <button
                     type="button"
                     onClick={() => commonOptionChangeHandler(addon, currentQuantity - 1)}
                     disabled={minusButtonDisabled}
-                    className="qty-btn minus-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="qty-btn minus-btn px-3 py-1 bg-base-200 text-base-content rounded-md hover:bg-base-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     -
                   </button>
                   <input
                     type="text"
-                    className="qty-input w-12 text-center border-gray-300 rounded-md shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                    className="qty-input w-12 text-center border-base-300 rounded-md shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
                     value={currentQuantity}
                     readOnly
                   />
@@ -524,7 +524,7 @@ const AddonSelection = ({
                     type="button"
                     onClick={() => commonOptionChangeHandler(addon, currentQuantity + 1)}
                     disabled={!canIncrement}
-                    className="qty-btn plus-btn px-3 py-1 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="qty-btn plus-btn px-3 py-1 bg-base-200 text-base-content rounded-md hover:bg-base-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     +
                   </button>
@@ -534,7 +534,7 @@ const AddonSelection = ({
           })}
            {/* Helper text for option quantity rules if needed */}
            {visibleOptions.length > 0 && (
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-base-content/60 mt-1">
               {languageStrings?.optionQuantityNote || `Quantities for options are per item and cannot exceed guest count. Each option may also have its own min/max quantity limits.`}
             </p>
            )}
@@ -545,7 +545,7 @@ const AddonSelection = ({
 
 
   return (
-    <div className="mt-6 p-4 border border-gray-200 rounded-lg shadow bg-white">
+    <div className="mt-6 p-4 border border-base-300 rounded-lg shadow bg-base-100">
       {renderMenuAddons()}
       {renderOptionAddons()}
     </div>

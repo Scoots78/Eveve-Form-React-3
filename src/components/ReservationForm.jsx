@@ -1068,9 +1068,9 @@ export default function ReservationForm() {
 
   if (isConfigLoading) {
     return (
-      <div className="p-6 max-w-xl mx-auto bg-white shadow-xl rounded-lg space-y-6 text-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mx-auto"></div>
-        <p className="text-xl text-blue-600 mt-4">
+      <div className="p-6 max-w-xl mx-auto bg-base-100 shadow-xl rounded-lg space-y-6 text-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary mx-auto"></div>
+        <p className="text-xl text-primary mt-4">
           {appConfig?.lng?.loading || 'Loading configuration...'}
         </p>
       </div>
@@ -1079,12 +1079,12 @@ export default function ReservationForm() {
 
   if (configError) {
     return (
-      <div className="p-6 max-w-xl mx-auto bg-red-100 shadow-xl rounded-lg space-y-4 text-center border border-red-400">
-        <h2 className="text-2xl font-bold text-red-700">
+      <div className="p-6 max-w-xl mx-auto bg-error/10 shadow-xl rounded-lg space-y-4 text-center border border-error">
+        <h2 className="text-2xl font-bold text-error">
           {appConfig?.lng?.errorB || 'Configuration Error'}
         </h2>
-        <p className="text-red-600">{configError}</p>
-        <p className="text-sm text-gray-600">
+        <p className="text-error">{configError}</p>
+        <p className="text-sm text-base-content/60">
           {appConfig?.lng?.invPhone || 'Please ensure the \'est\' parameter in the URL is correct or try again later.'}
         </p>
       </div>
@@ -1093,8 +1093,8 @@ export default function ReservationForm() {
 
   // Render form only if config is loaded and no errors
   return (
-    <div className="p-6 max-w-xl mx-auto bg-white shadow-xl rounded-lg space-y-6">
-      <h1 className="text-2xl font-bold text-center text-gray-800">
+    <div className="p-6 max-w-xl mx-auto bg-base-100 shadow-xl rounded-lg space-y-6">
+      <h1 className="text-2xl font-bold text-center text-base-content">
         {appConfig?.lng?.makeBookingAtTitlePrefix || "Make a Booking at "}{appConfig.estFull}
       </h1>
 
@@ -1103,7 +1103,7 @@ export default function ReservationForm() {
           {/* Calendar – full width */}
           <div className="flex justify-center w-full">
             {/* Added wrapper to give calendar consistent styling */}
-            <div className="mt-6 p-4 rounded-lg shadow bg-white border border-gray-200">
+            <div className="mt-6 p-4 rounded-lg shadow bg-base-100 border border-base-300">
               <ReactCalendarPicker
                 /* When selectedDate is null (initial load) show today in the
                    calendar control but keep our controlled value unset so the
@@ -1122,7 +1122,7 @@ export default function ReservationForm() {
           {selectedDate && (
             <div className="flex justify-center w-full">
               {/* Wrapper added for consistent styling with calendar */}
-              <div className="mt-6 p-4 rounded-lg shadow bg-white border border-gray-200 text-center">
+              <div className="mt-6 p-4 rounded-lg shadow bg-base-100 border border-base-300 text-center">
                 <GuestSelector
                   value={guests}
                   onChange={handleGuestsChange}
@@ -1139,15 +1139,15 @@ export default function ReservationForm() {
 
       {isLoading && ( // This is for availability loading
         <div className="flex justify-center items-center py-6">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          <p className="ml-3 text-blue-500">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          <p className="ml-3 text-primary">
             {appConfig?.lng?.loading || 'Loading availability...'}
           </p>
         </div>
       )}
 
       {apiError && !isLoading && ( // This is for availability API error
-        <div className="my-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-md shadow-sm" role="alert">
+        <div className="my-4 p-4 bg-error/10 border border-error text-error rounded-md shadow-sm" role="alert">
           <strong className="font-bold">Oops! </strong>
           <span>{apiError}</span>
         </div>
@@ -1158,20 +1158,20 @@ export default function ReservationForm() {
           {/* This div will only render if date/covers are selected and pickers are hidden */}
           {!showDateTimePicker && (
             <div
-              className={`p-4 bg-gray-50 rounded-lg shadow cursor-pointer hover:bg-gray-100`}
+              className={`p-4 bg-base-200 rounded-lg shadow cursor-pointer hover:bg-base-300`}
               onClick={() => setShowDateTimePicker(true)}
             >
               {/* This inner part now only needs to render the summary view */}
-              <div className="text-gray-700 text-center">
+              <div className="text-base-content/70 text-center">
                 <h3 className="text-lg font-semibold">
                   {selectedDateForSummary ? format(selectedDateForSummary, 'EEEE do MMMM') : 'Date not set'}
                   {selectedGuestsForSummary ? ` for ${selectedGuestsForSummary} Guest${selectedGuestsForSummary > 1 ? 's' : ''}` : ''}
                 </h3>
-                <p className="text-xs text-gray-500 mt-1">Click to change</p>
+                <p className="text-xs text-base-content/60 mt-1">Click to change</p>
               </div>
               {/* The availabilityData.message can still be relevant here */}
               {availabilityData.message && (
-                <p className="text-sm p-3 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded-md mt-2">
+                <p className="text-sm p-3 bg-warning/10 border border-warning text-warning rounded-md mt-2">
                   {availabilityData.message}
                 </p>
               )}
@@ -1180,7 +1180,7 @@ export default function ReservationForm() {
 
           {availabilityData.shifts && availabilityData.shifts.length > 0 ? (
             <div className="space-y-4">
-              <h4 className="text-xl font-semibold text-gray-700">{appConfig?.lng?.availableShiftsTitle || "Available Shifts:"}</h4>
+              <h4 className="text-xl font-semibold text-base-content">{appConfig?.lng?.availableShiftsTitle || "Available Shifts:"}</h4>
               {availabilityData.shifts.map((shift, index) => {
                 const currentShiftIdentifier = shift.uid || index;
                 const isExpanded = expandedShiftIdentifier === currentShiftIdentifier;
@@ -1189,10 +1189,10 @@ export default function ReservationForm() {
 
 
                 return (
-                  <div key={currentShiftIdentifier} className="border border-gray-200 rounded-lg shadow-sm bg-white overflow-hidden">
+                  <div key={currentShiftIdentifier} className="border border-base-300 rounded-lg shadow-sm bg-base-100 overflow-hidden">
                     <button
                       type="button"
-                      className="w-full p-4 text-left bg-gray-50 hover:bg-gray-100 focus:outline-none"
+                      className="w-full p-4 text-left bg-base-200 hover:bg-base-300 focus:outline-none"
                       onClick={() => {
                         const newIdentifier = isExpanded ? null : currentShiftIdentifier;
                         setExpandedShiftIdentifier(newIdentifier);
@@ -1209,10 +1209,10 @@ export default function ReservationForm() {
                       }}
                     >
                       <div className="flex justify-between items-center">
-                        <h5 className="text-lg font-bold text-blue-600">{shift.name}
+                        <h5 className="text-lg font-bold text-primary">{shift.name}
                           <span className="text-sm font-normal ml-2" title={hasAvailableTimes(shift) ? "Available times" : "No times available"}>
                             <svg 
-                              className={`inline-block w-4 h-4 ${hasAvailableTimes(shift) ? "text-green-500" : "text-gray-400"}`} 
+                              className={`inline-block w-4 h-4 ${hasAvailableTimes(shift) ? "text-success" : "text-base-content/60"}`} 
                               fill="none" 
                               stroke="currentColor" 
                               viewBox="0 0 24 24" 
@@ -1228,30 +1228,30 @@ export default function ReservationForm() {
                           </span>
                         </h5>
                         <span className={`transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : 'rotate-0'}`}>
-                          <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                          <svg className="w-5 h-5 text-base-content/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                         </span>
                       </div>
                     </button>
 
                     {isExpanded && (
-                      <div className="p-4 border-t border-gray-200">
-                        <p className="text-sm text-gray-600 my-1">
+                      <div className="p-4 border-t border-base-300">
+                        <p className="text-sm text-base-content/70 my-1">
                           <span className="font-medium">{appConfig?.lng?.time || 'Time'}:</span> {formatDecimalTime(shift.start, appConfig?.timeFormat)} - {formatDecimalTime(shift.end, appConfig?.timeFormat)}
                         </p>
                         {shift.description && (
                           <div
-                            className="mt-2 text-sm text-gray-700 prose prose-sm max-w-none bg-gray-50 p-2 rounded"
+                            className="mt-2 text-sm text-base-content prose prose-sm max-w-none bg-base-200 p-2 rounded"
                             dangerouslySetInnerHTML={{ __html: shift.description }}
                           />
                         )}
                         {shift.message && (
-                          <p className="text-xs mt-2 p-2 bg-blue-50 border border-blue-200 text-blue-700 rounded">
+                          <p className="text-xs mt-2 p-2 bg-info/10 border border-primary text-primary rounded">
                             {shift.message}
                           </p>
                         )}
                         {shift.times && shift.times.length > 0 ? (
                           <div className="mt-3">
-                            <p className="text-sm font-semibold text-gray-800 mb-2">{appConfig?.lng?.availableBookingTimesTitle || "Available Booking Times:"}</p>
+                            <p className="text-sm font-semibold text-base-content mb-2">{appConfig?.lng?.availableBookingTimesTitle || "Available Booking Times:"}</p>
                             <div className="flex flex-wrap gap-2">
                               {/* Filter out negative times (blocked times) */}
                                 {shift.times
@@ -1267,8 +1267,8 @@ export default function ReservationForm() {
                                   onClick={() => handleTimeSelection(shift, timeObj, index)} // Pass originalIndexInAvailabilityData
                                   className={`px-3 py-1.5 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-colors
                                     ${isSelectedShift && selectedShiftTime.selectedTime === (typeof timeObj === 'object' ? timeObj.time : timeObj)
-                                      ? 'bg-green-600 text-white ring-green-600' // Active selected time
-                                      : 'bg-green-500 text-white hover:bg-green-600 focus:ring-green-500' // Default
+                                      ? 'bg-success text-white ring-success' // Active selected time
+                                      : 'bg-success text-white hover:bg-success focus:ring-success' // Default
                                     }`}
                                 >
                                   {formatDecimalTime(typeof timeObj === 'object' ? timeObj.time : timeObj, appConfig?.timeFormat)}
@@ -1277,7 +1277,7 @@ export default function ReservationForm() {
                             </div>
                           </div>
                         ) : (
-                          <p className="text-sm text-gray-500 mt-2 italic">
+                          <p className="text-sm text-base-content/60 mt-2 italic">
                             {appConfig?.lng?.legendUnavail || 'No specific online booking times listed for this shift. Please contact us for details.'}
                           </p>
                         )}
@@ -1333,11 +1333,11 @@ export default function ReservationForm() {
                             <button
                               onClick={handleProceedToBooking}
                               disabled={proceedButtonState.disabled}
-                              className="px-6 py-3 bg-purple-600 text-white text-lg font-semibold rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center"
+                              className="px-6 py-3 bg-primary text-white text-lg font-semibold rounded-lg shadow-md hover:bg-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-75 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center"
                             >
                               <span>{proceedButtonState.text}</span>
                               {selectedShiftTime?.selectedTime && selectedDate && guests && ( // Summary still shown if time selected
-                                <div className="text-xs font-normal mt-1 text-purple-200">
+                                <div className="text-xs font-normal mt-1 text-primary-content/70">
                                   {selectedShiftTime.name} - {format(selectedDate, appConfig?.dateFormat || 'MMM d, yyyy')} - {guests} Guest{guests > 1 ? 's' : ''} - {formatDecimalTime(selectedShiftTime.selectedTime, appConfig?.timeFormat)}
                                   {selectedAreaName && ` - ${selectedAreaName}`}
                                 </div>
@@ -1346,11 +1346,11 @@ export default function ReservationForm() {
                             
                             {/* Debug Mode Information for Booking Button */}
                             {debugMode && (
-                              <div className="mt-4 p-3 border-2 border-orange-400 rounded-lg bg-orange-50 text-left">
-                                <h6 className="text-sm font-bold text-orange-800 mb-2">
+                              <div className="mt-4 p-3 border-2 border-warning rounded-lg bg-warning/10 text-left">
+                                <h6 className="text-sm font-bold text-warning mb-2">
                                   🐛 Booking Button Debug (Dev Mode)
                                 </h6>
-                                <div className="text-xs text-orange-700 space-y-1">
+                                <div className="text-xs text-warning space-y-1">
                                   <div className="flex justify-between">
                                     <span className="font-mono">selectedShiftTime.name:</span>
                                     <span className="font-mono">{selectedShiftTime?.name || 'null'}</span>
@@ -1396,7 +1396,7 @@ export default function ReservationForm() {
             </div>
           ) : (
              (!availabilityData.message && !apiError) &&
-            <p className="text-center text-gray-600 py-4 text-lg">
+            <p className="text-center text-base-content/70 py-4 text-lg">
               {appConfig?.lng?.legendClosed || 'No shifts currently available for the selected criteria.'}
             </p>
           )}
@@ -1404,7 +1404,7 @@ export default function ReservationForm() {
       )}
       {/* Fallback for when availabilityData itself is null but not loading and no error, or other states */}
       { !availabilityData && !isLoading && !apiError && guests && selectedDate && (
-        <div className="text-center text-gray-500 py-4">
+        <div className="text-center text-base-content/60 py-4">
              {appConfig?.lng?.noAvailDate || "No availability information for the selected date/guests. Please try different criteria."}
         </div>
       )}
