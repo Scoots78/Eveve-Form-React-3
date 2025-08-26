@@ -109,58 +109,6 @@ const ReactCalendarPicker = ({
         showNeighboringMonth={false}
         className="react-calendar-custom"
       />
-      <style jsx="true">{`
-        .react-calendar-wrapper {
-          width: 100%;
-          max-width: 100%;
-          /* Explicit centring for non-Tailwind environments (mobile first) */
-          margin-left: auto;
-          margin-right: auto;
-        }
-        
-        :global(.react-calendar-custom) {
-          width: 100%;
-          max-width: 100%;
-          //border: 1px solid #e2e8f0;
-          border-radius: 0.5rem;
-          padding: 0.5rem;
-          font-family: inherit;
-          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-        }
-        
-        :global(.react-calendar-custom button) {
-          border-radius: 0.25rem;
-          padding: 0.5rem;
-        }
-        
-        :global(.react-calendar-custom .react-calendar__tile--active) {
-          background: #4f46e5;
-          color: white;
-        }
-        
-        :global(.react-calendar-custom .react-calendar__tile--now) {
-          background: #e5e7eb;
-        }
-        
-        :global(.react-calendar-custom .react-calendar__navigation) {
-          margin-bottom: 0.5rem;
-        }
-        
-        :global(.react-calendar-custom .react-calendar__navigation button) {
-          min-width: 2.5rem;
-          background: none;
-        }
-        
-        :global(.react-calendar-custom .react-calendar__navigation button:enabled:hover,
-                .react-calendar-custom .react-calendar__navigation button:enabled:focus) {
-          background-color: #e5e7eb;
-        }
-        
-        :global(.react-calendar-custom .react-calendar__tile:disabled) {
-          background-color: #f9fafb;
-          color: #9ca3af;
-        }
-      `}</style>
       </div>
     </>
   );

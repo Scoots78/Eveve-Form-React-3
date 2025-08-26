@@ -184,34 +184,34 @@ const SelectedAddonsSummary = ({
   // This section needs to be completed once option details are fully available in summary.
 
   return (
-    <div className="mt-6 p-4 border border-blue-200 rounded-lg shadow bg-blue-50">
-      <h5 className="text-md font-semibold text-blue-700 mb-2">
+    <div className="mt-6 p-4 border border-primary rounded-lg shadow bg-info/10">
+      <h5 className="text-md font-semibold text-primary mb-2">
         {languageStrings?.selectedAddonsSummaryTitle || 'Selected Addons Summary'}
       </h5>
       {itemsDetails.length > 0 ? (
         <>
-          <ul className="list-disc list-inside space-y-1 text-sm text-blue-600">
+          <ul className="list-disc list-inside space-y-1 text-sm text-primary">
             {itemsDetails.map((item, index) => (
               <li key={index}>{item}</li>
             ))}
           </ul>
-          <p className="mt-3 text-sm font-semibold text-blue-700">
+          <p className="mt-3 text-sm font-semibold text-primary">
             {languageStrings?.totalAddonCostLabel || 'Total Addon Cost'}: {displaySymbol}{(totalAddonCost / 100).toFixed(2)}
           </p>
         </>
       ) : (
-        <p className="text-sm text-gray-500 italic">
+        <p className="text-sm text-base-content/60 italic">
           {languageStrings?.noAddonsSelected || 'No addons selected.'}
         </p>
       )}
 
       {/* Debug Mode Information */}
       {debugMode && (
-        <div className="mt-4 p-3 border-2 border-yellow-400 rounded-lg bg-yellow-50">
-          <h6 className="text-sm font-bold text-yellow-800 mb-2">
+        <div className="mt-4 p-3 border-2 border-warning rounded-lg bg-warning/10">
+          <h6 className="text-sm font-bold text-warning mb-2">
             🐛 Debug Information (Dev Mode)
           </h6>
-          <div className="text-xs text-yellow-700 space-y-1">
+          <div className="text-xs text-warning space-y-1">
             <div className="flex justify-between">
               <span className="font-mono">totalAddonCost:</span>
               <span className="font-mono">{totalAddonCost}</span>
@@ -247,8 +247,8 @@ const SelectedAddonsSummary = ({
             {/* ------------------------------------------------------------------
                  Detailed list of selected menus
             ------------------------------------------------------------------ */}
-            <div className="mt-3 pt-2 border-t border-yellow-300">
-              <div className="text-sm font-bold text-yellow-800 mb-1">
+            <div className="mt-3 pt-2 border-t border-warning">
+              <div className="text-sm font-bold text-warning mb-1">
                 Selected Menus:
               </div>
               {selectedAddons.menus.length > 0 ? (
@@ -275,7 +275,7 @@ const SelectedAddonsSummary = ({
                       <span className="font-mono">{menu.per ? `"${menu.per}"` : 'null'}</span>
                     </div>
                     {idx < selectedAddons.menus.length - 1 && (
-                      <div className="border-b border-yellow-200 my-1"></div>
+                      <div className="border-b border-warning my-1"></div>
                     )}
                   </div>
                 ))
@@ -289,8 +289,8 @@ const SelectedAddonsSummary = ({
             {/* ------------------------------------------------------------------
                  Detailed list of selected options
             ------------------------------------------------------------------ */}
-            <div className="mt-3 pt-2 border-t border-yellow-300">
-              <div className="text-sm font-bold text-yellow-800 mb-1">
+            <div className="mt-3 pt-2 border-t border-warning">
+              <div className="text-sm font-bold text-warning mb-1">
                 Selected Options:
               </div>
               {Object.keys(selectedAddons.options).length > 0 ? (
@@ -332,7 +332,7 @@ const SelectedAddonsSummary = ({
                           </>
                         )}
                         {idx < Object.keys(selectedAddons.options).length - 1 && (
-                          <div className="border-b border-yellow-200 my-1"></div>
+                          <div className="border-b border-warning my-1"></div>
                         )}
                       </div>
                     );
@@ -349,8 +349,8 @@ const SelectedAddonsSummary = ({
                  Selected Shift meta (charge / usage etc.)
             ------------------------------------------------------------------ */}
             {selectedShiftTime && (
-              <div className="mt-3 pt-2 border-t border-yellow-300">
-                <div className="text-sm font-bold text-yellow-800 mb-1">
+              <div className="mt-3 pt-2 border-t border-warning">
+                <div className="text-sm font-bold text-warning mb-1">
                   Selected Shift Information:
                 </div>
                 <div className="ml-2 mb-1 text-xs space-y-1">

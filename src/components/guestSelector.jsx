@@ -69,7 +69,7 @@ export default function GuestSelector({
         <button
           type="button"
           onClick={handleDecrement}
-          className="px-3 py-1 rounded-md bg-gray-200 text-gray-800 hover:bg-gray-300 disabled:opacity-50"
+          className="px-3 py-1 rounded-md bg-base-200 text-base-content hover:bg-base-300 disabled:opacity-50"
           // Disable if value is already at minGuests or if it's empty (placeholder shown)
           // and minGuests is 1 (or more, meaning can't go lower than a number)
           disabled={(typeof value === 'number' && value <= effectiveMinGuests) || (value === '' && effectiveMinGuests > 0) }
@@ -83,7 +83,7 @@ export default function GuestSelector({
           value={currentGuests}
           onChange={handleChange}
           placeholder={placeholderText}
-          className="w-16 text-center border rounded-md py-1"
+          className="w-16 text-center border border-base-300 rounded-md py-1 focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
           // HTML min/max are for browser hints, JS logic enforces strict limits
           min={effectiveMinGuests}
           max={effectiveMaxGuests}
@@ -91,7 +91,7 @@ export default function GuestSelector({
         <button
           type="button"
           onClick={handleIncrement}
-          className="px-3 py-1 rounded-md bg-gray-200 text-gray-800 hover:bg-gray-300 disabled:opacity-50"
+          className="px-3 py-1 rounded-md bg-base-200 text-base-content hover:bg-base-300 disabled:opacity-50"
           disabled={typeof value === 'number' && value >= effectiveMaxGuests}
         >
           +
