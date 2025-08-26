@@ -29,6 +29,8 @@ import {
   parseClosedDatesFromMonthResponse,
   defaultCoversForMonthAvail
 } from "../utils/monthAvailability";
+// Import calculateTotalAddonCost from chargeDetection.js
+import { calculateTotalAddonCost } from "../utils/chargeDetection";
 
 
 export default function ReservationForm() {
@@ -730,37 +732,16 @@ export default function ReservationForm() {
     const formattedArea = formatAreaForApi(selectedArea);
 
     /* ------------------------------------------------------------------
-       Calculate total addon cost (in cents) so we can surface it in the
-       details-page debug panel.  Logic mirrors SelectedAddonsSummary.
+       Calculate total addon cost (in cents) using the utility function
+       from chargeDetection.js that handles shift.usage=2 correctly
     ------------------------------------------------------------------ */
-    let totalAddonCost = 0;
-
-    // --- Menus ---
-    selectedAddons.menus.forEach(menu => {
-      const quantity = menu.quantity || 1;
-      if (typeof menu.price === 'number') {
-        if (menu.per === 'Guest') {
-          totalAddonCost += menu.price * numericGuests * quantity;
-        } else {
-          totalAddonCost += menu.price * quantity;
-        }
-      }
-    });
-
-    // --- Options ---
-    for (const optionUid in selectedAddons.options) {
-      const quantity = selectedAddons.options[optionUid];
-      if (quantity > 0) {
-        const optionAddon = currentShiftAddons.find(a => String(a.uid) === optionUid);
-        if (optionAddon && typeof optionAddon.price === 'number') {
-          if (optionAddon.per === 'Guest') {
-            totalAddonCost += optionAddon.price * numericGuests * quantity;
-          } else {
-            totalAddonCost += optionAddon.price * quantity;
-          }
-        }
-      }
-    }
+    const totalAddonCost = calculateTotalAddonCost(
+      selectedAddons,
+      currentShiftAddons,
+      numericGuests,
+      selectedShiftTime,
+      debugMode
+    );
 
     const bookingDataForHold = {
       est: est, // From URL params
@@ -1339,6 +1320,8 @@ export default function ReservationForm() {
                               languageStrings={appConfig?.lng}
                               guestCount={guests}
                               currentShiftAddons={currentShiftAddons}
+                              /* expose shift meta for 🐛 debug panel */
+                              selectedShiftTime={selectedShiftTime}
                               debugMode={debugMode}
                             />
                           </div>
@@ -1438,6 +1421,10 @@ export default function ReservationForm() {
         error={bookingState.updateError || bookingState.bookingError}
         success={bookingState.bookingSuccess}
         debugMode={debugMode}
+        /* --- extra context for charge-detection in modal --- */
+        selectedShiftTime={selectedShiftTime}
+        selectedAddons={selectedAddons}
+        currentShiftAddons={currentShiftAddons}
       />
     </div>
   );

@@ -6,10 +6,13 @@ const SelectedAddonsSummary = ({
   languageStrings,
   guestCount,
   currentShiftAddons,
+  selectedShiftTime,      // ← new prop (provides shift meta for debug)
   debugMode = false,      // default false
 }) => {
   const numericGuestCount = parseInt(guestCount, 10) || 1; // Default to 1 if guestCount is not valid, for per-guest calculation
   const displaySymbol = currencySymbol || '$';
+  // Quantity-based menus (usage === 2) flag – affects cost calc for "per Guest"
+  const isUsageQuantity = selectedShiftTime?.usage === 2;
 
   const findAddonByUid = (uid) => { // uid here is optionUid from the loop, which is a string
     if (!currentShiftAddons) return null;
@@ -26,7 +29,20 @@ const SelectedAddonsSummary = ({
     const formattedBasePrice = `${displaySymbol}${(itemBasePrice / 100).toFixed(2)}`;
 
     if (addon.per === 'Guest') {
-      itemTotalCost = itemBasePrice * numericGuestCount * quantity; // quantity is usually 1 unless it's a usage2 item being summarized this way
+      // For usage 2 (quantity-based) the user already selected quantity for each guest.
+      if (isUsageQuantity) {
+        itemTotalCost = itemBasePrice * quantity;
+        if (debugMode) {
+          /* eslint-disable no-console */
+          console.log(
+            `[SelectedAddonsSummary] usage=2 → per-Guest item "${addon.name}" ; ` +
+              `price=${itemBasePrice} × qty=${quantity} = ${itemTotalCost}`
+          );
+          /* eslint-enable no-console */
+        }
+      } else {
+        itemTotalCost = itemBasePrice * numericGuestCount * quantity; // legacy path
+      }
       priceDescription = `${formattedBasePrice} ${languageStrings?.perPerson || 'per Person'}`;
       if (quantity > 1) { // For summarizing a usage2 item if needed, though typically usage2 is itemized differently
         priceDescription = `${addon.name} x${quantity} (${formattedBasePrice} ${languageStrings?.perPerson || 'per Person'}) - Total: ${displaySymbol}${(itemTotalCost / 100).toFixed(2)}`;
@@ -328,6 +344,61 @@ const SelectedAddonsSummary = ({
                 </div>
               )}
             </div>
+
+            {/* ------------------------------------------------------------------
+                 Selected Shift meta (charge / usage etc.)
+            ------------------------------------------------------------------ */}
+            {selectedShiftTime && (
+              <div className="mt-3 pt-2 border-t border-yellow-300">
+                <div className="text-sm font-bold text-yellow-800 mb-1">
+                  Selected Shift Information:
+                </div>
+                <div className="ml-2 mb-1 text-xs space-y-1">
+                  <div className="flex justify-between">
+                    <span className="font-mono">name:</span>
+                    <span className="font-mono">
+                      {selectedShiftTime.name ?? 'null'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-mono">type:</span>
+                    <span className="font-mono">
+                      {selectedShiftTime.type ?? 'null'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-mono">charge:</span>
+                    <span className="font-mono">
+                      {selectedShiftTime.charge ?? 'null'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-mono">usage:</span>
+                    <span className="font-mono">
+                      {selectedShiftTime.usage ?? 'null'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-mono">start:</span>
+                    <span className="font-mono">
+                      {selectedShiftTime.start ?? 'null'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-mono">end:</span>
+                    <span className="font-mono">
+                      {selectedShiftTime.end ?? 'null'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-mono">selectedTime:</span>
+                    <span className="font-mono">
+                      {selectedShiftTime.selectedTime ?? 'null'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

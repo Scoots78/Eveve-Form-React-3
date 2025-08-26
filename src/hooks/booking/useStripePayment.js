@@ -30,11 +30,9 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
   const fetchStripeKeys = useCallback(async (params) => {
     // If we've already fetched keys for this booking UID, reuse them
     if (stripeKeys && stripeKeys.clientSecret && params?.uid === stripeKeys?.uid) {
-      console.log('[useStripePayment] Re-using previously fetched Stripe keys');
       return stripeKeys;
     }
 
-    console.log('Fetching Stripe keys with params:', params);
     setIsLoading(true);
     setError(null);
     
@@ -58,9 +56,7 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
         created: params.created
       };
       
-      console.log('Calling pi-get with params:', piGetParams);
       const response = await eveveApi.piGet(piGetParams);
-      console.log('pi-get response:', response.data);
       
       if (!response.data.client_secret || !response.data.public_key) {
         throw new Error('Missing Stripe keys in pi-get response');
@@ -72,11 +68,6 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
         cust: response.data.cust
       };
       
-      console.log('Stripe keys retrieved successfully:', {
-        clientSecret: keys.clientSecret ? `${keys.clientSecret.substring(0, 10)}...` : null,
-        publicKey: keys.publicKey ? `${keys.publicKey.substring(0, 10)}...` : null
-      });
-      
       setStripeKeys(keys);
       // Keep uid so we know which booking the keys belong to
       keys.uid = params.uid;
@@ -86,7 +77,7 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
       
       return keys;
     } catch (err) {
-      console.error('Error fetching Stripe keys:', err);
+      console.error('❌ Error fetching Stripe keys:', err.message);
       setError(err.message || 'Failed to retrieve Stripe keys');
       throw err;
     } finally {
@@ -105,7 +96,6 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
    * @returns {Promise<Object>} - Deposit information
    */
   const fetchDepositInfo = useCallback(async (params) => {
-    console.log('Fetching deposit info with params:', params);
     setIsLoading(true);
     setError(null);
     
@@ -118,9 +108,7 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
         type: 0
       };
       
-      console.log('Calling deposit-get with params:', depositParams);
       const response = await eveveApi.depositGet(depositParams);
-      console.log('deposit-get response:', response.data);
       
       if (!response.data.ok) {
         throw new Error('Deposit-get request failed');
@@ -135,17 +123,10 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
         message: response.data.message
       };
       
-      console.log('Deposit info processed:', {
-        isDeposit: info.isDeposit,
-        isNoShow: info.isNoShow,
-        amount: info.amount,
-        currency: info.currency
-      });
-      
       setDepositInfo(info);
       return info;
     } catch (err) {
-      console.error('Error fetching deposit information:', err);
+      console.error('❌ Error fetching deposit information:', err.message);
       setError(err.message || 'Failed to retrieve deposit information');
       throw err;
     } finally {
@@ -164,20 +145,13 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
    * @returns {Promise<Object>} - Payment result with payment method ID
    */
   const processPayment = useCallback(async (params) => {
-    const label = `[useStripePayment] processPayment-${params?.uid || 'n/a'}`;
-    console.time(label);
-    console.log(new Date().toISOString(), 'Processing payment with params:', {
-      cardElementExists: !!params.cardElement,
-      billingDetails: params.billingDetails
-    });
-    
     if (!stripeKeys || !stripeKeys.clientSecret) {
-      console.error('Stripe keys not initialized');
+      console.error('❌ Stripe keys not initialized');
       throw new Error('Stripe keys not initialized. Call fetchStripeKeys first.');
     }
     
     if (!params.cardElement) {
-      console.error('Card element is missing');
+      console.error('❌ Card element is missing');
       throw new Error('Card element is required for payment processing');
     }
     
@@ -194,15 +168,14 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
       
       // Determine the intent type from the client secret
       const intentType = stripeApi.getIntentType(stripeKeys.clientSecret);
-      console.log('Intent type determined:', intentType);
+      
+      console.log(`🔄 Processing payment with intent type: ${intentType}`);
       
       let result;
       
       // Process payment based on intent type
       if (intentType === 'setup_intent') {
         // No-show protection - just store the card
-        console.log('Processing setup intent for no-show protection');
-        
         result = await stripe.confirmCardSetup(stripeKeys.clientSecret, {
           payment_method: {
             card: params.cardElement,
@@ -211,8 +184,6 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
         });
       } else {
         // Deposit - charge the card now
-        console.log('Processing payment intent for deposit');
-        
         result = await stripe.confirmCardPayment(stripeKeys.clientSecret, {
           payment_method: {
             card: params.cardElement,
@@ -220,18 +191,6 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
           }
         });
       }
-      
-      console.log('Stripe confirmation result:', {
-        hasError: !!result.error,
-        setupIntent: result.setupIntent ? {
-          id: result.setupIntent.id,
-          status: result.setupIntent.status
-        } : null,
-        paymentIntent: result.paymentIntent ? {
-          id: result.paymentIntent.id,
-          status: result.paymentIntent.status
-        } : null
-      });
       
       if (result.error) {
         // Show error to your customer
@@ -243,8 +202,6 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
         ? result.setupIntent.payment_method
         : result.paymentIntent.payment_method;
       
-      console.log('Payment method ID retrieved:', pmId.substring(0, 10) + '...');
-      
       // Store the payment method ID
       setPaymentMethodId(pmId);
       
@@ -255,7 +212,7 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
         status: intentType === 'setup_intent' ? result.setupIntent.status : result.paymentIntent.status
       };
     } catch (err) {
-      console.error('Payment processing failed:', err);
+      console.error('❌ Payment processing failed:', err.message);
       setError(err.message || 'Payment processing failed');
       
       return {
@@ -265,7 +222,6 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
       };
     } finally {
       setIsLoading(false);
-      console.timeEnd(label);
     }
   }, [stripeKeys]);
 
@@ -281,18 +237,8 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
    * @returns {Promise<Object>} - Result of attaching payment method
    */
   const attachPaymentMethod = useCallback(async (params) => {
-    const label = `[useStripePayment] attachPaymentMethod-${params?.uid || 'n/a'}`;
-    console.time(label);
-    console.log(new Date().toISOString(), 'Attaching payment method with params:', {
-      est: params.est,
-      uid: params.uid,
-      created: params.created,
-      paymentMethodId: params.paymentMethodId ? params.paymentMethodId.substring(0, 10) + '...' : null,
-      total: params.total
-    });
-    
     if (!params.paymentMethodId) {
-      console.error('No payment method ID provided');
+      console.error('❌ No payment method ID provided');
       throw new Error('No payment method available to attach');
     }
     
@@ -301,7 +247,6 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
     
     try {
       // Validate booking exists first (optional but recommended)
-      console.log('Validating booking with restore API');
       await eveveApi.restore({
         est: params.est,
         uid: params.uid,
@@ -319,15 +264,12 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
         type: 0
       };
       
-      console.log('Calling pm-id with params:', pmIdParams);
       const response = await eveveApi.pmId(pmIdParams);
-      console.log('pm-id response:', response.data);
       
       if (!response.data.ok) {
         throw new Error('Failed to attach payment method to booking');
       }
       
-      console.log('Payment method successfully attached');
       setPaymentComplete(true);
       
       return {
@@ -339,7 +281,7 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
         message: response.data.message
       };
     } catch (err) {
-      console.error('Failed to attach payment method:', err);
+      console.error('❌ Failed to attach payment method:', err.message);
       setError(err.message || 'Failed to attach payment method');
       
       return {
@@ -348,7 +290,6 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
       };
     } finally {
       setIsLoading(false);
-      console.timeEnd(label);
     }
   }, []);
 
@@ -363,26 +304,19 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
    * @param {string} params.lastName - Customer last name
    * @param {string} params.email - Customer email
    * @param {Object} params.cardElement - Stripe CardElement instance
+   * @param {Object} [params.preCalculatedDeposit=null] - Optional pre-calculated
+   *        deposit info (when shift.charge = 2).  If provided the hook will skip
+   *        the Eveve `deposit-get` call and use this object instead.  Expected
+   *        shape: { isDeposit:boolean, isNoShow:boolean, amount:number,
+   *        currency:string }
    * @returns {Promise<Object>} - Result of the payment flow
    */
   const completePaymentFlow = useCallback(async (params) => {
-    const label = `[useStripePayment] completePaymentFlow-${params?.uid || 'n/a'}`;
-    console.time(label);
-    console.log(new Date().toISOString(), 'Starting complete payment flow with params:', {
-      est: params.est,
-      uid: params.uid,
-      created: params.created,
-      firstName: params.firstName,
-      lastName: params.lastName,
-      email: params.email,
-      cardElementExists: !!params.cardElement
-    });
-    
     try {
       // Step 1: Fetch Stripe keys (only if not already fetched)
       let keys = stripeKeys;
+      
       if (!keys) {
-        console.log('Step 1: Fetching Stripe keys');
         keys = await fetchStripeKeys({
           est: params.est,
           uid: params.uid,
@@ -394,16 +328,74 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
         });
       }
       
-      // Step 2: Fetch deposit info
-      console.log('Step 2: Fetching deposit info');
-      const depositInfo = await fetchDepositInfo({
-        est: params.est,
-        uid: params.uid,
-        created: params.created
-      });
+      // Determine intent type for logging
+      const intentType = stripeApi.getIntentType(keys.clientSecret);
+      
+      // Step 2: Deposit information
+      let depositInfo;
+      const depositSource = params.preCalculatedDeposit ? 'pre-calculated' : 'Eveve API';
+      
+      if (params.preCalculatedDeposit) {
+        depositInfo = params.preCalculatedDeposit;
+      } else {
+        depositInfo = await fetchDepositInfo({
+          est: params.est,
+          uid: params.uid,
+          created: params.created
+        });
+      }
+      
+      // Log intent type vs deposit info mismatch warning if needed
+      const mismatch =
+        (depositInfo.isDeposit && intentType !== 'payment_intent') ||
+        (depositInfo.isNoShow && intentType !== 'setup_intent');
+      
+      if (mismatch) {
+        console.warn('⚠️ Intent type does not match deposit info - may cause issues');
+      }
+      
+      // THE SINGLE ESSENTIAL CONSOLE MESSAGE
+      if (depositInfo.isDeposit) {
+        console.log(`🔄 STRIPE INTENT: [CHARGE $${(depositInfo.amount / 100).toFixed(2)} NOW] - Source: [${depositSource}]`);
+      } else {
+        console.log(`🔄 STRIPE INTENT: [STORE CARD - NO CHARGE] - Source: [${depositSource}]`);
+      }
+
+      // ────────────────────────────────────────────────────────────
+      // EXTRA DEBUG (intent-type vs deposit information)
+      // Shows if Stripe will *charge* (payment_intent) or *store* (setup_intent)
+      // and whether that matches Eveve / pre-calculated deposit logic.
+      // Example output:
+      //   🔍 INTENT DEBUG → intentType=payment_intent  isDeposit=true  isNoShow=false  amount=500  mismatch=false
+      // ────────────────────────────────────────────────────────────
+      console.log(
+        `🔍 INTENT DEBUG → intentType=${intentType}  ` +
+        `isDeposit=${depositInfo.isDeposit}  isNoShow=${depositInfo.isNoShow}  ` +
+        `amount=${depositInfo.amount}  mismatch=${mismatch}`
+      );
+      
+      // If we have a mismatch between intent type and deposit requirement, throw an error
+      if (depositInfo.isDeposit && intentType !== 'payment_intent') {
+        const errorMessage = `
+          ⚠️ CONFIGURATION ERROR: Eveve is configured for no-show protection (setup_intent),
+          but this booking requires an immediate charge (payment_intent).
+          
+          The restaurant's Eveve configuration needs to be updated to support deposits
+          for addon bookings. Please contact Eveve support to update the restaurant's
+          deposit settings.
+          
+          Technical details:
+          - Intent type from Eveve: ${intentType}
+          - Deposit required: ${depositInfo.isDeposit}
+          - Amount: $${(depositInfo.amount / 100).toFixed(2)}
+          - Source: ${depositSource}
+        `;
+        
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+      }
       
       // Step 3: Process payment
-      console.log('Step 3: Processing payment');
       const paymentResult = await processPayment({
         cardElement: params.cardElement,
         billingDetails: {
@@ -413,12 +405,11 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
       });
       
       if (!paymentResult.success) {
-        console.error('Payment processing failed:', paymentResult.error);
+        console.error('❌ Payment processing failed:', paymentResult.error);
         return paymentResult;
       }
       
       // Step 4: Attach payment method
-      console.log('Step 4: Attaching payment method');
       const attachResult = await attachPaymentMethod({
         est: params.est,
         uid: params.uid,
@@ -428,11 +419,9 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
       });
       
       if (!attachResult.success) {
-        console.error('Payment method attachment failed:', attachResult.error);
+        console.error('❌ Payment method attachment failed:', attachResult.error);
         return attachResult;
       }
-      
-      console.log('Payment flow completed successfully');
       
       // Return comprehensive result
       return {
@@ -447,7 +436,7 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
         message: attachResult.message || depositInfo.message
       };
     } catch (err) {
-      console.error('Payment flow failed:', err);
+      console.error('❌ Payment flow failed:', err.message);
       setError(err.message || 'Payment flow failed');
       
       return {
@@ -456,14 +445,12 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
         errorDetails: err.stack
       };
     }
-      console.timeEnd(label);
-  }, [fetchStripeKeys, fetchDepositInfo, processPayment, attachPaymentMethod]);
+  }, [fetchStripeKeys, fetchDepositInfo, processPayment, attachPaymentMethod, stripeKeys]);
 
   /**
    * Reset all state
    */
   const reset = useCallback(() => {
-    console.log('Resetting Stripe payment state');
     setIsLoading(false);
     setError(null);
     setStripeKeys(null);
