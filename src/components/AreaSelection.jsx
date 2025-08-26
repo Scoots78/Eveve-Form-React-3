@@ -73,7 +73,6 @@ const AreaSelection = ({
                 value="any"
                 checked={selectedArea === 'any'}
                 onChange={() => handleAreaChange('any')}
-                className="form-radio h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
                 className="form-radio h-5 w-5 text-primary border-base-300 focus:ring-primary"
               />
               <div className="flex-grow">
