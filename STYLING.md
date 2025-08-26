@@ -93,6 +93,24 @@ Example (brand-x.css):
 }
 `
 
+### HEX-friendly theme variables (simple option)
+
+If you don’t want to calculate HSL triplets you can supply full HEX colors instead:
+
+- `--p-color` – primary brand color (full value, e.g. `#3b82f6`)
+- `--b2c` – base-200 surface/background (full value, e.g. `#f5f7fa`)
+
+When present the widget prefers these over the HSL tokens (`--p`, `--b2`), falling back to the HSL values if they’re missing.
+
+Example:
+
+```css
+#eveve-widget[data-theme="brand-sample"] {
+  --p-color: #3b82f6; /* buttons, highlight, calendar circles */
+  --b2c:     #f5f7fa; /* light surface */
+}
+```
+
 ## How to Create a New Style
 
 Option A — External CDN (no rebuilds):
@@ -125,10 +143,30 @@ Option C — Use built-in light/dark only (zero extra CSS):
 
 ## React Calendar Styling
 
-The calendar is styled with DaisyUI tokens via src/components/calendar-override.css and the eact-calendar defaults.
-- Container class: eact-calendar-custom.
-- Uses hsl(var(--b1)), hsl(var(--b2)), hsl(var(--bc)), and hsl(var(--p)) for consistent theming.
-- No styled-jsx; pure CSS to ensure styles load in Vite builds.
+The calendar is themed by `src/components/calendar-override.css` (pure CSS, no styled-jsx).
+
+- Circle-only hover: the square tile background is neutral; the day number (`abbr`) shows a circular hover/focus ring with primary tint for clear feedback.
+- Stronger visual feedback: background alpha 0.30, border alpha 0.60, ring alpha 0.18 (can be tuned – see snippet below).
+- Month label: larger (1.25 rem), bold, and rendered in the primary color so it matches the active-date circle.
+- Larger fonts overall: nav arrows (1.125 rem), weekday headers (~0.9 rem), day numbers (1 rem).
+- Token usage: `hsl(var(--p))`, `hsl(var(--bc))`, etc., **or** the hex variables `--p-color` / `--b2c` if you prefer HEX.
+- Chrome-safe overlays: box-shadow uses a single fixed `rgba(59,130,246,0.18)` fallback to avoid `color-mix()` incompatibility.
+
+**Customize hover strength**
+
+Paste in your theme CSS and tweak alphas to your taste:
+
+```css
+/* stronger or softer calendar hover circle */
+#eveve-widget[data-theme="brand-x"]
+  .react-calendar-custom .react-calendar__tile:enabled:hover abbr,
+#eveve-widget[data-theme="brand-x"]
+  .react-calendar-custom .react-calendar__tile:enabled:focus abbr {
+    background-color: hsl(var(--p, 220 90% 56%) / 0.40); /* adjust 0-1 */
+    border: 1px solid hsl(var(--p, 220 90% 56%) / 0.70);
+    box-shadow: 0 0 0 2px hsl(var(--p, 220 90% 56%) / 0.25);
+}
+```
 
 ## Testing Checklist
 
@@ -145,6 +183,7 @@ The calendar is styled with DaisyUI tokens via src/components/calendar-override.
   - Verify the 	heme param (exact slug).
   - Ensure 	hemeCss loads (DevTools → Network).
 - Colors off: tune --bc and --b2 for contrast; set --border if you add it.
+- If you see black/transparent colors and you supplied OKLCH triplets, remember `hsl()` expects **hue, saturation, lightness**. Either convert to HSL or just set `--p-color` / `--b2c` with HEX.
 - CORS: enable public access for CSS files on your CDN.
 
 ## Security Note
