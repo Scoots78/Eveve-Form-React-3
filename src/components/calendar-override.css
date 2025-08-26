@@ -25,7 +25,7 @@
 /* Remove underlines from abbreviations */
 .react-calendar-custom abbr {
   text-decoration: none;
-  cursor: default;
+  cursor: inherit; /* allow pointer on enabled tiles */
 }
 
 /* Navigation section */
@@ -43,7 +43,9 @@
 }
 
 .react-calendar-custom .react-calendar__navigation button:disabled {
-  color: hsl(var(--bc) / 0.5);
+  color: hsl(var(--bc) / 0.3);
+  opacity: 0.4;
+  background: transparent !important;
   cursor: not-allowed;
 }
 
@@ -136,7 +138,7 @@
 .react-calendar-custom .react-calendar__tile--disabled {
   background-color: hsl(var(--b2) / 0.8);
   color: hsl(var(--bc) / 0.35);
-  opacity: 0.7;
+  opacity: 0.5; /* more muted */
   border: 1px dashed hsl(var(--b2));
 }
 
@@ -152,4 +154,53 @@
 /* Neighboring month days */
 .react-calendar-custom .react-calendar__month-view__days__day--neighboringMonth {
   color: hsl(var(--bc) / 0.5);
+}
+
+/* ------------------------------------------------------------------ */
+/* Circle-style hover & active effects                                */
+/* ------------------------------------------------------------------ */
+
+/* Enable pointer cursor on selectable tiles */
+.react-calendar-custom .react-calendar__tile:enabled {
+  cursor: pointer;
+}
+
+/* Remove existing hover bg so circle stands out */
+.react-calendar-custom .react-calendar__tile:enabled:hover,
+.react-calendar-custom .react-calendar__tile:enabled:focus {
+  background-color: transparent;
+}
+
+/* Circle on hover / focus */
+.react-calendar-custom .react-calendar__tile:enabled:hover abbr,
+.react-calendar-custom .react-calendar__tile:enabled:focus abbr {
+  background-color: hsl(var(--b2));
+  border-radius: 9999px;
+  display: inline-flex;
+  min-width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Active (selected) date – primary-coloured circle */
+.react-calendar-custom .react-calendar__tile--active {
+  background: transparent; /* let circle show only */
+  color: hsl(var(--bc));
+}
+
+.react-calendar-custom .react-calendar__tile--active abbr {
+  background: hsl(var(--p));
+  color: hsl(var(--pc, var(--b1)));
+  border-radius: 9999px;
+  display: inline-flex;
+  min-width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.react-calendar-custom .react-calendar__tile--active:enabled:hover abbr,
+.react-calendar-custom .react-calendar__tile--active:enabled:focus abbr {
+  background: hsl(var(--p) / 0.9);
 }
