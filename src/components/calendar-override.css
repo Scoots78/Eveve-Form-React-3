@@ -231,8 +231,6 @@
 .react-calendar.react-calendar-custom .react-calendar__month-view .react-calendar__tile:not([disabled]):hover,
 .react-calendar.react-calendar-custom .react-calendar__month-view .react-calendar__tile:not([disabled]):focus {
   background-color: transparent !important;
-  /* theme primary overlay plus fixed RGB fallback */
-  box-shadow:
-    inset 0 0 0 9999px color-mix(in srgb, var(--p-color, hsl(var(--p, 220 90% 56%))) 18%, transparent) !important,
-    inset 0 0 0 9999px rgba(59, 130, 246, 0.12) !important;
+  /* single visible overlay – primary-ish tint */
+  box-shadow: inset 0 0 0 9999px rgba(59, 130, 246, 0.18) !important;
 }
