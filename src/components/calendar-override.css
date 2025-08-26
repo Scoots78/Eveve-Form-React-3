@@ -16,7 +16,7 @@
   width: 100%;
   background: hsl(var(--b1));
   color: hsl(var(--bc));
-  border: 1px solid hsl(var(--b2, 0 0% 98%));
+  border: 1px solid var(--b2c, hsl(var(--b2, 0 0% 98%)));
   border-radius: 0.5rem;
   padding: 0.5rem;
   box-shadow: 0 1px 3px 0 hsl(var(--bc) / 0.1);
@@ -51,7 +51,7 @@
 
 .react-calendar-custom .react-calendar__navigation button:enabled:hover,
 .react-calendar-custom .react-calendar__navigation button:enabled:focus {
-  background-color: hsl(var(--b2, 0 0% 98%));
+  background-color: var(--b2c, hsl(var(--b2, 0 0% 98%)));
 }
 
 /* Month view container */
@@ -85,50 +85,50 @@
 
 .react-calendar-custom .react-calendar__tile:enabled:hover,
 .react-calendar-custom .react-calendar__tile:enabled:focus {
-  background-color: hsl(var(--b2, 0 0% 98%));
+  background-color: color-mix(in srgb, var(--b2c, hsl(var(--b2, 0 0% 98%))) 100%, transparent);
   outline: none;
 }
 
 /* Today's date */
 .react-calendar-custom .react-calendar__tile--now {
-  background: hsl(var(--b2, 0 0% 98%));
+  background: var(--b2c, hsl(var(--b2, 0 0% 98%)));
   font-weight: 600;
 }
 
 .react-calendar-custom .react-calendar__tile--now:enabled:hover,
 .react-calendar-custom .react-calendar__tile--now:enabled:focus {
-  background: hsl(var(--b2, 0 0% 98%) / 0.8);
+  background: color-mix(in srgb, var(--b2c, hsl(var(--b2, 0 0% 98%))) 80%, transparent);
 }
 
 /* Selected date */
 .react-calendar-custom .react-calendar__tile--active {
-  background: hsl(var(--p, 220 90% 56%));
+  background: var(--p-color, hsl(var(--p, 220 90% 56%)));
   color: hsl(var(--pc, var(--b1)));
 }
 
 .react-calendar-custom .react-calendar__tile--active:enabled:hover,
 .react-calendar-custom .react-calendar__tile--active:enabled:focus {
-  background: hsl(var(--p, 220 90% 56%) / 0.9);
+  background: color-mix(in srgb, var(--p-color, hsl(var(--p, 220 90% 56%))) 90%, transparent);
 }
 
 /* Range selection (between dates in a range) */
 .react-calendar-custom .react-calendar__tile--rangeStart,
 .react-calendar-custom .react-calendar__tile--rangeEnd {
-  background: hsl(var(--p, 220 90% 56%));
+  background: var(--p-color, hsl(var(--p, 220 90% 56%)));
   color: hsl(var(--pc, var(--b1)));
 }
 
 .react-calendar-custom .react-calendar__tile--inRange {
-  background: hsl(var(--p, 220 90% 56%) / 0.2);
+  background: color-mix(in srgb, var(--p-color, hsl(var(--p, 220 90% 56%))) 20%, transparent);
 }
 
 .react-calendar-custom .react-calendar__tile--inRange:hover {
-  background: hsl(var(--p, 220 90% 56%) / 0.3);
+  background: color-mix(in srgb, var(--p-color, hsl(var(--p, 220 90% 56%))) 30%, transparent);
 }
 
 /* Disabled tiles */
 .react-calendar-custom .react-calendar__tile:disabled {
-  background-color: hsl(var(--b2, 0 0% 98%) / 0.5);
+  background-color: color-mix(in srgb, var(--b2c, hsl(var(--b2, 0 0% 98%))) 50%, transparent);
   color: hsl(var(--bc) / 0.5);
   cursor: not-allowed;
 }
@@ -136,10 +136,10 @@
 /* Strengthened styling for all disabled (past / no-availability) tiles */
 .react-calendar-custom .react-calendar__tile:disabled,
 .react-calendar-custom .react-calendar__tile--disabled {
-  background-color: hsl(var(--b2, 0 0% 98%) / 0.8);
-  color: hsl(var(--bc) / 0.35);
+  background-color: color-mix(in srgb, var(--b2c, hsl(var(--b2, 0 0% 98%))) 80%, transparent);
+  border: 1px dashed var(--b2c, hsl(var(--b2, 0 0% 98%)));
   opacity: 0.5; /* more muted */
-  border: 1px dashed hsl(var(--b2, 0 0% 98%));
+  border: 1px dashed var(--b2c, hsl(var(--b2, 0 0% 98%)));
 }
 
 /* Ensure "today" tile still looks disabled when it is not selectable */
