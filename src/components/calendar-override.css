@@ -234,3 +234,54 @@
   /* single visible overlay – primary-ish tint */
   box-shadow: inset 0 0 0 9999px rgba(59, 130, 246, 0.18) !important;
 }
+
+/* ================================================================== */
+/*  Typography & visual tweaks (added last for highest precedence)    */
+/* ================================================================== */
+
+/* 1) Bigger nav arrows and buttons */
+.react-calendar-custom .react-calendar__navigation button {
+  font-size: 1.125rem; /* text-lg */
+}
+
+/* 2) Month label: larger, bold & primary-coloured */
+.react-calendar-custom .react-calendar__navigation__label {
+  font-size: 1.25rem;        /* text-xl */
+  font-weight: 700;
+  color: var(--p-color, hsl(var(--p, 220 90% 56%)));
+}
+
+/* 3) Weekday header font size */
+.react-calendar-custom .react-calendar__month-view__weekdays {
+  font-size: 0.9rem; /* ~14.4px */
+}
+
+/* 4) Day numbers */
+.react-calendar-custom .react-calendar__tile abbr {
+  font-size: 1rem; /* 16px */
+}
+
+/* ================================================================== */
+/*  Circle-only hover (remove square overlay)                         */
+/* ================================================================== */
+
+.react-calendar-custom .react-calendar__tile:enabled:hover,
+.react-calendar-custom .react-calendar__tile:enabled:focus,
+.react-calendar-custom .react-calendar__tile--active:enabled:hover,
+.react-calendar-custom .react-calendar__tile--active:enabled:focus,
+.react-calendar.react-calendar-custom .react-calendar__month-view .react-calendar__tile:not([disabled]):hover,
+.react-calendar.react-calendar-custom .react-calendar__month-view .react-calendar__tile:not([disabled]):focus {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Strengthen the abbr circle hover with fallback + theme colour */
+.react-calendar-custom .react-calendar__tile:enabled:hover abbr,
+.react-calendar-custom .react-calendar__tile:enabled:focus abbr {
+  /* fallback then theme – if second invalid, first stays */
+  background-color: rgba(59, 130, 246, 0.18);
+  background-color: hsl(var(--p, 220 90% 56%) / 0.18);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  border: 1px solid hsl(var(--p, 220 90% 56%) / 0.4);
+  border-radius: 9999px;
+}
