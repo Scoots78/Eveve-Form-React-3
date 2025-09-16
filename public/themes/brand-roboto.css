@@ -12,6 +12,7 @@
   --b1: 208 23% 22%;   /* base-100: dark blue background */
   --b2: 208 23% 28%;   /* base-200: slightly lighter surface */
   --b3: 208 23% 34%;   /* base-300: lighter blue for hover states */
+  --fallback-b3: #ffeb3b; /* TEMP: explicit fallback so hover:bg-base-300 is visible */
   --bc: 0 0% 100%;     /* base-content: white text */
 
   --in: 207 90% 54%;   /* info: bright blue */
@@ -110,5 +111,5 @@
 }
 
 #eveve-widget[data-theme="brand-roboto"] .accordion-toggle:hover {
-  background-color: var(--accordion-hover) !important;
+  background-color: #ffeb3b !important; /* TEMP debug color */
 }
