@@ -1,0 +1,84 @@
+/* Brand Roboto Theme - Dark Blue with White Text */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+/* Scope to the widget container with the brand-roboto theme */
+#eveve-widget[data-theme="brand-roboto"] {
+  /* Core palette (HSL components) */
+  --p: 208 23% 22%;    /* primary: dark blue */
+  --s: 208 23% 32%;    /* secondary: slightly lighter blue */
+  --a: 208 23% 42%;    /* accent: even lighter blue */
+  --n: 220 13% 18%;    /* neutral */
+
+  --b1: 208 23% 22%;   /* base-100: dark blue background */
+  --b2: 208 23% 28%;   /* base-200: slightly lighter surface */
+  --bc: 0 0% 100%;     /* base-content: white text */
+
+  --in: 207 90% 54%;   /* info: bright blue */
+  --su: 142 71% 45%;   /* success: green */
+  --wa: 38 92% 50%;    /* warning: amber */
+  --er: 0 84% 60%;     /* error: red */
+
+  /* HEX shortcuts for simpler usage */
+  --p-color: #2C3A46;  /* primary brand color */
+  --b2c: #2C3A46;      /* base background */
+
+  /* Shapes / typography */
+  --rounded-box: 0.5rem;
+  --rounded-btn: 0.25rem;
+  --font-sans: 'Roboto', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+
+  /* Apply font family to the entire widget */
+  font-family: var(--font-sans);
+  color: hsl(var(--bc));
+  background-color: hsl(var(--b1));
+}
+
+/* Button overrides for white background with dark blue text */
+#eveve-widget[data-theme="brand-roboto"] .btn-primary,
+#eveve-widget[data-theme="brand-roboto"] button.bg-purple-600 {
+  background-color: white !important;
+  color: #2C3A46 !important;
+  border: 1px solid #2C3A46 !important;
+}
+
+#eveve-widget[data-theme="brand-roboto"] .btn-primary:hover,
+#eveve-widget[data-theme="brand-roboto"] button.bg-purple-600:hover {
+  background-color: #f8f9fa !important;
+  box-shadow: 0 0 0 1px #2C3A46;
+}
+
+#eveve-widget[data-theme="brand-roboto"] .btn-primary:focus,
+#eveve-widget[data-theme="brand-roboto"] button.bg-purple-600:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(44, 58, 70, 0.3);
+}
+
+/* Calendar day styling */
+#eveve-widget[data-theme="brand-roboto"] .react-calendar-custom .react-calendar__tile:enabled:hover abbr,
+#eveve-widget[data-theme="brand-roboto"] .react-calendar-custom .react-calendar__tile:enabled:focus abbr,
+#eveve-widget[data-theme="brand-roboto"] .react-calendar-custom .react-calendar__tile--active abbr {
+  background-color: white !important;
+  color: #2C3A46 !important;
+  border: 1px solid #2C3A46 !important;
+}
+
+/* Ensure text inputs have white background with dark borders */
+#eveve-widget[data-theme="brand-roboto"] input,
+#eveve-widget[data-theme="brand-roboto"] select,
+#eveve-widget[data-theme="brand-roboto"] textarea {
+  background-color: white;
+  border-color: rgba(44, 58, 70, 0.5);
+  color: #2C3A46;
+}
+
+/* Ensure headings and other text are white */
+#eveve-widget[data-theme="brand-roboto"] h1,
+#eveve-widget[data-theme="brand-roboto"] h2,
+#eveve-widget[data-theme="brand-roboto"] h3,
+#eveve-widget[data-theme="brand-roboto"] h4,
+#eveve-widget[data-theme="brand-roboto"] h5,
+#eveve-widget[data-theme="brand-roboto"] h6,
+#eveve-widget[data-theme="brand-roboto"] p,
+#eveve-widget[data-theme="brand-roboto"] span:not(.btn-primary *) {
+  color: hsl(var(--bc));
+}
