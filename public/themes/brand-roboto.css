@@ -22,6 +22,9 @@
   --p-color: #2C3A46;  /* primary brand color */
   --b2c: #2C3A46;      /* base background */
 
+  /* primary-content (text) should be dark blue on white buttons */
+  --pc: 208 23% 22%;
+
   /* Shapes / typography */
   --rounded-box: 0.5rem;
   --rounded-btn: 0.25rem;
@@ -35,20 +38,23 @@
 
 /* Button overrides for white background with dark blue text */
 #eveve-widget[data-theme="brand-roboto"] .btn-primary,
-#eveve-widget[data-theme="brand-roboto"] button.bg-purple-600 {
+#eveve-widget[data-theme="brand-roboto"] .bg-primary,
+#eveve-widget[data-theme="brand-roboto"] button.bg-primary {
   background-color: white !important;
   color: #2C3A46 !important;
   border: 1px solid #2C3A46 !important;
 }
 
 #eveve-widget[data-theme="brand-roboto"] .btn-primary:hover,
-#eveve-widget[data-theme="brand-roboto"] button.bg-purple-600:hover {
+#eveve-widget[data-theme="brand-roboto"] .bg-primary:hover,
+#eveve-widget[data-theme="brand-roboto"] button.bg-primary:hover {
   background-color: #f8f9fa !important;
   box-shadow: 0 0 0 1px #2C3A46;
 }
 
 #eveve-widget[data-theme="brand-roboto"] .btn-primary:focus,
-#eveve-widget[data-theme="brand-roboto"] button.bg-purple-600:focus {
+#eveve-widget[data-theme="brand-roboto"] .bg-primary:focus,
+#eveve-widget[data-theme="brand-roboto"] button.bg-primary:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgba(44, 58, 70, 0.3);
 }
