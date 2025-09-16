@@ -89,3 +89,26 @@
 #eveve-widget[data-theme="brand-roboto"] span:not(.btn-primary *) {
   color: hsl(var(--bc));
 }
+
+/* ------------------------------------------------------------------
+   Custom overrides for selected time buttons and accordion hovers
+-------------------------------------------------------------------*/
+
+#eveve-widget[data-theme="brand-roboto"] {
+  /* Theme-specific tokens so projects can tweak in one place */
+  --selected-time-bg: #22C55E;   /* customizable green */
+  --selected-time-text: #ffffff;
+  --selected-time-border: #1FAA53;
+  --accordion-hover: #364554;    /* slightly lighter than base-200 */
+}
+
+#eveve-widget[data-theme="brand-roboto"] .time-btn[data-selected="true"] {
+  background-color: var(--selected-time-bg) !important;
+  color: var(--selected-time-text) !important;
+  border: 1px solid var(--selected-time-border) !important;
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--selected-time-bg) 30%, transparent);
+}
+
+#eveve-widget[data-theme="brand-roboto"] .accordion-toggle:hover {
+  background-color: var(--accordion-hover) !important;
+}

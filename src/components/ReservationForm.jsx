@@ -1192,7 +1192,7 @@ export default function ReservationForm() {
                   <div key={currentShiftIdentifier} className="border border-base-300 rounded-lg shadow-sm bg-base-100 overflow-hidden">
                     <button
                       type="button"
-                      className="w-full p-4 text-left bg-base-200 hover:bg-base-300 focus:outline-none"
+                      className="accordion-toggle w-full p-4 text-left bg-base-200 hover:bg-base-300 focus:outline-none"
                       onClick={() => {
                         const newIdentifier = isExpanded ? null : currentShiftIdentifier;
                         setExpandedShiftIdentifier(newIdentifier);
@@ -1265,7 +1265,14 @@ export default function ReservationForm() {
                                 <button
                                   key={timeIndex}
                                   onClick={() => handleTimeSelection(shift, timeObj, index)} // Pass originalIndexInAvailabilityData
-                                  className={`px-3 py-1.5 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-colors
+                                  data-selected={
+                                    isSelectedShift &&
+                                    selectedShiftTime.selectedTime ===
+                                      (typeof timeObj === "object" ? timeObj.time : timeObj)
+                                      ? "true"
+                                      : "false"
+                                  }
+                                  className={`time-btn px-3 py-1.5 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-colors
                                     ${isSelectedShift && selectedShiftTime.selectedTime === (typeof timeObj === 'object' ? timeObj.time : timeObj)
                                       ? 'bg-success text-success-content ring-success' // Active selected time
                                       : 'bg-primary text-primary-content hover:bg-primary focus:ring-primary' // Default
