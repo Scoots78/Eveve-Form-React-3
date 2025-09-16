@@ -105,8 +105,7 @@
 #eveve-widget[data-theme="brand-roboto"] h4,
 #eveve-widget[data-theme="brand-roboto"] h5,
 #eveve-widget[data-theme="brand-roboto"] h6,
-#eveve-widget[data-theme="brand-roboto"] p,
-#eveve-widget[data-theme="brand-roboto"] span:not(.btn-primary *) {
+#eveve-widget[data-theme="brand-roboto"] p {
   color: hsl(var(--bc));
 }
 
