@@ -1267,7 +1267,7 @@ export default function ReservationForm() {
                                   onClick={() => handleTimeSelection(shift, timeObj, index)} // Pass originalIndexInAvailabilityData
                                   className={`px-3 py-1.5 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-colors
                                     ${isSelectedShift && selectedShiftTime.selectedTime === (typeof timeObj === 'object' ? timeObj.time : timeObj)
-                                      ? 'bg-primary text-primary-content ring-primary' // Active selected time
+                                      ? 'bg-success text-success-content ring-success' // Active selected time
                                       : 'bg-primary text-primary-content hover:bg-primary focus:ring-primary' // Default
                                     }`}
                                 >
