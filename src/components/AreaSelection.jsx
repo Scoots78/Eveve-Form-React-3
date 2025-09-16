@@ -53,18 +53,18 @@ const AreaSelection = ({
   /* eslint-enable no-console */
 
   return (
-    <div className="mt-6 p-4 border border-gray-200 rounded-lg shadow bg-white">
-      <h4 className="text-lg font-semibold text-gray-700 mb-3">
+    <div className="mt-6 p-4 border border-base-300 rounded-lg shadow bg-base-100">
+      <h4 className="text-lg font-semibold text-base-content mb-3">
         {languageStrings?.areaSelectionTitle || 'Select Seating Area'}
         {isRequired && (
-          <span className="text-red-600 ml-1" title="Required">*</span>
+          <span className="text-error ml-1" title="Required">*</span>
         )}
       </h4>
       
       <div className="addon-radio-group space-y-2">
         {/* "Any Area" option when it is allowed */}
         {areaAnyAllowed && (
-          <div className="addon-item usage1-radio p-2 border rounded-md hover:bg-gray-50 transition-colors">
+          <div className="addon-item usage1-radio p-2 border rounded-md hover:bg-base-300 transition-colors">
             <label htmlFor="area-any" className="flex items-center space-x-3 cursor-pointer">
               <input
                 type="radio"
@@ -73,13 +73,13 @@ const AreaSelection = ({
                 value="any"
                 checked={selectedArea === 'any'}
                 onChange={() => handleAreaChange('any')}
-                className="form-radio h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                className="form-radio h-5 w-5 text-primary border-base-300 focus:ring-primary"
               />
               <div className="flex-grow">
-                <span className="addon-name font-medium text-gray-800">
+                <span className="addon-name font-medium text-base-content">
                   {languageStrings?.anyArea || 'Any Area'}
                 </span>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-base-content/60 mt-1">
                   {languageStrings?.anyAreaDesc || 'No preference for seating area'}
                 </p>
               </div>
@@ -89,7 +89,7 @@ const AreaSelection = ({
 
         {/* Available specific areas */}
         {availableAreas.map((area) => (
-          <div key={area.uid || area.id} className="addon-item usage1-radio p-2 border rounded-md hover:bg-gray-50 transition-colors">
+          <div key={area.uid || area.id} className="addon-item usage1-radio p-2 border rounded-md hover:bg-base-300 transition-colors">
             <label 
               htmlFor={`area-${area.uid || area.id}`} 
               className="flex items-center space-x-3 cursor-pointer"
@@ -101,10 +101,10 @@ const AreaSelection = ({
                 value={area.uid || area.id}
                 checked={selectedArea === (area.uid || area.id)}
                 onChange={() => handleAreaChange(area.uid || area.id)}
-                className="form-radio h-5 w-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                className="form-radio h-5 w-5 text-primary border-base-300 focus:ring-primary"
               />
               <div className="flex-grow">
-                <span className="addon-name font-medium text-gray-800">{area.name}</span>
+                <span className="addon-name font-medium text-base-content">{area.name}</span>
               </div>
             </label>
           </div>
@@ -114,7 +114,7 @@ const AreaSelection = ({
       {/* Optional helper text */}
       <p
         className={`text-xs mt-3 ${
-          isRequired ? 'text-red-600' : 'text-gray-500'
+          isRequired ? 'text-error' : 'text-base-content/60'
         }`}
       >
         {isRequired

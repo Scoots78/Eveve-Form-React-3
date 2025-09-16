@@ -7,5 +7,12 @@ export default {
   theme: {
     extend: {},
   },
-  plugins: [],
+  daisyui: {
+    themes: ["light", "dark"],
+    darkTheme: "dark",
+  },
+  plugins: [
+    // DaisyUI plugin provides theme utilities (bg-primary, text-error, etc.)
+    require("daisyui"),
+  ],
 }

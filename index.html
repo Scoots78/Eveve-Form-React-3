@@ -7,7 +7,33 @@
     <title>Restaurant Booking Widget</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="eveve-widget" data-theme="light">
+      <div id="root"></div>
+    </div>
+    <!-- Early theme loader: applies theme & optional external CSS before React mounts -->
+    <script>
+      (function () {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const theme = params.get("theme");
+          const themeCss = params.get("themeCss");
+
+          const widget = document.getElementById("eveve-widget");
+          if (widget && theme) {
+            widget.setAttribute("data-theme", theme);
+          }
+
+          if (themeCss) {
+            const link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.href = themeCss; // allow http/https/relative
+            document.head.appendChild(link);
+          }
+        } catch (err) {
+          console.error("[theme-loader]", err);
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
