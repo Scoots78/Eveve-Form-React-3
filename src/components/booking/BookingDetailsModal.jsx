@@ -1238,8 +1238,8 @@ export default function BookingDetailsModal({
               {(isLoading || paymentProcessing || isInitializingStripe) && (
                 <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
                   <div className="flex flex-col items-center">
-                    <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-purple-600"></div>
-                    <p className="mt-4 text-purple-600 font-medium">
+                    <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary"></div>
+                    <p className="mt-4 text-primary font-medium">
                       {isInitializingStripe
                         ? "Initializing payment system..."
                         : paymentProcessing 
@@ -1283,7 +1283,7 @@ export default function BookingDetailsModal({
                   <div className="mt-6">
                     <button
                       type="button"
-                      className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                      className="px-4 py-2 bg-success text-success-content rounded-md hover:bg-success focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-success"
                       onClick={onClose}
                     >
                       {appConfig?.lng?.bookingCloseButton || "Close"}
@@ -1320,8 +1320,8 @@ export default function BookingDetailsModal({
                     </p>
                     <div className="mt-6">
                       <button
-                        type="button"
-                        className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                      type="button"
+                      className="px-4 py-2 bg-primary text-primary-content rounded-md hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                         onClick={onClose}
                       >
                         {appConfig?.lng?.bookingCloseButton || "Close"}
@@ -1608,7 +1608,7 @@ export default function BookingDetailsModal({
                         <div className="mt-6 flex justify-between">
                           <button
                             type="button"
-                            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                            className="px-4 py-2 border border-base-300 rounded-md text-base-content hover:bg-base-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-base-300"
                             onClick={onClose}
                             disabled={isLoading || isInitializingStripe}
                           >
@@ -1618,7 +1618,7 @@ export default function BookingDetailsModal({
                           {isCardRequired ? (
                             <button
                               type="submit"
-                              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="px-4 py-2 bg-primary text-primary-content rounded-md hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
                               disabled={isLoading || isInitializingStripe || timerExpired}
                             >
                               {appConfig?.lng?.continueToPaymentButton || "Continue to Payment"}
@@ -1627,7 +1627,7 @@ export default function BookingDetailsModal({
                             <button
                               type="button"
                               onClick={handleSubmit}
-                              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="px-4 py-2 bg-primary text-primary-content rounded-md hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
                               disabled={isLoading || timerExpired}
                             >
                               {appConfig?.lng?.bookingConfirmButton || "Confirm Booking"}
@@ -1647,7 +1647,7 @@ export default function BookingDetailsModal({
                         <div className="mt-6 flex justify-between">
                           <button
                             type="button"
-                            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                            className="px-4 py-2 border border-base-300 rounded-md text-base-content hover:bg-base-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-base-300"
                             onClick={() => {
                               logWithTimestamp('Back button clicked, returning to personal details');
                               // If timer expired, close the modal instead of going back
@@ -1666,7 +1666,7 @@ export default function BookingDetailsModal({
                           </button>
                           <button
                             type="submit"
-                            className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="px-4 py-2 bg-primary text-primary-content rounded-md hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={isLoading || paymentProcessing || !cardState.complete || timerExpired}
                             onClick={() => {
                               logWithTimestamp('Payment submit button clicked', {

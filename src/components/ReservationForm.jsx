@@ -1267,8 +1267,8 @@ export default function ReservationForm() {
                                   onClick={() => handleTimeSelection(shift, timeObj, index)} // Pass originalIndexInAvailabilityData
                                   className={`px-3 py-1.5 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-colors
                                     ${isSelectedShift && selectedShiftTime.selectedTime === (typeof timeObj === 'object' ? timeObj.time : timeObj)
-                                      ? 'bg-success text-white ring-success' // Active selected time
-                                      : 'bg-success text-white hover:bg-success focus:ring-success' // Default
+                                      ? 'bg-success text-success-content ring-success' // Active selected time
+                                      : 'bg-success text-success-content hover:bg-success focus:ring-success' // Default
                                     }`}
                                 >
                                   {formatDecimalTime(typeof timeObj === 'object' ? timeObj.time : timeObj, appConfig?.timeFormat)}
@@ -1333,7 +1333,7 @@ export default function ReservationForm() {
                             <button
                               onClick={handleProceedToBooking}
                               disabled={proceedButtonState.disabled}
-                              className="px-6 py-3 bg-primary text-white text-lg font-semibold rounded-lg shadow-md hover:bg-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-75 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center"
+                              className="px-6 py-3 bg-primary text-primary-content text-lg font-semibold rounded-lg shadow-md hover:bg-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-75 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center"
                             >
                               <span>{proceedButtonState.text}</span>
                               {selectedShiftTime?.selectedTime && selectedDate && guests && ( // Summary still shown if time selected
