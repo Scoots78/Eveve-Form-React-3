@@ -62,6 +62,24 @@
   box-shadow: 0 0 0 3px rgba(44, 58, 70, 0.3);
 }
 
+/* ------------------------------------------------------------------
+   Accessibility: keep text readable on disabled/active primary buttons
+-------------------------------------------------------------------*/
+
+#eveve-widget[data-theme="brand-roboto"] button.bg-primary:disabled,
+#eveve-widget[data-theme="brand-roboto"] .btn-primary:disabled {
+  opacity: 1 !important;            /* retain full contrast */
+}
+
+/* Ensure nested Tailwind text-primary-content utilities stay dark blue
+   when the button background is white */
+#eveve-widget[data-theme="brand-roboto"] .bg-primary .text-primary-content {
+  color: #2C3A46 !important;
+}
+#eveve-widget[data-theme="brand-roboto"] .bg-primary .text-primary-content\/70 {
+  color: rgba(44, 58, 70, 0.7) !important;
+}
+
 /* Calendar day styling */
 #eveve-widget[data-theme="brand-roboto"] .react-calendar-custom .react-calendar__tile:enabled:hover abbr,
 #eveve-widget[data-theme="brand-roboto"] .react-calendar-custom .react-calendar__tile:enabled:focus abbr,
