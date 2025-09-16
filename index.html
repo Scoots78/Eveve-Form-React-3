@@ -45,7 +45,7 @@
              • Relative           → resolve against basePath
              • Not provided       → default to `${basePath}themes/${theme}.css`
           ------------------------------------------------------------------ */
-          const isAbsUrl = (url) => /^https?:\\/\\//i.test(url);
+          const isAbsUrl = (url) => /^https?:\/\//i.test(url);
           const needsBasePrefix = (url) =>
             url.startsWith("/") && !url.startsWith(basePath);
 
@@ -57,11 +57,11 @@
             if (!isAbsUrl(themeCss)) {
               if (themeCss.startsWith("/")) {
                 if (needsBasePrefix(themeCss)) {
-                  themeCss = basePath.replace(/\\/$/, "") + themeCss;
+                  themeCss = basePath.replace(/\/$/, "") + themeCss;
                 }
               } else {
                 // relative path
-                themeCss = basePath + themeCss.replace(/^\\.\\//, "");
+                themeCss = basePath + themeCss.replace(/^\.\//, "");
               }
             }
 
