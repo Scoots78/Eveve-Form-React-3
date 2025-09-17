@@ -132,3 +132,11 @@
   background-color: var(--accordion-hover) !important;
   border-color: var(--accordion-hover) !important;
 }
+
+/* ----------------------------------------------------------
+   Calendar month label (e.g. "September 2025")
+-----------------------------------------------------------*/
+#eveve-widget[data-theme="brand-roboto"]
+  .react-calendar__navigation__label__labelText {
+  color: #ffffffa1 !important;
+}
