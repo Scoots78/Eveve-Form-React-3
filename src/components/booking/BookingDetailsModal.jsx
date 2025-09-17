@@ -662,6 +662,37 @@ export default function BookingDetailsModal({
           }
         }
 
+        // Determine if this is an Event booking with paid addons
+        const isEventBooking = selectedShiftTime?.type === "Event";
+        
+        // Check if there are any paid addons (with cost > 0)
+        const hasPaidAddons = (() => {
+          // Check selected menus for cost > 0
+          const hasPaidMenus = selectedAddons.menus.some(menu => {
+            const menuAddon = currentShiftAddons?.find(addon => addon.uid === menu.uid);
+            return menuAddon && menuAddon.cost > 0;
+          });
+          
+          // Check selected options for cost > 0
+          const hasPaidOptions = Object.keys(selectedAddons.options).some(optionId => {
+            const optionAddon = currentShiftAddons?.find(addon => String(addon.uid) === optionId);
+            return optionAddon && optionAddon.cost > 0;
+          });
+          
+          return hasPaidMenus || hasPaidOptions;
+        })();
+        
+        // Only set isEventWithPaidAddons to true if BOTH conditions are met
+        const isEventWithPaidAddons = isEventBooking && hasPaidAddons;
+        
+        if (debugMode) {
+          console.log('[BookingDetailsModal] Event and paid addon detection:', {
+            isEventBooking,
+            hasPaidAddons,
+            isEventWithPaidAddons
+          });
+        }
+
         const paymentResult = await completePaymentFlow({
           est: bookingData.est || effectiveHoldData.est,
           uid: effectiveHoldData.uid,
@@ -671,7 +702,10 @@ export default function BookingDetailsModal({
           email: customerData.email,
           cardElement: cardElement,
           // pass only when applicable
-          ...(preCalculatedDeposit ? { preCalculatedDeposit } : {})
+          ...(preCalculatedDeposit ? { preCalculatedDeposit } : {}),
+          // Add the isEventWithPaidAddons flag to distinguish between Event bookings with paid addons
+          // and normal bookings with deposits
+          isEventWithPaidAddons
         });
         
         logWithTimestamp('Payment flow result', {

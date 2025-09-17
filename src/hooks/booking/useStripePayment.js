@@ -309,6 +309,12 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
    *        the Eveve `deposit-get` call and use this object instead.  Expected
    *        shape: { isDeposit:boolean, isNoShow:boolean, amount:number,
    *        currency:string }
+   * @param {boolean} [params.isEventWithPaidAddons=false] - Flag indicating
+   *        this booking is an Event that includes PAID addons/deposits which
+   *        Eveve may not support in the current configuration.  If true and
+   *        the intent type is not `payment_intent`, the flow will throw a
+   *        configuration error.  Normal bookings (false) will be allowed to
+   *        proceed with only a warning.
    * @returns {Promise<Object>} - Result of the payment flow
    */
   const completePaymentFlow = useCallback(async (params) => {
@@ -376,23 +382,29 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
       
       // If we have a mismatch between intent type and deposit requirement, throw an error
       if (depositInfo.isDeposit && intentType !== 'payment_intent') {
-        const errorMessage = `
-          ⚠️ CONFIGURATION ERROR: Eveve is configured for no-show protection (setup_intent),
-          but this booking requires an immediate charge (payment_intent).
+        // By default treat as a warning.  Only throw if this is explicitly an
+        // Event booking with PAID addons which Eveve cannot handle.
+        const warnMessage = `
+          ⚠️ CONFIGURATION WARNING:
+          Eveve returned intent type "${intentType}" while a deposit charge is
+          required.  Amount: $${(depositInfo.amount / 100).toFixed(2)}.
           
-          The restaurant's Eveve configuration needs to be updated to support deposits
-          for addon bookings. Please contact Eveve support to update the restaurant's
-          deposit settings.
-          
-          Technical details:
-          - Intent type from Eveve: ${intentType}
-          - Deposit required: ${depositInfo.isDeposit}
-          - Amount: $${(depositInfo.amount / 100).toFixed(2)}
-          - Source: ${depositSource}
+          Source: ${depositSource}
         `;
-        
-        console.error(errorMessage);
-        throw new Error(errorMessage);
+        if (params.isEventWithPaidAddons) {
+          const errorMessage = warnMessage + `
+          
+          This appears to be an Event booking with paid addons, which is not
+          supported under the current Eveve configuration (setup_intent).
+          
+          Please contact Eveve support to enable deposit handling for Event
+          addons.`;
+          console.error(errorMessage);
+          throw new Error(errorMessage);
+        } else {
+          // Normal booking – log warning but continue.
+          console.warn(warnMessage + ' Proceeding with deposit flow.');
+        }
       }
       
       // Step 3: Process payment
