@@ -8,8 +8,9 @@ A frontend booking widget built with **React**, **Tailwind CSS**, and **Vite**, 
 
 - **React** – Component-based UI rendering
 - **Tailwind CSS** – Utility-first styling
+- **DaisyUI** – Themeable component/utility layer on top of Tailwind
 - **Vite** – Fast development server and build tool
-- **react-calendar** – Date picker library
+- **react-calendar** – Modern date-picker component
 - **date-fns** – For date formatting and utilities.
 - **Custom Hooks** – e.g., `useDebounce` for optimizing API calls.
 - **ESBuild** – Powered by Vite for fast bundling
@@ -20,8 +21,7 @@ A frontend booking widget built with **React**, **Tailwind CSS**, and **Vite**, 
 
 - [x] **React, Vite, Tailwind CSS Base:** Solid foundation for the widget.
 - [x] **Dynamic Restaurant Configuration:** Loads restaurant-specific settings, UI text (language strings), and operational parameters (min/max guests, time format, date format, etc.) using a `?est=UID` query parameter via `configLoader.js`.
-- [x] **Interactive Date Picker:** Allows users to select a booking date using `react-flatpickr`, with options for disabling past dates, configured by the dynamic configuration.
-- [x] **Interactive Date Picker:** Allows users to select a booking date using `react-calendar`, with options for disabling past dates, configured by the dynamic configuration.
+- [x] **Interactive Date Picker:** Uses `react-calendar` with disabled-past logic driven by dynamic configuration.
 - [x] **Modern Calendar Component:** Recently migrated from `react-flatpickr` to `react-calendar`, providing better performance, accessibility, and a more polished interface.
 - [x] **Guest Number Selection:** Users can easily increment or decrement the number of guests, constrained by `partyMin` and `partyMax` from the configuration.
 - [x] **Real-time Availability:** Fetches and displays available booking slots (shifts and specific times) from the Eveve API (`/web/day-avail`) based on selected date and guest count.
@@ -53,6 +53,30 @@ A frontend booking widget built with **React**, **Tailwind CSS**, and **Vite**, 
    npm run dev
    ```
 5. Open your browser to [http://localhost:5173/?est=testnza](http://localhost:5173/?est=testnza) (or replace `testnza` with another restaurant UID).
+
+### Theming
+
+The widget is theme-able at runtime and needs **zero rebuilds** to switch look-and-feel.
+
+* `?theme=` &nbsp;– sets the theme slug applied to the widget container.  
+* `&themeCss=` (optional) – absolute or relative URL to the stylesheet that defines the theme’s CSS variables. If omitted the loader defaults to `/themes/{theme}.css`.
+
+Quick examples  
+```
+# Load built-in Brand Roboto theme from /public/themes
+http://localhost:5173/?est=YOUR_EVEVE_UID&theme=brand-roboto
+
+# Load the same theme from a CDN or different folder
+http://localhost:5173/?est=YOUR_EVEVE_UID&theme=brand-roboto&themeCss=https://cdn.example.com/brand-roboto.css
+```
+
+For full details on variables, hooks, and customisation see **STYLING.md** (section “Brand ‘brand-roboto’ Theme — How to Use and Customise”).
+
+### Layout Notes
+
+* **Form container**: stretches to full width of its parent up to **max 1000 px**.  
+* **Calendar block**: centred and limited to **max 600 px**.  
+  Adjust these limits in `ReservationForm.jsx` (`max-w-[1000px]`, `max-w-[600px]`) if your design needs different break-points.
 
 ---
 

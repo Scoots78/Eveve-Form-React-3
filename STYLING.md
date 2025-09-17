@@ -189,3 +189,146 @@ Paste in your theme CSS and tweak alphas to your taste:
 ## Security Note
 
 This project intentionally allows any domain for 	hemeCss and accepts relative URLs for maximum flexibility. Only use trusted CSS sources in production environments.
+
+## Brand “brand-roboto” Theme — How to Use and Customise
+
+### Quick start
+
+| Scenario | URL Example |
+|---|---|
+|Auto-load CSS from **/themes** folder|`?theme=brand-roboto`|
+|Explicit CSS URL (local)|`?theme=brand-roboto&themeCss=/themes/brand-roboto.css`|
+|Explicit CSS URL (CDN)|`?theme=brand-roboto&themeCss=https://cdn.example.com/brand-roboto.css`|
+
+### What the theme does
+
+* Dark-blue canvas (`--b1 / --b2`) with white text (`--bc`)
+* Primary buttons are **white** with dark-blue text / border
+* Time buttons default white; selected time turns **green**
+* Accordion header hover uses a subtle lighter blue (maps to `hover:bg-base-300` via `--fallback-b3`)
+* Inputs get white backgrounds & dark borders
+* Calendar label/day-circle colours match the brand palette
+
+### Core selector & variables
+
+```css
+#eveve-widget[data-theme="brand-roboto"] {
+  /* Palette --------------------------------------------------------*/
+  --p: 208 23% 22%;
+  --b1: 208 23% 22%;
+  --b2: 208 23% 28%;
+  --b3: 208 23% 34%;      /* only used when wrapped with hsl() */
+  --fallback-b3: #364554; /* lighter hover tint */
+  --bc: 0 0% 100%;
+  --pc: 208 23% 22%;      /* dark-blue text on white buttons */
+
+  /* HEX shortcuts (optional) --------------------------------------*/
+  --p-color: #2C3A46;
+  --b2c:     #2C3A46;
+
+  /* Typography ----------------------------------------------------*/
+  --font-sans: 'Raleway', ui-sans-serif, system-ui, -apple-system,
+               "Segoe UI", Helvetica, Arial;
+}
+```
+
+### Primary button override (white buttons)
+
+```css
+#eveve-widget[data-theme="brand-roboto"] .btn-primary,
+#eveve-widget[data-theme="brand-roboto"] .bg-primary,
+#eveve-widget[data-theme="brand-roboto"] button.bg-primary {
+  background:#fff !important;
+  color:#2C3A46 !important;
+  border:1px solid #2C3A46 !important;
+}
+#eveve-widget[data-theme="brand-roboto"] .btn-primary:disabled,
+#eveve-widget[data-theme="brand-roboto"] button.bg-primary:disabled {
+  opacity:1 !important;                 /* keep text readable */
+}
+#eveve-widget[data-theme="brand-roboto"] .bg-primary .text-primary-content  {color:#2C3A46 !important;}
+#eveve-widget[data-theme="brand-roboto"] .bg-primary .text-primary-content\/70{color:rgba(44,58,70,.7)!important;}
+```
+
+### Time buttons & accordion hooks
+
+Components expose stable hooks so a theme can target them without touching JSX:
+
+* **Time buttons** – class `time-btn` + `data-selected="true|false"`
+* **Accordion header** – class `accordion-toggle`
+
+```css
+#eveve-widget[data-theme="brand-roboto"] {
+  --selected-time-bg:#22C55E;
+  --selected-time-text:#fff;
+  --selected-time-border:#1FAA53;
+  --accordion-hover:#364554;
+}
+
+/* Selected time */
+#eveve-widget[data-theme="brand-roboto"] .time-btn[data-selected="true"]{
+  background:var(--selected-time-bg)!important;
+  color:var(--selected-time-text)!important;
+  border:1px solid var(--selected-time-border)!important;
+}
+
+/* Accordion hover */
+#eveve-widget[data-theme="brand-roboto"] .accordion-toggle:hover{
+  background:var(--accordion-hover)!important;
+  border-color:var(--accordion-hover)!important;
+}
+```
+
+### Calendar tweaks
+
+```css
+/* Month label */
+#eveve-widget[data-theme="brand-roboto"]
+  .react-calendar__navigation__label__labelText{color:#ffffff!important;}
+
+/* Day circle hover/active */
+#eveve-widget[data-theme="brand-roboto"]
+  .react-calendar-custom .react-calendar__tile:enabled:hover abbr,
+#eveve-widget[data-theme="brand-roboto"]
+  .react-calendar-custom .react-calendar__tile:enabled:focus abbr,
+#eveve-widget[data-theme="brand-roboto"]
+  .react-calendar-custom .react-calendar__tile--active abbr{
+    background:#fff!important;
+    color:#2C3A46!important;
+    border:1px solid #2C3A46!important;
+}
+```
+
+### Changing the font
+
+```css
+/* 1. Import the font */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+/* 2. Update variable */
+#eveve-widget[data-theme="brand-roboto"]{
+  --font-sans:'Roboto',ui-sans-serif,system-ui,-apple-system,"Segoe UI",Helvetica,Arial;
+}
+```
+
+### Theme loader behaviour
+
+* `?theme=brand-roboto` → auto-injects `${basePath}themes/brand-roboto.css`
+* Add `&themeCss=` to override with any absolute/relative URL
+* `basePath` is derived from current pathname so sub-folders work out of the box
+
+### Troubleshooting (brand-roboto)
+
+|Issue|Fix|
+|---|---|
+|Accordion hover not visible|Ensure `--fallback-b3` matches `--accordion-hover`|
+|White button text unreadable|Check `.bg-primary .text-primary-content` overrides are present|
+|Unexpected white text globally|Avoid broad span/label colour rules – scope to headings only|
+
+### Adapting this theme for a new brand
+
+1. Copy **public/themes/brand-roboto.css** → `brand-yourbrand.css`
+2. Change selector to `#eveve-widget[data-theme="brand-yourbrand"]`
+3. Swap colour tokens (`--p`, `--b1/2`, `--accordion-hover`, selected-time vars)
+4. Update font import + `--font-sans`
+5. Load with `?theme=brand-yourbrand` (add `&themeCss=` if you host the CSS elsewhere)

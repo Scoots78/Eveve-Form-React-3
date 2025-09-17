@@ -16,21 +16,68 @@
         try {
           const params = new URLSearchParams(window.location.search);
           const theme = params.get("theme");
-          const themeCss = params.get("themeCss");
+          let themeCss = params.get("themeCss");
 
+          /* ------------------------------------------------------------------
+             Apply theme slug to the widget container
+          ------------------------------------------------------------------ */
           const widget = document.getElementById("eveve-widget");
           if (widget && theme) {
             widget.setAttribute("data-theme", theme);
           }
 
+          /* ------------------------------------------------------------------
+             Resolve basePath (e.g. '/testform-0-2/') from current pathname.
+             - Removes file segment if present
+             - Ensures trailing slash
+          ------------------------------------------------------------------ */
+          const pathParts = window.location.pathname.split("/");
+          if (pathParts[pathParts.length - 1].includes(".")) {
+            pathParts.pop(); // remove file like index.html
+          }
+          let basePath = pathParts.join("/");
+          if (!basePath.endsWith("/")) basePath += "/";
+
+          /* ------------------------------------------------------------------
+             Build final themeCss URL
+             • Absolute http/https → use as-is
+             • Starts with '/'    → prefix basePath if not already under it
+             • Relative           → resolve against basePath
+             • Not provided       → default to `${basePath}themes/${theme}.css`
+          ------------------------------------------------------------------ */
+          const isAbsUrl = (url) => /^https?:\/\//i.test(url);
+          const needsBasePrefix = (url) =>
+            url.startsWith("/") && !url.startsWith(basePath);
+
+          if (!themeCss && theme) {
+            themeCss = `${basePath}themes/${theme}.css`;
+          }
+
           if (themeCss) {
-            const link = document.createElement("link");
-            link.rel = "stylesheet";
-            link.href = themeCss; // allow http/https/relative
-            document.head.appendChild(link);
+            if (!isAbsUrl(themeCss)) {
+              if (themeCss.startsWith("/")) {
+                if (needsBasePrefix(themeCss)) {
+                  themeCss = basePath.replace(/\/$/, "") + themeCss;
+                }
+              } else {
+                // relative path
+                themeCss = basePath + themeCss.replace(/^\.\//, "");
+              }
+            }
+
+            /* Inject external CSS once */
+            if (!document.getElementById("external-theme-css")) {
+              const link = document.createElement("link");
+              link.rel = "stylesheet";
+              link.id = "external-theme-css";
+              link.href = themeCss;
+              document.head.appendChild(link);
+            }
           }
         } catch (err) {
+          /* eslint-disable no-console */
           console.error("[theme-loader]", err);
+          /* eslint-enable no-console */
         }
       })();
     </script>

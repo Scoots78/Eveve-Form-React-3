@@ -1068,7 +1068,7 @@ export default function ReservationForm() {
 
   if (isConfigLoading) {
     return (
-      <div className="p-6 max-w-xl mx-auto bg-base-100 shadow-xl rounded-lg space-y-6 text-center">
+      <div className="p-6 w-full max-w-[1000px] mx-auto bg-base-100 shadow-xl rounded-lg space-y-6 text-center">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary mx-auto"></div>
         <p className="text-xl text-primary mt-4">
           {appConfig?.lng?.loading || 'Loading configuration...'}
@@ -1079,7 +1079,7 @@ export default function ReservationForm() {
 
   if (configError) {
     return (
-      <div className="p-6 max-w-xl mx-auto bg-error/10 shadow-xl rounded-lg space-y-4 text-center border border-error">
+      <div className="p-6 w-full max-w-[1000px] mx-auto bg-error/10 shadow-xl rounded-lg space-y-4 text-center border border-error">
         <h2 className="text-2xl font-bold text-error">
           {appConfig?.lng?.errorB || 'Configuration Error'}
         </h2>
@@ -1093,7 +1093,7 @@ export default function ReservationForm() {
 
   // Render form only if config is loaded and no errors
   return (
-    <div className="p-6 max-w-xl mx-auto bg-base-100 shadow-xl rounded-lg space-y-6">
+    <div className="p-6 w-full max-w-[1000px] mx-auto bg-base-100 shadow-xl rounded-lg space-y-6">
       <h1 className="text-2xl font-bold text-center text-base-content">
         {appConfig?.lng?.makeBookingAtTitlePrefix || "Make a Booking at "}{appConfig.estFull}
       </h1>
@@ -1103,7 +1103,7 @@ export default function ReservationForm() {
           {/* Calendar – full width */}
           <div className="flex justify-center w-full">
             {/* Added wrapper to give calendar consistent styling */}
-            <div className="mt-6 p-4 rounded-lg shadow bg-base-100 border border-base-300">
+            <div className="mt-6 w-full max-w-[600px] p-4 rounded-lg shadow bg-base-100 border border-base-300">
               <ReactCalendarPicker
                 /* When selectedDate is null (initial load) show today in the
                    calendar control but keep our controlled value unset so the
@@ -1192,7 +1192,7 @@ export default function ReservationForm() {
                   <div key={currentShiftIdentifier} className="border border-base-300 rounded-lg shadow-sm bg-base-100 overflow-hidden">
                     <button
                       type="button"
-                      className="w-full p-4 text-left bg-base-200 hover:bg-base-300 focus:outline-none"
+                      className="accordion-toggle w-full p-4 text-left bg-base-200 hover:bg-base-300 focus:outline-none"
                       onClick={() => {
                         const newIdentifier = isExpanded ? null : currentShiftIdentifier;
                         setExpandedShiftIdentifier(newIdentifier);
@@ -1265,10 +1265,17 @@ export default function ReservationForm() {
                                 <button
                                   key={timeIndex}
                                   onClick={() => handleTimeSelection(shift, timeObj, index)} // Pass originalIndexInAvailabilityData
-                                  className={`px-3 py-1.5 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-colors
+                                  data-selected={
+                                    isSelectedShift &&
+                                    selectedShiftTime.selectedTime ===
+                                      (typeof timeObj === "object" ? timeObj.time : timeObj)
+                                      ? "true"
+                                      : "false"
+                                  }
+                                  className={`time-btn px-3 py-1.5 text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-colors
                                     ${isSelectedShift && selectedShiftTime.selectedTime === (typeof timeObj === 'object' ? timeObj.time : timeObj)
-                                      ? 'bg-success text-white ring-success' // Active selected time
-                                      : 'bg-success text-white hover:bg-success focus:ring-success' // Default
+                                      ? 'bg-success text-success-content ring-success' // Active selected time
+                                      : 'bg-primary text-primary-content hover:bg-primary focus:ring-primary' // Default
                                     }`}
                                 >
                                   {formatDecimalTime(typeof timeObj === 'object' ? timeObj.time : timeObj, appConfig?.timeFormat)}
@@ -1333,7 +1340,7 @@ export default function ReservationForm() {
                             <button
                               onClick={handleProceedToBooking}
                               disabled={proceedButtonState.disabled}
-                              className="px-6 py-3 bg-primary text-white text-lg font-semibold rounded-lg shadow-md hover:bg-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-75 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center"
+                              className="px-6 py-3 bg-primary text-primary-content text-lg font-semibold rounded-lg shadow-md hover:bg-primary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-75 transition-all duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center"
                             >
                               <span>{proceedButtonState.text}</span>
                               {selectedShiftTime?.selectedTime && selectedDate && guests && ( // Summary still shown if time selected
