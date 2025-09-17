@@ -22,6 +22,7 @@ export function useHoldBooking(baseUrl) {
    * @param {number} bookingData.time - Time in decimal format (e.g. 19.5 for 7:30 PM)
    * @param {string} [bookingData.addons] - Comma-separated addon string
    * @param {string} [bookingData.area] - Area UID or "any"
+   * @param {number|string} [bookingData.event] - Event ID when booking an event
    * @returns {Promise<Object>} - Hold response data
    */
   const holdBooking = async (bookingData) => {
@@ -47,6 +48,12 @@ export function useHoldBooking(baseUrl) {
       // Only include area if it's a specific UID (not "any" which is default)
       if (bookingData.area && bookingData.area !== "any") {
         url.searchParams.append("area", bookingData.area);
+      }
+
+      // Include event ID when present to correctly flag event bookings
+      if (bookingData.event !== undefined && bookingData.event !== null) {
+        console.log(`Including event id ${bookingData.event} in hold request`);
+        url.searchParams.append("event", bookingData.event);
       }
       
       console.log("Hold Request URL:", url.toString());

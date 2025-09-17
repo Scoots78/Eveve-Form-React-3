@@ -496,6 +496,23 @@ export default function ReservationForm() {
     console.log("Selected Time Object:", timeObject);
     console.log("Original index of shift in availability data:", shiftIndexInAvailabilityData);
 
+    // --------------------------------------------------------------
+    // Capture event ID (if any) from the time object or the shift.
+    // • Some Eveve responses place it on the individual time entry
+    //   (e.g. { time: 18.00, event: 1005 })
+    // • Others place it on the parent shift object.
+    // We normalise to a single `event` field stored alongside the
+    // selectedShiftTime so downstream logic (holdBooking) can include it.
+    // --------------------------------------------------------------
+    const eventId =
+      (typeof timeObject === 'object' && timeObject.event !== undefined)
+        ? timeObject.event
+        : (shift?.event !== undefined ? shift.event : undefined);
+
+    if (eventId !== undefined) {
+      console.log(`🗓️  Event ID captured for this booking: ${eventId}`);
+    }
+
     setSelectedShiftTime({
       ...shift, // Spread shift properties (like name, type, uid if present)
       selectedTime: actualTime, // Add the specific time selected
@@ -503,6 +520,7 @@ export default function ReservationForm() {
       addons: timeObject?.addons || shift?.addons || [], // These are the raw addons for this time/shift
       usage: timeObject?.usage !== undefined ? timeObject.usage : shift?.usage, // Usage policy for menus
       originalIndexInAvailabilityData: shiftIndexInAvailabilityData // Store original index
+      ,event: eventId // ← NEW: persist event id if present
     });
 
     // Extract addons and usage policy from the shift or specific time slot
@@ -753,6 +771,13 @@ export default function ReservationForm() {
       addons: formattedAddonsUid, // May be an empty string if no addons selected
       area: formattedArea,     // Formatted area ('' if none, 'any', or specific UID)
     };
+
+    // --------------------------------------------------------------
+    // Forward event ID (if present) so /web/hold knows it's an event
+    // --------------------------------------------------------------
+    if (selectedShiftTime?.event !== undefined) {
+      bookingDataForHold.event = selectedShiftTime.event;
+    }
 
     // Store booking data for display in the modal
     setBookingData({
