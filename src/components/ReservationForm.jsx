@@ -14,6 +14,11 @@ import { formatDecimalTime } from "../utils/time"; // Import the utility functio
 import { useDebounce } from "../hooks/useDebounce"; // Import the custom hook
 import AddonSelection from "./AddonSelection"; // Import the new component
 import SelectedAddonsSummary from "./SelectedAddonsSummary"; // Import the summary component
+// --- Event-availability helpers ---
+import {
+  getEventAvailableTimes,
+  filterEventTimes
+} from "../utils/eventAvailability"; // NEW – utility to constrain Event shift times
 import {
   formatSelectedAddonsForApi,
   formatAddonsForDisplay,
@@ -360,6 +365,18 @@ export default function ReservationForm() {
       ),
     [monthClosedDates]
   );
+
+  /* ------------------------------------------------------------------
+     Derive a flat, de-duplicated list of times that are actually
+     available for Event bookings.  We memoise this so the calculation
+     only re-runs when the underlying shifts array changes.
+  ------------------------------------------------------------------ */
+  const availableTimesForEvents = useMemo(() => {
+    if (availabilityData?.shifts) {
+      return getEventAvailableTimes(availabilityData.shifts);
+    }
+    return [];
+  }, [availabilityData?.shifts]);
 
   /* ------------------------------------------------------------------
      DEBUG: log whenever monthClosedDates or disabledDates change
@@ -1222,7 +1239,6 @@ export default function ReservationForm() {
                 // Determine if the currently selected time belongs to this shift
                 const isSelectedShift = selectedShiftTime && (selectedShiftTime.uid ? selectedShiftTime.uid === shift.uid : selectedShiftTime.originalIndexInAvailabilityData === index);
 
-
                 return (
                   <div key={currentShiftIdentifier} className="border border-base-300 rounded-lg shadow-sm bg-base-100 overflow-hidden">
                     <button
@@ -1288,15 +1304,24 @@ export default function ReservationForm() {
                           <div className="mt-3">
                             <p className="text-sm font-semibold text-base-content mb-2">{appConfig?.lng?.availableBookingTimesTitle || "Available Booking Times:"}</p>
                             <div className="flex flex-wrap gap-2">
-                              {/* Filter out negative times (blocked times) */}
-                                {shift.times
-                                  .filter(timeObj => {
-                                    // Extract the time value, whether it's a direct decimal or an object with a time property
-                                    const timeValue = typeof timeObj === 'object' ? timeObj.time : timeObj;
-                                    // Only include positive time values (available times)
-                                    return timeValue >= 0;
-                                  })
-                                  .map((timeObj, timeIndex) => (
+                              {/* Filter times based on shift type */}
+                              {shift.times
+                                .filter(timeObj => {
+                                  // Extract the time value, whether it's a direct decimal or an object with a time property
+                                  const timeValue = typeof timeObj === 'object' ? timeObj.time : timeObj;
+                                  
+                                  // First, filter out negative times (blocked times)
+                                  if (timeValue < 0) return false;
+                                  
+                                  // If this is an Event shift, filter by available times from non-Event shifts
+                                  if (shift.type === "Event") {
+                                    return availableTimesForEvents.includes(timeValue);
+                                  }
+                                  
+                                  // For non-Event shifts, just return true (keep all positive times)
+                                  return true;
+                                })
+                                .map((timeObj, timeIndex) => (
                                 <button
                                   key={timeIndex}
                                   onClick={() => handleTimeSelection(shift, timeObj, index)} // Pass originalIndexInAvailabilityData
