@@ -497,20 +497,28 @@ export default function ReservationForm() {
     console.log("Original index of shift in availability data:", shiftIndexInAvailabilityData);
 
     // --------------------------------------------------------------
-    // Capture event ID (if any) from the time object or the shift.
-    // • Some Eveve responses place it on the individual time entry
-    //   (e.g. { time: 18.00, event: 1005 })
-    // • Others place it on the parent shift object.
-    // We normalise to a single `event` field stored alongside the
-    // selectedShiftTime so downstream logic (holdBooking) can include it.
+    // Capture event ID for event bookings
     // --------------------------------------------------------------
-    const eventId =
-      (typeof timeObject === 'object' && timeObject.event !== undefined)
+    // Priority rules:
+    // 1. If this is an "Event" shift, the shift's UID **is** the event ID.
+    // 2. Otherwise look for explicit `event` on the time object.
+    // 3. Finally fall back to `shift.event` if provided.
+    // --------------------------------------------------------------
+    let eventId = undefined;
+
+    if (shift?.type === "Event" && shift?.uid !== undefined) {
+      // Rule 1: Event shift – use UID
+      eventId = shift.uid;
+      console.log(`🗓️  Event booking detected – using shift UID as event ID: ${eventId}`);
+    } else {
+      // Rule 2 & 3: explicit event fields
+      eventId = (typeof timeObject === "object" && timeObject.event !== undefined)
         ? timeObject.event
         : (shift?.event !== undefined ? shift.event : undefined);
 
-    if (eventId !== undefined) {
-      console.log(`🗓️  Event ID captured for this booking: ${eventId}`);
+      if (eventId !== undefined) {
+        console.log(`🗓️  Event ID found in availability data: ${eventId}`);
+      }
     }
 
     setSelectedShiftTime({
