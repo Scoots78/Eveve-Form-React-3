@@ -1,4 +1,6 @@
 import { useState } from 'react';
+// Normalise legacy vs. new `card` formats so downstream code sees a consistent shape
+import { normalizeHold } from '../../utils/holdNormalize';
 
 /**
  * Custom hook for holding a booking through the Eveve /web/hold API
@@ -70,10 +72,20 @@ export function useHoldBooking(baseUrl) {
       if (!data.ok) {
         throw new Error(data.message || "Hold request failed with API error");
       }
-      
-      // Store the successful hold data
-      setHoldData(data);
-      return data;
+
+      /* ---------------------------------------------------------------
+         Normalise hold data so callers don't need to handle both
+         legacy numeric `card` and object `{code,…}` formats.
+      --------------------------------------------------------------- */
+      const normalizedData = normalizeHold(data);
+      /* eslint-disable no-console */
+      console.log('[useHoldBooking] Original hold data:', data);
+      console.log('[useHoldBooking] Normalized hold data:', normalizedData);
+      /* eslint-enable no-console */
+
+      // Store the normalised hold data
+      setHoldData(normalizedData);
+      return normalizedData;
     } catch (err) {
       console.error("Error during hold request:", err);
       setError(err.message || "Failed to hold booking");

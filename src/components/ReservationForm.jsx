@@ -32,6 +32,8 @@ import {
 // Import calculateTotalAddonCost from chargeDetection.js
 import { calculateTotalAddonCost } from "../utils/chargeDetection";
 
+/*  normalizeHold is now executed inside useHoldBooking.
+    No additional normalization required in this component. */
 
 export default function ReservationForm() {
   const EFFECTIVE_CURRENCY_SYMBOL = '$'; // Hardcoded currency symbol
@@ -802,7 +804,7 @@ export default function ReservationForm() {
       setBookingState(prev => ({ ...prev, isHolding: true, holdError: null }));
       const holdResult = await holdBooking(bookingDataForHold);
       console.log("Hold Result:", holdResult);
-      
+
       // Open booking details modal after successful hold
       setIsBookingModalOpen(true);
     } catch (err) {
