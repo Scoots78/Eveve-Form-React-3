@@ -1,4 +1,6 @@
 import { useState } from 'react';
+// Normalise legacy vs. new `card` formats so downstream code sees a consistent shape
+import { normalizeHold } from '../../utils/holdNormalize';
 
 /**
  * Custom hook for holding a booking through the Eveve /web/hold API
@@ -22,6 +24,7 @@ export function useHoldBooking(baseUrl) {
    * @param {number} bookingData.time - Time in decimal format (e.g. 19.5 for 7:30 PM)
    * @param {string} [bookingData.addons] - Comma-separated addon string
    * @param {string} [bookingData.area] - Area UID or "any"
+   * @param {number|string} [bookingData.event] - Event ID when booking an event
    * @returns {Promise<Object>} - Hold response data
    */
   const holdBooking = async (bookingData) => {
@@ -48,6 +51,12 @@ export function useHoldBooking(baseUrl) {
       if (bookingData.area && bookingData.area !== "any") {
         url.searchParams.append("area", bookingData.area);
       }
+
+      // Include event ID when present to correctly flag event bookings
+      if (bookingData.event !== undefined && bookingData.event !== null) {
+        console.log(`Including event id ${bookingData.event} in hold request`);
+        url.searchParams.append("event", bookingData.event);
+      }
       
       console.log("Hold Request URL:", url.toString());
       
@@ -63,10 +72,20 @@ export function useHoldBooking(baseUrl) {
       if (!data.ok) {
         throw new Error(data.message || "Hold request failed with API error");
       }
-      
-      // Store the successful hold data
-      setHoldData(data);
-      return data;
+
+      /* ---------------------------------------------------------------
+         Normalise hold data so callers don't need to handle both
+         legacy numeric `card` and object `{code,…}` formats.
+      --------------------------------------------------------------- */
+      const normalizedData = normalizeHold(data);
+      /* eslint-disable no-console */
+      console.log('[useHoldBooking] Original hold data:', data);
+      console.log('[useHoldBooking] Normalized hold data:', normalizedData);
+      /* eslint-enable no-console */
+
+      // Store the normalised hold data
+      setHoldData(normalizedData);
+      return normalizedData;
     } catch (err) {
       console.error("Error during hold request:", err);
       setError(err.message || "Failed to hold booking");

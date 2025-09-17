@@ -32,6 +32,8 @@ import {
 // Import calculateTotalAddonCost from chargeDetection.js
 import { calculateTotalAddonCost } from "../utils/chargeDetection";
 
+/*  normalizeHold is now executed inside useHoldBooking.
+    No additional normalization required in this component. */
 
 export default function ReservationForm() {
   const EFFECTIVE_CURRENCY_SYMBOL = '$'; // Hardcoded currency symbol
@@ -496,6 +498,31 @@ export default function ReservationForm() {
     console.log("Selected Time Object:", timeObject);
     console.log("Original index of shift in availability data:", shiftIndexInAvailabilityData);
 
+    // --------------------------------------------------------------
+    // Capture event ID for event bookings
+    // --------------------------------------------------------------
+    // Priority rules:
+    // 1. If this is an "Event" shift, the shift's UID **is** the event ID.
+    // 2. Otherwise look for explicit `event` on the time object.
+    // 3. Finally fall back to `shift.event` if provided.
+    // --------------------------------------------------------------
+    let eventId = undefined;
+
+    if (shift?.type === "Event" && shift?.uid !== undefined) {
+      // Rule 1: Event shift – use UID
+      eventId = shift.uid;
+      console.log(`🗓️  Event booking detected – using shift UID as event ID: ${eventId}`);
+    } else {
+      // Rule 2 & 3: explicit event fields
+      eventId = (typeof timeObject === "object" && timeObject.event !== undefined)
+        ? timeObject.event
+        : (shift?.event !== undefined ? shift.event : undefined);
+
+      if (eventId !== undefined) {
+        console.log(`🗓️  Event ID found in availability data: ${eventId}`);
+      }
+    }
+
     setSelectedShiftTime({
       ...shift, // Spread shift properties (like name, type, uid if present)
       selectedTime: actualTime, // Add the specific time selected
@@ -503,6 +530,7 @@ export default function ReservationForm() {
       addons: timeObject?.addons || shift?.addons || [], // These are the raw addons for this time/shift
       usage: timeObject?.usage !== undefined ? timeObject.usage : shift?.usage, // Usage policy for menus
       originalIndexInAvailabilityData: shiftIndexInAvailabilityData // Store original index
+      ,event: eventId // ← NEW: persist event id if present
     });
 
     // Extract addons and usage policy from the shift or specific time slot
@@ -754,6 +782,13 @@ export default function ReservationForm() {
       area: formattedArea,     // Formatted area ('' if none, 'any', or specific UID)
     };
 
+    // --------------------------------------------------------------
+    // Forward event ID (if present) so /web/hold knows it's an event
+    // --------------------------------------------------------------
+    if (selectedShiftTime?.event !== undefined) {
+      bookingDataForHold.event = selectedShiftTime.event;
+    }
+
     // Store booking data for display in the modal
     setBookingData({
       ...bookingDataForHold,
@@ -769,7 +804,7 @@ export default function ReservationForm() {
       setBookingState(prev => ({ ...prev, isHolding: true, holdError: null }));
       const holdResult = await holdBooking(bookingDataForHold);
       console.log("Hold Result:", holdResult);
-      
+
       // Open booking details modal after successful hold
       setIsBookingModalOpen(true);
     } catch (err) {
@@ -1381,6 +1416,11 @@ export default function ReservationForm() {
                                   <div className="flex justify-between">
                                     <span className="font-mono">selectedArea:</span>
                                     <span className="font-mono">{selectedArea || 'null'}</span>
+                                  </div>
+                                  {/* NEW: display captured event id if any */}
+                                  <div className="flex justify-between">
+                                    <span className="font-mono">selectedShiftTime.event:</span>
+                                    <span className="font-mono">{selectedShiftTime?.event !== undefined ? selectedShiftTime.event : 'null'}</span>
                                   </div>
                                   <div className="flex justify-between">
                                     <span className="font-mono">proceedButtonState.text:</span>

@@ -117,5 +117,6 @@
   "optinLabel": "Keep me informed about news and offers",
   "requiredFieldError": "This field is required",
   "emailFormatError": "Please enter a valid email address",
-  "phoneFormatError": "Please enter a valid phone number"
+  "phoneFormatError": "Please enter a valid phone number",
+  "eventName": "Event name"
 }
