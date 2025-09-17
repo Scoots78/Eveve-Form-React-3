@@ -966,6 +966,15 @@ export default function BookingDetailsModal({
               <span className="font-medium">Area:</span> {bookingData.areaName}
             </div>
           )}
+          {/* Display Event name if this is an event booking */}
+          {selectedShiftTime?.type === 'Event' && selectedShiftTime?.name && (
+            <div className="col-span-2">
+              <span className="font-medium">
+                {appConfig?.lng?.eventName || "Event"}:
+              </span>{" "}
+              {selectedShiftTime.name}
+            </div>
+          )}
         </div>
         {/* Display selected addons if any, using the friendly names when possible */}
         {displayAddons && (
