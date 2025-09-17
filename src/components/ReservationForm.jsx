@@ -1407,6 +1407,11 @@ export default function ReservationForm() {
                                     <span className="font-mono">selectedArea:</span>
                                     <span className="font-mono">{selectedArea || 'null'}</span>
                                   </div>
+                                  {/* NEW: display captured event id if any */}
+                                  <div className="flex justify-between">
+                                    <span className="font-mono">selectedShiftTime.event:</span>
+                                    <span className="font-mono">{selectedShiftTime?.event !== undefined ? selectedShiftTime.event : 'null'}</span>
+                                  </div>
                                   <div className="flex justify-between">
                                     <span className="font-mono">proceedButtonState.text:</span>
                                     <span className="font-mono">"{proceedButtonState.text}"</span>
