@@ -970,7 +970,7 @@ export default function BookingDetailsModal({
           {selectedShiftTime?.type === 'Event' && selectedShiftTime?.name && (
             <div className="col-span-2">
               <span className="font-medium">
-                {appConfig?.lng?.eventName || "Event"}:
+                {appConfig?.lng?.eventName || "Event name"}:
               </span>{" "}
               {selectedShiftTime.name}
             </div>
