@@ -1068,7 +1068,7 @@ export default function ReservationForm() {
 
   if (isConfigLoading) {
     return (
-      <div className="p-6 max-w-xl mx-auto bg-base-100 shadow-xl rounded-lg space-y-6 text-center">
+      <div className="p-6 w-full max-w-[1000px] mx-auto bg-base-100 shadow-xl rounded-lg space-y-6 text-center">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary mx-auto"></div>
         <p className="text-xl text-primary mt-4">
           {appConfig?.lng?.loading || 'Loading configuration...'}
@@ -1079,7 +1079,7 @@ export default function ReservationForm() {
 
   if (configError) {
     return (
-      <div className="p-6 max-w-xl mx-auto bg-error/10 shadow-xl rounded-lg space-y-4 text-center border border-error">
+      <div className="p-6 w-full max-w-[1000px] mx-auto bg-error/10 shadow-xl rounded-lg space-y-4 text-center border border-error">
         <h2 className="text-2xl font-bold text-error">
           {appConfig?.lng?.errorB || 'Configuration Error'}
         </h2>
@@ -1093,7 +1093,7 @@ export default function ReservationForm() {
 
   // Render form only if config is loaded and no errors
   return (
-    <div className="p-6 max-w-xl mx-auto bg-base-100 shadow-xl rounded-lg space-y-6">
+    <div className="p-6 w-full max-w-[1000px] mx-auto bg-base-100 shadow-xl rounded-lg space-y-6">
       <h1 className="text-2xl font-bold text-center text-base-content">
         {appConfig?.lng?.makeBookingAtTitlePrefix || "Make a Booking at "}{appConfig.estFull}
       </h1>
@@ -1103,7 +1103,7 @@ export default function ReservationForm() {
           {/* Calendar – full width */}
           <div className="flex justify-center w-full">
             {/* Added wrapper to give calendar consistent styling */}
-            <div className="mt-6 p-4 rounded-lg shadow bg-base-100 border border-base-300">
+            <div className="mt-6 w-full max-w-[600px] p-4 rounded-lg shadow bg-base-100 border border-base-300">
               <ReactCalendarPicker
                 /* When selectedDate is null (initial load) show today in the
                    calendar control but keep our controlled value unset so the
