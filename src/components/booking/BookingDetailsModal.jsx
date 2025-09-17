@@ -154,13 +154,15 @@ export default function BookingDetailsModal({
       logWithTimestamp('Original holdData:', {
         uid: holdData.uid,
         card: holdData.card,
-        perHead: holdData.perHead
+        perHead: holdData.perHead,
+        total: holdData.card?.total
       });
       
       logWithTimestamp('Effective holdData (after shift.charge=2 override):', {
         uid: effectiveHoldData.uid,
         card: effectiveHoldData.card,
         perHead: effectiveHoldData.perHead,
+        total: effectiveHoldData.card?.total,
         isOverridden: holdData.card !== effectiveHoldData.card || holdData.perHead !== effectiveHoldData.perHead
       });
       
@@ -233,6 +235,7 @@ export default function BookingDetailsModal({
         uid: holdData.uid,
         card: holdData.card,
         perHead: holdData.perHead,
+        total: holdData.card?.total,
         effectiveCard: effectiveHoldData.card,
         effectivePerHead: effectiveHoldData.perHead
       });
@@ -660,6 +663,19 @@ export default function BookingDetailsModal({
             console.log('[BookingDetailsModal] Using preCalculatedDeposit object', preCalculatedDeposit);
             /* eslint-enable no-console */
           }
+        } else if (effectiveHoldData.card && effectiveHoldData.card.total) {
+          // For regular deposit bookings, use card.total from the hold response
+          preCalculatedDeposit = {
+            isDeposit: true,
+            isNoShow: false,
+            amount: effectiveHoldData.card.total,     // Use the total amount directly
+            currency: appConfig?.currency || 'USD'
+          };
+          if (debugMode) {
+            /* eslint-disable no-console */
+            console.log('[BookingDetailsModal] Using card.total for deposit amount', preCalculatedDeposit);
+            /* eslint-enable no-console */
+          }
         }
 
         // Determine if this is an Event booking with paid addons
@@ -843,6 +859,23 @@ export default function BookingDetailsModal({
     );
   }, [stripePublicKey, paymentProcessing, appConfig]);
 
+  // Helper function to get the deposit amount in cents
+  const getDepositAmountCents = () => {
+    // For regular deposit bookings, use card.total from the hold response if available
+    if (effectiveHoldData?.card?.total) {
+      return effectiveHoldData.card.total;
+    }
+    
+    // When shift.charge === 2, perHead already contains the TOTAL
+    const isShiftDeposit = selectedShiftTime?.charge === 2;
+    if (isShiftDeposit) {
+      return effectiveHoldData.perHead;
+    }
+    
+    // Fallback to calculating from perHead × covers
+    return effectiveHoldData.perHead * bookingData.covers;
+  };
+
   // Render content based on card requirement
   const renderCardSection = () => {
     if (!isCardRequired || currentStep !== STEPS.PAYMENT) return null;
@@ -860,62 +893,14 @@ export default function BookingDetailsModal({
           <p className="text-sm text-blue-800">
             {isDepositRequired ? (
               <>
-                {(() => {
-                  // When shift.charge === 2, perHead already contains the TOTAL
-                  const isShiftDeposit = selectedShiftTime?.charge === 2;
-                  const amountCents = isShiftDeposit
-                    ? effectiveHoldData.perHead
-                    : effectiveHoldData.perHead * bookingData.covers;
-
-                  // Debug
-                  if (debugMode) {
-                    /* eslint-disable no-console */
-                    console.log(
-                      `[BookingDetailsModal] renderCardSection – ` +
-                        (isShiftDeposit
-                          ? 'Using perHead as TOTAL (shift.charge=2)'
-                          : 'Using perHead × covers'),
-                      { amountCents }
-                    );
-                    /* eslint-enable no-console */
-                  }
-
-                  return (
-                    <>
-                      <span className="font-semibold">Deposit Required:</span>{' '}
-                      ${(amountCents / 100).toFixed(2)}
-                    </>
-                  );
-                })()}
+                <span className="font-semibold">Deposit Required:</span>{' '}
+                ${(getDepositAmountCents() / 100).toFixed(2)}
                 <span className="block mt-1 text-xs">Your card will be charged immediately.</span>
               </>
             ) : (
               <>
-                {(() => {
-                  const isShiftDeposit = selectedShiftTime?.charge === 2;
-                  const amountCents = isShiftDeposit
-                    ? effectiveHoldData.perHead
-                    : effectiveHoldData.perHead * bookingData.covers;
-
-                  if (debugMode) {
-                    /* eslint-disable no-console */
-                    console.log(
-                      `[BookingDetailsModal] renderCardSection – ` +
-                        (isShiftDeposit
-                          ? 'Using perHead as TOTAL (shift.charge=2)'
-                          : 'Using perHead × covers'),
-                      { amountCents }
-                    );
-                    /* eslint-enable no-console */
-                  }
-
-                  return (
-                    <>
-                      <span className="font-semibold">No-Show Protection:</span>{' '}
-                      ${(amountCents / 100).toFixed(2)}
-                    </>
-                  );
-                })()}
+                <span className="font-semibold">No-Show Protection:</span>{' '}
+                ${(getDepositAmountCents() / 100).toFixed(2)}
                 <span className="block mt-1 text-xs">Your card will only be charged in case of a no-show.</span>
               </>
             )}
@@ -1018,33 +1003,10 @@ export default function BookingDetailsModal({
           </div>
         )}
         {/* Display price if available in hold data */}
-        {effectiveHoldData && effectiveHoldData.perHead && (
+        {effectiveHoldData && (
           <div className="mt-2 text-sm font-bold">
-            {(() => {
-              const isShiftDeposit = selectedShiftTime?.charge === 2;
-              const amountCents = isShiftDeposit
-                ? effectiveHoldData.perHead
-                : effectiveHoldData.perHead * bookingData.covers;
-
-              if (debugMode) {
-                /* eslint-disable no-console */
-                console.log(
-                  `[BookingDetailsModal] renderBookingSummary – ` +
-                    (isShiftDeposit
-                      ? 'Using perHead as TOTAL (shift.charge=2)'
-                      : 'Using perHead × covers'),
-                  { amountCents }
-                );
-                /* eslint-enable no-console */
-              }
-
-              return (
-                <>
-                  <span>{appConfig?.lng?.bookingTotalPrice || 'Total Price'}:</span>{' '}
-                  ${(amountCents / 100).toFixed(2)}
-                </>
-              );
-            })()}
+            <span>{appConfig?.lng?.bookingTotalPrice || 'Total Price'}:</span>{' '}
+            ${(getDepositAmountCents() / 100).toFixed(2)}
           </div>
         )}
 
@@ -1112,6 +1074,10 @@ export default function BookingDetailsModal({
                   <span className="font-mono">{holdData?.perHead || 'null'}</span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="font-mono">holdData.card.total:</span>
+                  <span className="font-mono">{holdData?.card?.total || 'null'}</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="font-mono">holdData.uid:</span>
                   <span className="font-mono">{holdData?.uid || 'null'}</span>
                 </div>
@@ -1128,8 +1094,20 @@ export default function BookingDetailsModal({
                   <span className="font-mono">{effectiveHoldData?.perHead || 'null'}</span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="font-mono">effectiveHoldData.card.total:</span>
+                  <span className="font-mono">{effectiveHoldData?.card?.total || 'null'}</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="font-mono">effectiveHoldData.card:</span>
                   <span className="font-mono">{effectiveHoldData?.card || 'null'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-mono">Deposit Amount (cents):</span>
+                  <span className="font-mono">{getDepositAmountCents()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-mono">Deposit Amount ($):</span>
+                  <span className="font-mono">${(getDepositAmountCents() / 100).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-mono">isOverridden:</span>
