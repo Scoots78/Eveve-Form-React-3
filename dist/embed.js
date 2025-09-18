@@ -22,15 +22,20 @@
   const scriptUrl = scriptElement.src;
   const scriptBasePath = scriptUrl.substring(0, scriptUrl.lastIndexOf('/') + 1);
   
+  // Detect if we're running in development mode
+  const isDevelopment = scriptUrl.includes('localhost:') || scriptUrl.includes('127.0.0.1:');
+  
   // Configuration - all paths are relative to the script's location
   const CONFIG = {
     basePath: scriptBasePath,
-    cssPath: 'assets/index-D6KS7z4e.css',
-    jsPath: 'assets/index-Bf_GMni7.js',
+    // Use different paths for development vs production
+    cssPath: isDevelopment ? null : 'assets/index-D6KS7z4e.css', // Vite injects CSS in dev
+    jsPath: isDevelopment ? 'src/main.jsx' : 'assets/index-Bf_GMni7.js', // Load module entry in dev
     themesPath: 'themes/',
     defaultTheme: 'light',
     defaultSelector: '[data-eveve-widget], .eveve-widget, #eveve-booking',
-    defaultContainerId: 'eveve-widget'
+    defaultContainerId: 'eveve-widget',
+    isDevelopment: isDevelopment
   };
 
   // Utility functions
@@ -39,6 +44,10 @@
     loadScript: function(src, callback) {
       const script = document.createElement('script');
       script.async = true;
+      // In development we must load the Vite entry as an ES module
+      if (CONFIG.isDevelopment) {
+        script.type = 'module';
+      }
       script.src = src;
       script.onload = callback;
       script.onerror = function() {
@@ -177,16 +186,6 @@
       return;
     }
 
-    // Create the widget container with proper theme
-    const widgetContainer = document.createElement('div');
-    widgetContainer.id = 'eveve-widget';
-    widgetContainer.setAttribute('data-theme', config.theme);
-    
-    // Create the root element for React
-    const rootElement = document.createElement('div');
-    rootElement.id = 'root';
-    widgetContainer.appendChild(rootElement);
-
     // Build the query string for the widget
     const queryParams = new URLSearchParams();
     queryParams.append('est', config.restaurant);
@@ -242,10 +241,22 @@
       }
     })();
 
-    // Ensure CSS is loaded (once)
-    const cssUrl = utils.getAbsoluteUrl(CONFIG.cssPath);
-    if (!document.querySelector(`link[href="${cssUrl}"]`)) {
-      utils.loadStylesheet(cssUrl);
+    // Create the widget container with proper theme
+    const widgetContainer = document.createElement('div');
+    widgetContainer.id = 'eveve-widget';
+    widgetContainer.setAttribute('data-theme', config.theme);
+    
+    // Create the root element for React
+    const rootElement = document.createElement('div');
+    rootElement.id = 'root';
+    widgetContainer.appendChild(rootElement);
+
+    // Ensure CSS is loaded (once) - only in production mode
+    if (CONFIG.cssPath) {
+      const cssUrl = utils.getAbsoluteUrl(CONFIG.cssPath);
+      if (!document.querySelector(`link[href="${cssUrl}"]`)) {
+        utils.loadStylesheet(cssUrl);
+      }
     }
 
     // Load theme CSS if specified and not already loaded
