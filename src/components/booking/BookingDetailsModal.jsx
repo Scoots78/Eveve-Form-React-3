@@ -288,6 +288,20 @@ export default function BookingDetailsModal({
     }
   }, [isOpen, holdData, effectiveHoldData, resetStripePayment, STEPS.PERSONAL_DETAILS]);
 
+  /* ------------------------------------------------------------------
+     DEBUG: Track cardState changes to verify error lifecycle
+     ------------------------------------------------------------------ */
+  useEffect(() => {
+    /* eslint-disable no-console */
+    console.log('🔍 [DEBUG] cardState changed:', {
+      error: cardState.error,
+      complete: cardState.complete,
+      empty: cardState.empty,
+      brand: cardState.brand
+    });
+    /* eslint-enable  no-console */
+  }, [cardState]);
+
   // Monitor success prop changes from parent
   useEffect(() => {
     if (success && paymentProcessing) {
