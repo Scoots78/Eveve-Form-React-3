@@ -21,10 +21,6 @@
   
   const scriptUrl = scriptElement.src;
   const scriptBasePath = scriptUrl.substring(0, scriptUrl.lastIndexOf('/') + 1);
-  
-  // Detect if we're running in development mode
-  const isDevelopment = scriptUrl.includes('localhost:') || scriptUrl.includes('127.0.0.1:');
-  
   // Configuration - all paths are relative to the script's location
   const CONFIG = {
     basePath: scriptBasePath,
@@ -34,8 +30,7 @@
     themesPath: 'themes/',
     defaultTheme: 'light',
     defaultSelector: '[data-eveve-widget], .eveve-widget, #eveve-booking',
-    defaultContainerId: 'eveve-widget',
-    isDevelopment: isDevelopment
+    defaultContainerId: 'eveve-widget'
   };
 
   // Utility functions
@@ -140,107 +135,6 @@
         <div class="eveve-widget-error-message">${message}</div>
       `;
       return errorEl;
-    },
-    
-    // Create an iframe for development mode with postMessage communication
-    createDevelopmentIframe: function(container, config) {
-      // Create an iframe to load the full development version
-      const iframe = document.createElement('iframe');
-      iframe.style.width = '100%';
-      iframe.style.height = '700px'; // Default height
-      iframe.style.border = 'none';
-      iframe.style.overflow = 'hidden';
-      iframe.id = `${container.id}-iframe`;
-      
-      // Build the URL with all the parameters
-      const baseUrl = utils.getAbsoluteUrl('');
-      const queryParams = new URLSearchParams();
-      queryParams.append('est', config.restaurant);
-      if (config.theme) queryParams.append('theme', config.theme);
-      if (config.themeCss) queryParams.append('themeCss', config.themeCss);
-      if (config.lang) queryParams.append('lang', config.lang);
-      if (config.defaultGuests) queryParams.append('guests', config.defaultGuests);
-      if (config.defaultDate) queryParams.append('date', config.defaultDate);
-      if (config.debug) queryParams.append('debug', 'true');
-      
-      iframe.src = `${baseUrl}?${queryParams.toString()}`;
-      
-      // Clear container and add iframe
-      container.innerHTML = '';
-      container.appendChild(iframe);
-      
-      // Set up communication between parent and iframe
-      window.addEventListener('message', function(event) {
-        // Only accept messages from our iframe
-        if (event.source === iframe.contentWindow) {
-          // Handle height adjustments
-          if (event.data && event.data.type === 'resize') {
-            iframe.style.height = `${event.data.height}px`;
-          }
-          
-          // Forward booking events to parent document
-          if (event.data && event.data.type === 'booking-event') {
-            // Create and dispatch a custom event on the parent document
-            const customEvent = new CustomEvent(`eveve-${event.data.eventName}`, {
-              detail: event.data.detail,
-              bubbles: true
-            });
-            container.dispatchEvent(customEvent);
-            
-            // Also log for debugging
-            console.log(`[Eveve Widget] Event forwarded: eveve-${event.data.eventName}`, event.data.detail);
-          }
-        }
-      });
-      
-      // Inject a script into the iframe to capture and forward events
-      iframe.addEventListener('load', function() {
-        try {
-          // Only inject if same origin (for local development)
-          if (iframe.contentWindow.location.origin === window.location.origin) {
-            const script = document.createElement('script');
-            script.textContent = `
-              // Capture booking events and forward to parent
-              document.addEventListener('booking-success', function(e) {
-                window.parent.postMessage({
-                  type: 'booking-event',
-                  eventName: 'booking-success',
-                  detail: e.detail
-                }, '*');
-              });
-              
-              document.addEventListener('booking-error', function(e) {
-                window.parent.postMessage({
-                  type: 'booking-event',
-                  eventName: 'booking-error',
-                  detail: e.detail
-                }, '*');
-              });
-              
-              // Send height updates to parent
-              const sendHeight = function() {
-                const height = document.body.scrollHeight;
-                window.parent.postMessage({
-                  type: 'resize',
-                  height: height
-                }, '*');
-              };
-              
-              // Send height periodically and on window resize
-              window.addEventListener('resize', sendHeight);
-              setInterval(sendHeight, 500);
-              sendHeight();
-            `;
-            iframe.contentDocument.head.appendChild(script);
-          }
-        } catch (e) {
-          // Cross-origin restrictions may prevent this, which is fine
-          console.log('[Eveve Widget] Cross-origin iframe - event forwarding disabled');
-        }
-      });
-      
-      console.log(`[Eveve Widget] Development mode: Loading widget in iframe from ${iframe.src}`);
-      return iframe;
     }
   };
 
@@ -337,12 +231,6 @@
         window.history.replaceState(null, '', newUrl);
       }
     })();
-
-    // Handle development mode differently - use iframe approach
-    if (CONFIG.isDevelopment) {
-      utils.createDevelopmentIframe(container, config);
-      return;
-    }
 
     // PRODUCTION MODE - Direct embedding approach
     // Create the widget container with proper theme

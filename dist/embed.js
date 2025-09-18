@@ -21,21 +21,16 @@
   
   const scriptUrl = scriptElement.src;
   const scriptBasePath = scriptUrl.substring(0, scriptUrl.lastIndexOf('/') + 1);
-  
-  // Detect if we're running in development mode
-  const isDevelopment = scriptUrl.includes('localhost:') || scriptUrl.includes('127.0.0.1:');
-  
   // Configuration - all paths are relative to the script's location
   const CONFIG = {
     basePath: scriptBasePath,
     // Use different paths for development vs production
-    cssPath: isDevelopment ? null : 'assets/index-D6KS7z4e.css', // Vite injects CSS in dev
-    jsPath: isDevelopment ? 'src/main.jsx' : 'assets/index-Bf_GMni7.js', // Load module entry in dev
+    cssPath: 'assets/index-D6KS7z4e.css',
+    jsPath: 'assets/index-Bf_GMni7.js',
     themesPath: 'themes/',
     defaultTheme: 'light',
     defaultSelector: '[data-eveve-widget], .eveve-widget, #eveve-booking',
-    defaultContainerId: 'eveve-widget',
-    isDevelopment: isDevelopment
+    defaultContainerId: 'eveve-widget'
   };
 
   // Utility functions
@@ -44,10 +39,6 @@
     loadScript: function(src, callback) {
       const script = document.createElement('script');
       script.async = true;
-      // In development we must load the Vite entry as an ES module
-      if (CONFIG.isDevelopment) {
-        script.type = 'module';
-      }
       script.src = src;
       script.onload = callback;
       script.onerror = function() {
@@ -241,6 +232,7 @@
       }
     })();
 
+    // PRODUCTION MODE - Direct embedding approach
     // Create the widget container with proper theme
     const widgetContainer = document.createElement('div');
     widgetContainer.id = 'eveve-widget';
@@ -251,12 +243,10 @@
     rootElement.id = 'root';
     widgetContainer.appendChild(rootElement);
 
-    // Ensure CSS is loaded (once) - only in production mode
-    if (CONFIG.cssPath) {
-      const cssUrl = utils.getAbsoluteUrl(CONFIG.cssPath);
-      if (!document.querySelector(`link[href="${cssUrl}"]`)) {
-        utils.loadStylesheet(cssUrl);
-      }
+    // Ensure CSS is loaded (once)
+    const cssUrl = utils.getAbsoluteUrl(CONFIG.cssPath);
+    if (!document.querySelector(`link[href="${cssUrl}"]`)) {
+      utils.loadStylesheet(cssUrl);
     }
 
     // Load theme CSS if specified and not already loaded
