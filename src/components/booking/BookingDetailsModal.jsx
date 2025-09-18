@@ -1054,6 +1054,15 @@ export default function BookingDetailsModal({
           </div>
         )}
 
+        {/* Payment type information for card-required bookings */}
+        {isCardRequired && (
+          <div className="mt-1 text-xs text-blue-700">
+            {isDepositRequired
+              ? "Your card will be charged immediately."
+              : getNoShowProtectionMessage()}
+          </div>
+        )}
+
         {/* Debug Mode Information for Booking Summary */}
         {debugMode && (
           <div className="mt-4 p-3 border-2 border-blue-400 rounded-lg bg-blue-50">
