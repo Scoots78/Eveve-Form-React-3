@@ -1046,8 +1046,12 @@ export default function BookingDetailsModal({
             <div className="pl-2">{displayAddons}</div>
           </div>
         )}
-        {/* Display price if available in hold data */}
+        {/* Display price only when a charge will actually be taken (deposit or other),
+            NOT when card == 1 (no-show protection) */}
         {effectiveHoldData && (
+          /* show when: (no card required) OR (deposit-type card 2) OR (future card >2) */
+          (!isCardRequired || effectiveHoldData.card === 2 || effectiveHoldData.card > 2)
+        ) && (
           <div className="mt-2 text-sm font-bold">
             <span>{appConfig?.lng?.bookingTotalPrice || 'Total Price'}:</span>{' '}
             ${(getDepositAmountCents() / 100).toFixed(2)}
