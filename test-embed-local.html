@@ -87,11 +87,32 @@
         • data-restaurant: <code>TestNZB</code><br>
         • data-theme: <code>cave-arrowtown</code><br>
         • data-debug: <code>true</code>
+        <br><br>
+        <strong>Event Log:</strong>
+        <ul id="event-log" style="margin-top:8px;"></ul>
     </div>
     
     <script>
         // Display current URL parameters
         document.getElementById('url-params').textContent = window.location.search;
+
+        // Helper to log events to the debug panel
+        const logEvent = (type, detail) => {
+            const ul = document.getElementById('event-log');
+            const li = document.createElement('li');
+            const timestamp = new Date().toLocaleTimeString();
+            li.textContent = `${timestamp} – ${type}: ${JSON.stringify(detail)}`;
+            ul.appendChild(li);
+        };
+
+        // Listen for forwarded events from the widget
+        document.addEventListener('eveve-booking-success', (e) => {
+            logEvent('booking-success', e.detail);
+        });
+
+        document.addEventListener('eveve-booking-error', (e) => {
+            logEvent('booking-error', e.detail);
+        });
     </script>
     
     <!-- Eveve Booking Widget Script (local path) -->
