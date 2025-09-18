@@ -3,19 +3,31 @@
  * Version 1.0.0
  * 
  * This script allows easy embedding of the Eveve booking widget into any website.
- * Simply add a div with id="eveve-booking" and the necessary data attributes.
  * 
- * Example:
- * <div id="eveve-booking" data-restaurant="123" data-theme="brand-roboto"></div>
- * <script src="https://yourdomain.com/form1-0-0/embed.js"></script>
+ * Simple usage:
+ * 1. Add this script to your page:
+ *    <script src="https://yourdomain.com/form1-0-0/embed.js"></script>
+ * 
+ * 2. Add a container div anywhere on your page:
+ *    <div id="eveve-booking" data-restaurant="123" data-theme="brand-roboto"></div>
  */
 
 (function() {
-  // Configuration
+  // Get the script's own URL to determine base path
+  const scriptElement = document.currentScript || (function() {
+    const scripts = document.getElementsByTagName('script');
+    return scripts[scripts.length - 1];
+  })();
+  
+  const scriptUrl = scriptElement.src;
+  const scriptBasePath = scriptUrl.substring(0, scriptUrl.lastIndexOf('/') + 1);
+  
+  // Configuration - all paths are relative to the script's location
   const CONFIG = {
-    basePath: '/form1-0-0/',
-    cssPath: '/form1-0-0/assets/index-D6KS7z4e.css',
-    jsPath: '/form1-0-0/assets/index-Bf_GMni7.js',
+    basePath: scriptBasePath,
+    cssPath: 'assets/index-D6KS7z4e.css',
+    jsPath: 'assets/index-Bf_GMni7.js',
+    themesPath: 'themes/',
     defaultTheme: 'light',
     defaultSelector: '[data-eveve-widget], .eveve-widget, #eveve-booking',
     defaultContainerId: 'eveve-widget'
@@ -44,23 +56,15 @@
       document.head.appendChild(link);
     },
 
-    // Get absolute URL from relative path
+    // Get absolute URL from relative path (relative to script location)
     getAbsoluteUrl: function(path) {
       // If already absolute, return as is
       if (/^https?:\/\//i.test(path)) {
         return path;
       }
-
-      // If path starts with /, assume it's from the domain root
-      if (path.startsWith('/')) {
-        const origin = window.location.origin;
-        return `${origin}${path}`;
-      }
-
+      
       // Otherwise, resolve against the script's base URL
-      const scriptUrl = document.currentScript.src;
-      const baseUrl = scriptUrl.substring(0, scriptUrl.lastIndexOf('/') + 1);
-      return `${baseUrl}${path}`;
+      return `${CONFIG.basePath}${path}`;
     },
 
     // Create a loading indicator
@@ -175,10 +179,9 @@
 
     // Create the widget container with proper theme
     const widgetContainer = document.createElement('div');
-    widgetContainer.id = container.id + '-inner';
-    widgetContainer.className = 'eveve-widget-container';
-    widgetContainer.dataset.theme = config.theme;
-
+    widgetContainer.id = 'eveve-widget';
+    widgetContainer.setAttribute('data-theme', config.theme);
+    
     // Create the root element for React
     const rootElement = document.createElement('div');
     rootElement.id = 'root';
@@ -195,30 +198,31 @@
     if (config.defaultDate) queryParams.append('date', config.defaultDate);
     if (config.debug) queryParams.append('debug', 'true');
 
-    // Store the query string in a data attribute for the React app to use
-    widgetContainer.dataset.queryParams = queryParams.toString();
-
     // Ensure CSS is loaded (once)
-    if (!document.querySelector(`link[href="${utils.getAbsoluteUrl(CONFIG.cssPath)}"]`)) {
-      utils.loadStylesheet(utils.getAbsoluteUrl(CONFIG.cssPath));
+    const cssUrl = utils.getAbsoluteUrl(CONFIG.cssPath);
+    if (!document.querySelector(`link[href="${cssUrl}"]`)) {
+      utils.loadStylesheet(cssUrl);
     }
 
     // Load theme CSS if specified and not already loaded
     if (config.theme && !config.themeCss) {
-      const themeCssPath = `${CONFIG.basePath}themes/${config.theme}.css`;
-      if (!document.querySelector(`link[href="${utils.getAbsoluteUrl(themeCssPath)}"]`)) {
-        utils.loadStylesheet(utils.getAbsoluteUrl(themeCssPath));
+      const themeCssPath = `${CONFIG.themesPath}${config.theme}.css`;
+      const themeCssUrl = utils.getAbsoluteUrl(themeCssPath);
+      if (!document.querySelector(`link[href="${themeCssUrl}"]`)) {
+        utils.loadStylesheet(themeCssUrl);
       }
     } else if (config.themeCss) {
-      if (!document.querySelector(`link[href="${utils.getAbsoluteUrl(config.themeCss)}"]`)) {
-        utils.loadStylesheet(utils.getAbsoluteUrl(config.themeCss));
+      // If themeCss is a relative URL, resolve it against the script base
+      const themeCssUrl = utils.getAbsoluteUrl(config.themeCss);
+      if (!document.querySelector(`link[href="${themeCssUrl}"]`)) {
+        utils.loadStylesheet(themeCssUrl);
       }
     }
 
     // Add styles for the container
     const containerStyles = document.createElement('style');
     containerStyles.textContent = `
-      .eveve-widget-container {
+      #${container.id} {
         width: 100%;
         max-width: 100%;
         margin: 0 auto;
@@ -232,7 +236,8 @@
     container.appendChild(widgetContainer);
 
     // Load the widget script
-    utils.loadScript(utils.getAbsoluteUrl(CONFIG.jsPath), function(error) {
+    const jsUrl = utils.getAbsoluteUrl(CONFIG.jsPath);
+    utils.loadScript(jsUrl, function(error) {
       if (error) {
         container.innerHTML = '';
         container.appendChild(utils.createErrorMessage(

@@ -47,12 +47,31 @@
             margin-bottom: 24px;
             font-size: 14px;
         }
+        .tip {
+            background-color: #ecfdf5;
+            border-left: 4px solid #10b981;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+        .highlight {
+            background-color: #f0f9ff;
+            border-left: 4px solid #3b82f6;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+        }
     </style>
 </head>
 <body>
     <h1>Eveve Booking Widget - Basic Example</h1>
     
     <p>This page demonstrates the simplest way to embed the Eveve booking widget into your website.</p>
+    
+    <div class="highlight">
+        <strong>Zero Installation Required!</strong> You don't need to download or host any files on your server. 
+        Just add <strong>one script tag</strong> to your website and the widget will load everything it needs 
+        directly from our servers.
+    </div>
     
     <div class="note">
         <strong>Note:</strong> Replace <code>123</code> with your actual restaurant ID provided by Eveve.
@@ -61,11 +80,16 @@
     <h2>Example Code</h2>
     <p>Copy and paste this code into your website where you want the booking widget to appear:</p>
     
-    <pre><code>&lt;!-- Eveve Booking Widget Container --&gt;
+    <pre><code>&lt;!-- 1. Add a container div where you want the widget to appear --&gt;
 &lt;div id="eveve-booking" data-restaurant="123"&gt;&lt;/div&gt;
 
-&lt;!-- Eveve Booking Widget Script --&gt;
-&lt;script src="https://yourdomain.com/form1-0-0/embed.js"&gt;&lt;/script&gt;</code></pre>
+&lt;!-- 2. Add this single script tag (preferably just before &lt;/body&gt;) --&gt;
+&lt;script src="https://booking.eveve.com/form1-0-0/embed.js"&gt;&lt;/script&gt;</code></pre>
+    
+    <div class="tip">
+        <strong>That's it!</strong> The script automatically loads all required CSS, JavaScript, and theme files 
+        from our servers. You don't need to upload or host any files yourself.
+    </div>
     
     <h2>Live Example</h2>
     <p>Below is the working widget embedded in this page:</p>
@@ -73,10 +97,16 @@
     <div class="container">
         <!-- Eveve Booking Widget Container -->
         <div id="eveve-booking" data-restaurant="123"></div>
-        
-        <!-- Eveve Booking Widget Script -->
-        <script src="/form1-0-0/embed.js"></script>
     </div>
+    
+    <h2>How It Works</h2>
+    <p>When you add the script to your page:</p>
+    <ol>
+        <li>The script automatically finds all widget containers on your page</li>
+        <li>It loads all required CSS, JavaScript, and theme files from our servers</li>
+        <li>The widget appears in the container div you specified</li>
+        <li>All booking data is securely processed through our servers</li>
+    </ol>
     
     <h2>Additional Options</h2>
     <p>You can customize the widget by adding data attributes to the container:</p>
@@ -98,5 +128,8 @@
         <li><code>data-lang</code>: Language code (default: "en")</li>
         <li><code>data-debug</code>: Enable debug mode ("true" or "false")</li>
     </ul>
+    
+    <!-- Eveve Booking Widget Script -->
+    <script src="/form1-0-0/embed.js"></script>
 </body>
 </html>
