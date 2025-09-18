@@ -861,8 +861,16 @@ export default function BookingDetailsModal({
 
   // Helper function to get the deposit amount in cents
   const getDepositAmountCents = () => {
-    // For regular deposit bookings, use card.total from the hold response if available
-    if (effectiveHoldData?.card?.total) {
+    /* ------------------------------------------------------------
+       1) Regular deposit bookings return `card` as an OBJECT:
+          { code: 1|2, perHead: <cents>, total: <cents>, … }
+          Safely return `total` when present.
+    ------------------------------------------------------------ */
+    if (
+      effectiveHoldData?.card &&
+      typeof effectiveHoldData.card === "object" &&
+      typeof effectiveHoldData.card.total === "number"
+    ) {
       return effectiveHoldData.card.total;
     }
     
@@ -872,8 +880,16 @@ export default function BookingDetailsModal({
       return effectiveHoldData.perHead;
     }
     
-    // Fallback to calculating from perHead × covers
-    return effectiveHoldData.perHead * bookingData.covers;
+    /* ------------------------------------------------------------
+       2) Regular bookings where `card` is a NUMBER (1 or 2):
+          use root-level perHead (if defined) × covers
+    ------------------------------------------------------------ */
+    if (typeof effectiveHoldData.perHead === "number") {
+      return effectiveHoldData.perHead * (bookingData?.covers || 0);
+    }
+
+    // Graceful fallback – avoid undefined errors
+    return 0;
   };
 
   // Render content based on card requirement
