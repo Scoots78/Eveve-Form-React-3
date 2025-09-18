@@ -110,6 +110,7 @@
   "cardDetailsTitle": "Card Details for No-Show Protection",
   "cardDetailsLabel": "Card Details",
   "cardRequiredError": "Please complete your card details",
+  "noShowProtectionMessage": "A credit card is required to secure your reservation - your card will NOT be charged at this stage. A {{perHead}} per person no-show fee applies if we are not informed of changes to your group size, or if you don't show up for your booking.",
 
   "allergiesYes": "Yes, I have dietary requirements",
   "allergiesNo": "No dietary requirements",

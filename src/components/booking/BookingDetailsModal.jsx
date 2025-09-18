@@ -905,6 +905,23 @@ export default function BookingDetailsModal({
     return 0;
   };
 
+  // Helper function to format the perHead amount for display
+  const formatPerHeadAmount = () => {
+    if (!effectiveHoldData || typeof effectiveHoldData.perHead !== "number") {
+      return "$0.00";
+    }
+    return `$${(effectiveHoldData.perHead / 100).toFixed(2)}`;
+  };
+
+  // Helper function to replace placeholders in the noShowProtectionMessage
+  const getNoShowProtectionMessage = () => {
+    let message = appConfig?.lng?.noShowProtectionMessage || 
+      "A credit card is required to secure your reservation - your card will NOT be charged at this stage. A {{perHead}} per person no-show fee applies if we are not informed of changes to your group size, or if you don't show up for your booking.";
+    
+    // Replace the {{perHead}} placeholder with the actual formatted amount
+    return message.replace("{{perHead}}", formatPerHeadAmount());
+  };
+
   // Render content based on card requirement
   const renderCardSection = () => {
     if (!isCardRequired || currentStep !== STEPS.PAYMENT) return null;
@@ -928,9 +945,7 @@ export default function BookingDetailsModal({
               </>
             ) : (
               <>
-                <span className="font-semibold">No-Show Protection:</span>{' '}
-                ${(getDepositAmountCents() / 100).toFixed(2)}
-                <span className="block mt-1 text-xs">Your card will only be charged in case of a no-show.</span>
+                {getNoShowProtectionMessage()}
               </>
             )}
           </p>
