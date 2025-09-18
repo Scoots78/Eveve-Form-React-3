@@ -255,12 +255,23 @@ export default function BookingDetailsModal({
       });
       setValidationErrors({});
       setFormTouched(false);
-      setCardState({
+      /*
+       * IMPORTANT:
+       * ----------
+       * Do NOT blindly clear `cardState.error` here. If the user just attempted
+       * a payment and it failed (e.g. “Your card was declined”) we want that
+       * error message to remain visible when the modal refreshes so the guest
+       * understands what went wrong.
+       *
+       * We therefore preserve any existing `error` value that might already be
+       * in state. All other card fields can safely reset.
+       */
+      setCardState(prev => ({
         complete: false,
-        error: null,
+        error: prev.error,   // Preserve previously-captured payment error
         empty: true,
         brand: null
-      });
+      }));
       setPaymentProcessing(false);
       setStripePublicKey(null);
       setLocalSuccess(false);
