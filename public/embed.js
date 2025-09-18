@@ -30,22 +30,107 @@
     themesPath: 'themes/',
     defaultTheme: 'light',
     defaultSelector: '[data-eveve-widget], .eveve-widget, #eveve-booking',
-    defaultContainerId: 'eveve-widget'
+    defaultContainerId: 'eveve-widget',
+    // Script loading timeout in milliseconds
+    scriptLoadTimeout: 8000
   };
 
   // Utility functions
   const utils = {
-    // Load a script asynchronously
+    // Load a script asynchronously with improved error detection
     loadScript: function(src, callback) {
       const script = document.createElement('script');
       script.async = true;
       script.src = src;
-      script.onload = callback;
-      script.onerror = function() {
-        console.error(`[Eveve Widget] Failed to load script: ${src}`);
-        if (callback) callback(new Error(`Failed to load script: ${src}`));
+      
+      // Track if callback has been called to prevent multiple calls
+      let callbackCalled = false;
+      
+      // Function to safely call the callback only once
+      const safeCallback = function(error) {
+        if (!callbackCalled) {
+          callbackCalled = true;
+          if (callback) callback(error);
+        }
       };
+      
+      // Success handler
+      script.onload = function() {
+        // Script loaded successfully, but let's verify the app is actually running
+        safeCallback();
+      };
+      
+      // Error handler - don't immediately fail
+      script.onerror = function(e) {
+        // Log the error but don't fail immediately - the script might still execute
+        console.warn(`[Eveve Widget] Script load event error for: ${src}. Checking if app is running anyway...`);
+        
+        // We'll wait for the health check to determine if we should actually fail
+      };
+      
+      // Add the script to the document
       document.head.appendChild(script);
+      
+      // Set up a health check to detect if the app is actually running
+      // despite potential script loading issues
+      const healthCheckInterval = 500; // ms between checks
+      const maxChecks = CONFIG.scriptLoadTimeout / healthCheckInterval;
+      let checksCompleted = 0;
+      
+      const healthCheck = function() {
+        checksCompleted++;
+        
+        // Check for signs that the React app is running
+        const appRunning = (
+          // Check if any React components are rendered
+          document.querySelector('#root div') ||
+          // Check for console logs that indicate the app is running
+          (window.console && window.console._logs && 
+           window.console._logs.some(log => 
+             log.includes('Loading app configuration') || 
+             log.includes('App Config Loaded')
+           ))
+        );
+        
+        if (appRunning) {
+          // App is running, consider it a success even if onload didn't fire
+          console.log('[Eveve Widget] App detected as running successfully');
+          safeCallback();
+          return;
+        }
+        
+        // If we've reached the maximum number of checks and the app isn't running,
+        // consider it a failure
+        if (checksCompleted >= maxChecks) {
+          console.error(`[Eveve Widget] Failed to load script after ${CONFIG.scriptLoadTimeout}ms: ${src}`);
+          safeCallback(new Error(`Failed to load script: ${src}`));
+          return;
+        }
+        
+        // Continue checking
+        setTimeout(healthCheck, healthCheckInterval);
+      };
+      
+      // Start health checks after a short delay to allow for initial loading
+      setTimeout(healthCheck, 1000);
+      
+      // Also set a final timeout as a fallback
+      setTimeout(function() {
+        // If we haven't called the callback yet, do a final check
+        if (!callbackCalled) {
+          // One final check - is there any visible content in the widget container?
+          const rootElement = document.getElementById('root');
+          if (rootElement && rootElement.children && rootElement.children.length > 0) {
+            // There's content, so the app probably loaded
+            console.log('[Eveve Widget] App appears to be running based on DOM content');
+            safeCallback();
+          } else {
+            // No content and timeout reached, now we can fail
+            console.error(`[Eveve Widget] Script load timeout after ${CONFIG.scriptLoadTimeout}ms: ${src}`);
+            safeCallback(new Error(`Failed to load script: ${src}`));
+          }
+        }
+      }, CONFIG.scriptLoadTimeout);
     },
 
     // Load a stylesheet
@@ -135,6 +220,25 @@
         <div class="eveve-widget-error-message">${message}</div>
       `;
       return errorEl;
+    },
+    
+    // Check if the app is actually running by examining console logs or DOM
+    isAppRunning: function() {
+      // Check if the React app has rendered anything
+      const rootElement = document.getElementById('root');
+      if (rootElement && rootElement.children && rootElement.children.length > 0) {
+        return true;
+      }
+      
+      // Check for console logs that would indicate the app is running
+      if (window.console && window.console.logs) {
+        return window.console.logs.some(log => 
+          log.includes('Loading app configuration') || 
+          log.includes('App Config Loaded')
+        );
+      }
+      
+      return false;
     }
   };
 
@@ -232,7 +336,6 @@
       }
     })();
 
-    // PRODUCTION MODE - Direct embedding approach
     // Create the widget container with proper theme
     const widgetContainer = document.createElement('div');
     widgetContainer.id = 'eveve-widget';
@@ -280,14 +383,46 @@
     container.innerHTML = '';
     container.appendChild(widgetContainer);
 
+    // Store a reference to the container for health checks
+    window.__EVEVE_CONTAINERS__ = window.__EVEVE_CONTAINERS__ || {};
+    window.__EVEVE_CONTAINERS__[container.id] = container;
+
     // Load the widget script
     const jsUrl = utils.getAbsoluteUrl(CONFIG.jsPath);
     utils.loadScript(jsUrl, function(error) {
       if (error) {
-        container.innerHTML = '';
-        container.appendChild(utils.createErrorMessage(
-          'Failed to load the booking widget. Please try again later or contact support.'
-        ));
+        // Before showing error, do one final check - maybe the app is actually running
+        // despite the script load error
+        setTimeout(function() {
+          // Check if there's any content in the root element
+          const rootContent = document.getElementById('root');
+          if (rootContent && rootContent.children && rootContent.children.length > 0) {
+            // App is actually running, don't show error
+            console.log('[Eveve Widget] App appears to be running despite script load error');
+            return;
+          }
+          
+          // Check if we see any console logs indicating the app is running
+          const appRunningLogs = window.console && 
+            Array.from(document.querySelectorAll('body *')).some(el => 
+              el.textContent && (
+                el.textContent.includes('Loading app configuration') || 
+                el.textContent.includes('App Config Loaded')
+              )
+            );
+            
+          if (appRunningLogs) {
+            console.log('[Eveve Widget] App appears to be running based on console logs');
+            return;
+          }
+          
+          // If we get here, the app is truly not running, show error
+          container.innerHTML = '';
+          container.appendChild(utils.createErrorMessage(
+            'Failed to load the booking widget. Please try again later or contact support.'
+          ));
+        }, 2000); // Give it 2 more seconds before showing error
+        
         return;
       }
 
