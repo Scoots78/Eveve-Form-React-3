@@ -198,6 +198,50 @@
     if (config.defaultDate) queryParams.append('date', config.defaultDate);
     if (config.debug) queryParams.append('debug', 'true');
 
+    // Create a global configuration object for the React app to read
+    // This allows the app to access parameters without relying on URL search params
+    window.__EVEVE_CONFIG__ = window.__EVEVE_CONFIG__ || {};
+    window.__EVEVE_CONFIG__[container.id] = {
+      est: config.restaurant,
+      theme: config.theme,
+      themeCss: config.themeCss,
+      lang: config.lang,
+      guests: config.defaultGuests,
+      date: config.defaultDate,
+      debug: config.debug,
+      containerId: container.id,
+      queryString: queryParams.toString()
+    };
+
+    // Add a special data attribute to the container with the query string
+    // This allows the React app to find its configuration
+    container.dataset.eveveConfigId = container.id;
+
+    /* --------------------------------------------------------------------
+       Ensure the URL contains the same parameters the React app expects.
+       We don't reload the page – we just update the current history entry
+       so that `window.location.search` already includes ?est=…&theme=…
+       before the React bundle executes. This is simpler and far more
+       reliable than proxying the location object.
+    ---------------------------------------------------------------------*/
+    (function syncUrlSearchParams() {
+      const currentParams = new URLSearchParams(window.location.search);
+      let modified = false;
+
+      for (const [key, value] of queryParams.entries()) {
+        if (!currentParams.has(key)) {
+          currentParams.append(key, value);
+          modified = true;
+        }
+      }
+
+      if (modified) {
+        const newSearch = `?${currentParams.toString()}`;
+        const newUrl = `${window.location.pathname}${newSearch}${window.location.hash}`;
+        window.history.replaceState(null, '', newUrl);
+      }
+    })();
+
     // Ensure CSS is loaded (once)
     const cssUrl = utils.getAbsoluteUrl(CONFIG.cssPath);
     if (!document.querySelector(`link[href="${cssUrl}"]`)) {
