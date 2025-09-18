@@ -832,10 +832,23 @@ export default function BookingDetailsModal({
           param: err.param
         });
         
-        setCardState(prev => ({
-          ...prev,
-          error: err.message || "Failed to process payment"
-        }));
+        /* ---------------------------------------------------------------
+           DEBUG: Inspect why error message not surfacing in UI
+         --------------------------------------------------------------- */
+        /* eslint-disable no-console */
+        console.log('🚨 [DEBUG] About to set cardState.error:', err.message);
+        setCardState(prev => {
+          console.log('🚨 [DEBUG] Setting cardState.error – prev state:', prev);
+          const newState = {
+            ...prev,
+            error: err.message || "Failed to process payment"
+          };
+          console.log('🚨 [DEBUG] Setting cardState.error – new state:', newState);
+          return newState;
+        });
+        console.log('🚨 [DEBUG] After setCardState call');
+        /* eslint-enable no-console */
+
         setPaymentProcessing(false);
       } finally {
         console.timeEnd(timerLabel);
