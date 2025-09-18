@@ -862,14 +862,24 @@ export default function BookingDetailsModal({
   // Helper function to get the deposit amount in cents
   const getDepositAmountCents = () => {
     /* ------------------------------------------------------------
+       Absolute guard – if effectiveHoldData itself is null/undefined
+       (or still loading) return 0 immediately so the UI can render
+       gracefully without throwing.
+    ------------------------------------------------------------ */
+    if (!effectiveHoldData) {
+      return 0;
+    }
+
+    /* ------------------------------------------------------------
        1) Regular deposit bookings return `card` as an OBJECT:
           { code: 1|2, perHead: <cents>, total: <cents>, … }
           Safely return `total` when present.
     ------------------------------------------------------------ */
+    const cardField = effectiveHoldData.card;
     if (
-      effectiveHoldData?.card &&
-      typeof effectiveHoldData.card === "object" &&
-      typeof effectiveHoldData.card.total === "number"
+      cardField &&
+      typeof cardField === "object" &&
+      typeof cardField.total === "number"
     ) {
       return effectiveHoldData.card.total;
     }
@@ -877,7 +887,9 @@ export default function BookingDetailsModal({
     // When shift.charge === 2, perHead already contains the TOTAL
     const isShiftDeposit = selectedShiftTime?.charge === 2;
     if (isShiftDeposit) {
-      return effectiveHoldData.perHead;
+      return typeof effectiveHoldData.perHead === "number"
+        ? effectiveHoldData.perHead
+        : 0;
     }
     
     /* ------------------------------------------------------------
@@ -885,7 +897,8 @@ export default function BookingDetailsModal({
           use root-level perHead (if defined) × covers
     ------------------------------------------------------------ */
     if (typeof effectiveHoldData.perHead === "number") {
-      return effectiveHoldData.perHead * (bookingData?.covers || 0);
+      const covers = typeof bookingData?.covers === "number" ? bookingData.covers : 0;
+      return effectiveHoldData.perHead * covers;
     }
 
     // Graceful fallback – avoid undefined errors
