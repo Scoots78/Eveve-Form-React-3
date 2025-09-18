@@ -398,14 +398,27 @@ export default function BookingDetailsModal({
       elements: !!event.elements
     });
     
-    setCardState({
+    /*
+     * IMPORTANT:
+     * ----------
+     * Stripe fires `onChange` after every keystroke and also once more
+     * when the CardElement is recreated (e.g. after a failed payment).
+     * When that final event comes through, `event.error` is usually null.
+     * If we blindly overwrite `cardState.error` with `null` we lose any
+     * payment-processing error we just set (e.g. “Your card was declined.”)
+     * and the red error box disappears.
+     *
+     * Solution: Only replace `error` when the CardElement itself reports
+     * a validation error. Otherwise preserve the existing payment error.
+     */
+    setCardState(prev => ({
       complete: event.complete,
-      error: event.error ? event.error.message : null,
+      error: event.error ? event.error.message : prev.error, // Preserve existing payment errors
       empty: event.empty,
       brand: event.brand,
       stripe: event.stripe,
       elements: event.elements
-    });
+    }));
   };
 
   // Validate just the personal details section
