@@ -1042,8 +1042,8 @@ export default function BookingDetailsModal({
         {/* Display selected addons if any, using the friendly names when possible */}
         {displayAddons && (
           <div className="mt-2 text-sm">
-            <div className="font-medium">{appConfig?.lng?.addons || "Add-ons"}:</div>
-            <div className="pl-2">{displayAddons}</div>
+            <span className="font-medium">{appConfig?.lng?.addons || "Add-ons"}:</span>{' '}
+            {displayAddons}
           </div>
         )}
         {/* Display price only when a charge will actually be taken (deposit or other),
