@@ -1120,7 +1120,7 @@ export default function ReservationForm() {
 
   if (isConfigLoading) {
     return (
-      <div className="p-6 w-full max-w-[1000px] mx-auto bg-base-100 shadow-xl rounded-lg space-y-6 text-center">
+      <div className="p-2 w-full max-w-[1000px] mx-auto bg-base-100 shadow-xl rounded-lg space-y-6 text-center">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary mx-auto"></div>
         <p className="text-xl text-primary mt-4">
           {appConfig?.lng?.loading || 'Loading configuration...'}
@@ -1145,7 +1145,7 @@ export default function ReservationForm() {
 
   // Render form only if config is loaded and no errors
   return (
-    <div className="p-6 w-full max-w-[1000px] mx-auto bg-base-100 shadow-xl rounded-lg space-y-6">
+    <div className="p-4 w-full max-w-[1000px] mx-auto bg-base-100 shadow-xl rounded-lg space-y-6">
       <h1 className="text-2xl font-bold text-center text-base-content">
         {appConfig?.lng?.makeBookingAtTitlePrefix || "Make a Booking at "}{appConfig.estFull}
       </h1>
@@ -1155,7 +1155,7 @@ export default function ReservationForm() {
           {/* Calendar – full width */}
           <div className="flex justify-center w-full">
             {/* Added wrapper to give calendar consistent styling */}
-            <div className="mt-6 w-full max-w-[600px] p-4 rounded-lg shadow bg-base-100 border border-base-300">
+            <div className="mt-6 w-full max-w-[600px] rounded-lg shadow bg-base-100 border border-base-300">
               <ReactCalendarPicker
                 /* When selectedDate is null (initial load) show today in the
                    calendar control but keep our controlled value unset so the
@@ -1219,7 +1219,7 @@ export default function ReservationForm() {
                   {selectedDateForSummary ? format(selectedDateForSummary, 'EEEE do MMMM') : 'Date not set'}
                   {selectedGuestsForSummary ? ` for ${selectedGuestsForSummary} Guest${selectedGuestsForSummary > 1 ? 's' : ''}` : ''}
                 </h3>
-                <p className="text-xs text-base-content/60 mt-1">Click to change</p>
+                <p className="text-s p-3 italic text-base-content/60 mt-1">Click to change</p>
               </div>
               {/* The availabilityData.message can still be relevant here */}
               {availabilityData.message && (
@@ -1404,7 +1404,7 @@ export default function ReservationForm() {
                             >
                               <span>{proceedButtonState.text}</span>
                               {selectedShiftTime?.selectedTime && selectedDate && guests && ( // Summary still shown if time selected
-                                <div className="text-xs font-normal mt-1 text-primary-content/70">
+                                <div className="text-sm font-normal mt-1 text-primary-content/70">
                                   {selectedShiftTime.name} - {format(selectedDate, appConfig?.dateFormat || 'MMM d, yyyy')} - {guests} Guest{guests > 1 ? 's' : ''} - {formatDecimalTime(selectedShiftTime.selectedTime, appConfig?.timeFormat)}
                                   {selectedAreaName && ` - ${selectedAreaName}`}
                                 </div>

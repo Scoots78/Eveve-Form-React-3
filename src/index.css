@@ -1,3 +1,107 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* -------------------------------------------------------------
+   Eveve Widget – Scoped CSS Reset & Defensive Styles
+   These rules live after Tailwind so they win the cascade
+   and prevent host-site CSS from leaking into the widget.
+-------------------------------------------------------------- */
+
+/* Scope everything to the root container added by embed.js */
+#eveve-widget_,
+#eveve-widget_ * {
+  /* Ensure parent fonts/colours don’t bleed */
+  font-family: inherit;
+  color: inherit;
+  line-height: inherit;
+
+  /* Remove opinionated host margins/padding */
+  margin: 0;
+  padding: 0;
+
+  /* Reset box-sizing for consistency */
+  box-sizing: border-box;
+}
+
+/* -------------------------------------------------------------
+   Typography
+-------------------------------------------------------------- */
+#eveve-widget_ h1,
+#eveve-widget_ h2,
+#eveve-widget_ h3,
+#eveve-widget h4,
+#eveve-widget h5,
+#eveve-widget h6 {
+  @apply font-bold text-base leading-snug text-neutral;
+}
+
+/* -------------------------------------------------------------
+   Buttons & clickable elements
+-------------------------------------------------------------- */
+#eveve-widget button_,
+#eveve-widget_ [type='button'],
+#eveve-widget_ [type='submit'] {
+  @apply px-4 py-2 rounded-md bg-primary text-primary-content cursor-pointer;
+  border: none !important;           /* override parent border */
+  background-image: none !important; /* override gradients      */
+  white-space: normal !important;    /* allow text to wrap – override host “nowrap” */
+}
+
+/* Disabled buttons */
+#eveve-widget button:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* -------------------------------------------------------------
+   Inputs, selects, textareas
+-------------------------------------------------------------- */
+#eveve-widget input,
+#eveve-widget select,
+#eveve-widget textarea {
+  @apply border border-base-300 rounded-md px-3 py-2 text-lg bg-base-100;
+  outline: none;
+}
+#eveve-widget input:focus,
+#eveve-widget select:focus,
+#eveve-widget textarea:focus {
+  @apply ring-2 ring-primary/60;
+}
+
+/* Remove WebKit inner spin on number inputs */
+#eveve-widget input[type='number']::-webkit-outer-spin-button,
+#eveve-widget input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+#eveve-widget input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* -------------------------------------------------------------
+   Lists
+-------------------------------------------------------------- */
+#eveve-widget ul,
+#eveve-widget ol {
+  list-style: none;
+  padding-left: 0;
+}
+
+/* -------------------------------------------------------------
+   Utility helpers
+-------------------------------------------------------------- */
+/* Make sure Tailwind container stretches full width inside host */
+#eveve-widget {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Hide any host .sr-only classes that could affect our layout */
+#eveve-widget .sr-only {
+  @apply absolute w-px h-px -m-px overflow-hidden whitespace-nowrap border-0;
+}
+
+eveve-widget.text-success {
+    --tw-text-opacity: 1;
+    color: var(--fallback-su, oklch(var(--su) / var(--tw-text-opacity, 1)));
+}
