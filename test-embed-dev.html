@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eveve Booking Widget - Development Embed Test</title>
+    <style>
+        /* ----------------------------------------------------------------
+           PARENT SITE STYLES - Examples of styles that might cascade down
+           and interfere with the widget. Uncomment sections to test fixes.
+        ---------------------------------------------------------------- */
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f8f8;
+        }
+
+        /* Example of problematic global styles */
+        /*
+        button {
+            background-color: #ff6b6b !important;
+            border-radius: 0 !important;
+            font-weight: bold !important;
+        }
+        
+        input, select {
+            border: 2px solid #666 !important;
+            padding: 12px !important;
+            font-size: 16px !important;
+        }
+        
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Georgia', serif !important;
+            color: #8a2be2 !important;
+        }
+        
+        div {
+            margin-bottom: 10px !important;
+        }
+        */
+
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            background-color: #4a5568;
+            color: white;
+            padding: 15px;
+            margin: -20px -20px 20px -20px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .note {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+
+        .debug-info {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .instructions {
+            background-color: #f3f4f6;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .instructions h3 {
+            margin-top: 0;
+            color: #1f2937;
+        }
+
+        .instructions ol {
+            padding-left: 20px;
+        }
+
+        .instructions code {
+            background-color: #e5e7eb;
+            padding: 2px 4px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .toggle-styles {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .toggle-styles:hover {
+            background-color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>Eveve Booking Widget - Development Embed Test</h1>
+    
+    <div class="instructions">
+        <h3>How to Use This for Styling Development</h3>
+        <ol>
+            <li>Make sure your Vite development server is running on port 5177</li>
+            <li>This page loads the widget from your local dev server</li>
+            <li>Use the button below to toggle problematic parent styles</li>
+            <li>When you find style conflicts, fix them in your widget CSS by:
+                <ul>
+                    <li>Using more specific selectors</li>
+                    <li>Adding <code>!important</code> to critical styles</li>
+                    <li>Using CSS reset within widget container</li>
+                    <li>Adding scoped styles to prevent leakage</li>
+                </ul>
+            </li>
+            <li>Changes to your local dev files will be reflected immediately</li>
+        </ol>
+    </div>
+    
+    <button id="toggle-styles" class="toggle-styles">Toggle Problematic Parent Styles</button>
+    
+    <div class="note">
+        <strong>Test Parameters:</strong><br>
+        • Restaurant ID: <code>TestNZB</code><br>
+        • Theme: <code>cave-arrowtown</code><br>
+        • Debug Mode: <code>true</code>
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <h2 style="margin: 0;">Book a Table</h2>
+        </div>
+        
+        <!-- Eveve Booking Widget Container with exact parameters -->
+        <div id="eveve-booking" 
+             data-restaurant="TestNZB"
+             data-theme="cave-arrowtown"
+             data-debug="true">
+        </div>
+    </div>
+    
+    <div class="debug-info">
+        <strong>URL Parameters:</strong> <span id="url-params"></span><br>
+        <strong>Container Attributes:</strong><br>
+        • data-restaurant: <code>TestNZB</code><br>
+        • data-theme: <code>cave-arrowtown</code><br>
+        • data-debug: <code>true</code>
+        <br><br>
+        <strong>Event Log:</strong>
+        <ul id="event-log" style="margin-top:8px;"></ul>
+    </div>
+    
+    <script>
+        // Display current URL parameters
+        document.getElementById('url-params').textContent = window.location.search;
+
+        // Helper to log events to the debug panel
+        const logEvent = (type, detail) => {
+            const ul = document.getElementById('event-log');
+            const li = document.createElement('li');
+            const timestamp = new Date().toLocaleTimeString();
+            li.textContent = `${timestamp} – ${type}: ${JSON.stringify(detail)}`;
+            ul.appendChild(li);
+        };
+
+        // Listen for forwarded events from the widget
+        document.addEventListener('eveve-booking-success', (e) => {
+            logEvent('booking-success', e.detail);
+        });
+
+        document.addEventListener('eveve-booking-error', (e) => {
+            logEvent('booking-error', e.detail);
+        });
+        
+        // Toggle problematic parent styles
+        document.getElementById('toggle-styles').addEventListener('click', function() {
+            const styleSheet = document.styleSheets[0];
+            const problematicStyles = `
+                button {
+                    background-color: #ff6b6b !important;
+                    border-radius: 0 !important;
+                    font-weight: bold !important;
+                }
+                
+                input, select {
+                    border: 2px solid #666 !important;
+                    padding: 12px !important;
+                    font-size: 16px !important;
+                }
+                
+                h1, h2, h3, h4, h5, h6 {
+                    font-family: 'Georgia', serif !important;
+                    color: #8a2be2 !important;
+                }
+                
+                div {
+                    margin-bottom: 10px !important;
+                }
+            `;
+            
+            // Check if problematic styles are already added
+            const hasProblematicStyles = Array.from(styleSheet.cssRules).some(rule => 
+                rule.cssText && rule.cssText.includes('#ff6b6b')
+            );
+            
+            if (hasProblematicStyles) {
+                // Remove problematic styles
+                for (let i = styleSheet.cssRules.length - 1; i >= 0; i--) {
+                    if (styleSheet.cssRules[i].cssText && styleSheet.cssRules[i].cssText.includes('#ff6b6b')) {
+                        styleSheet.deleteRule(i);
+                    }
+                }
+                this.textContent = 'Enable Problematic Styles';
+                this.style.backgroundColor = '#3b82f6';
+            } else {
+                // Add problematic styles
+                styleSheet.insertRule(problematicStyles, styleSheet.cssRules.length);
+                this.textContent = 'Disable Problematic Styles';
+                this.style.backgroundColor = '#ef4444';
+            }
+        });
+    </script>
+    
+    <!-- Eveve Booking Widget Development Script -->
+    <script src="http://localhost:5177/form1-0-0/embed-dev.js"></script>
+</body>
+</html>
