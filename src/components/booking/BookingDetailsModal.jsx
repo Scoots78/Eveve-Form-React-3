@@ -106,6 +106,9 @@ export default function BookingDetailsModal({
   const [selectedBookOpts, setSelectedBookOpts] = useState([]);
   const [selectedGuestOpts, setSelectedGuestOpts] = useState([]);
 
+  // Vacate message acknowledgement (must-tick when vacMsg present)
+  const [vacateAccepted, setVacateAccepted] = useState(false);
+
   // Stripe payment state
   const [cardState, setCardState] = useState({
     complete: false,
@@ -330,6 +333,8 @@ export default function BookingDetailsModal({
         .map(o => o.uid);
       setSelectedBookOpts(defaultSelectedBook);
       setSelectedGuestOpts(defaultSelectedGuest);
+      // Reset vacate acknowledgement each time modal opens
+      setVacateAccepted(false);
     }
   }, [
     isOpen,
@@ -521,6 +526,14 @@ export default function BookingDetailsModal({
     
     if (!customerData.phone.trim()) {
       errors.phone = appConfig?.lng?.requiredFieldError || "This field is required";
+    }
+
+    // Vacate acknowledgement required when vacMsg present
+    if (holdData?.vacMsg && !vacateAccepted) {
+      errors.vacate = appConfig?.lng?.vacateRequiredError ||
+        (holdData?.until
+          ? `Please confirm you will vacate the table by ${holdData.until}`
+          : "Please confirm you agree to the vacate conditions");
     }
     
     setValidationErrors(errors);
@@ -1815,6 +1828,39 @@ export default function BookingDetailsModal({
                                 </div>
                               ))}
                             </div>
+                          </div>
+                        )}
+
+                        {/* Vacate message acknowledgment (Must tick) */}
+                        {holdData?.vacMsg && (
+                          <div className="mb-6">
+                            <h4 className="font-medium text-gray-700 mb-2">
+                              {appConfig?.lng?.vacateTitle || 'Vacate Policy'}
+                            </h4>
+                            <div className="mb-2 p-3 bg-amber-50 border border-amber-200 rounded text-amber-900 text-sm">
+                              {holdData.vacMsg}
+                            </div>
+                            <label className="inline-flex items-center text-sm">
+                              <input
+                                type="checkbox"
+                                className="checkbox checkbox-primary"
+                                checked={vacateAccepted}
+                                onChange={(e) => setVacateAccepted(e.target.checked)}
+                                disabled={timerExpired}
+                              />
+                              <span className="ml-2">
+                                <span className="px-2 py-0.5 text-xs rounded bg-red-100 text-red-700 mr-2">
+                                  Required
+                                </span>
+                                {appConfig?.lng?.vacateAgreeLabel ||
+                                  (holdData?.until
+                                    ? `I agree to vacate the table by ${holdData.until}`
+                                    : 'I agree to the vacate conditions')}
+                              </span>
+                            </label>
+                            {validationErrors.vacate && (
+                              <p className="mt-1 text-sm text-red-600">{validationErrors.vacate}</p>
+                            )}
                           </div>
                         )}
 
