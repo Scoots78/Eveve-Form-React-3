@@ -28,6 +28,9 @@
        Built asset filenames (with hashes) are resolved dynamically
        at runtime from Vite's manifest.json – nothing is hard-coded.
     --------------------------------------------------------------*/
+    // Stable asset names produced by Vite build (no hashes, no manifest)
+    cssPath: 'assets/index.css',
+    jsPath: 'assets/index.js',
     themesPath: 'themes/',
     defaultTheme: 'light',
     defaultSelector: '[data-eveve-widget], .eveve-widget, #eveve-booking',
@@ -427,18 +430,19 @@
     window.__EVEVE_CONTAINERS__[container.id] = container;
 
     /* ------------------------------------------------------------
-       Dynamically load built assets via manifest.json
+       Load main widget CSS & JS using stable filenames.
+       No CORS request to manifest.json is required.
     ------------------------------------------------------------ */
-    utils.loadAssetsFromManifest()
-      .then(({ jsFile, cssFiles }) => {
-        // Ensure main CSS files are loaded once
-        cssFiles.forEach(cssUrl => {
-          if (!document.querySelector(`link[href="${cssUrl}"]`)) {
-            utils.loadStylesheet(cssUrl);
-          }
-        });
 
-        utils.loadScript(jsFile, function(error) {
+    // Ensure main stylesheet is present
+    const coreCssUrl = utils.getAbsoluteUrl(CONFIG.cssPath);
+    if (!document.querySelector(`link[href="${coreCssUrl}"]`)) {
+      utils.loadStylesheet(coreCssUrl);
+    }
+
+    // Load the main JS bundle
+    const coreJsUrl = utils.getAbsoluteUrl(CONFIG.jsPath);
+    utils.loadScript(coreJsUrl, function(error) {
           if (error) {
             // Extra verification same as previous logic
             setTimeout(function() {
@@ -452,15 +456,7 @@
             return;
           }
           console.log(`[Eveve Widget] Initialized for restaurant ID: ${config.restaurant}`);
-        });
-      })
-      .catch(err => {
-        console.error('[Eveve Widget] Asset discovery failed:', err);
-        container.innerHTML = '';
-        container.appendChild(utils.createErrorMessage(
-          'Unable to locate widget assets (manifest.json missing). Ensure the full build output, including manifest.json, is deployed alongside embed.js.'
-        ));
-      });
+    });
   }
 
   // Initialize all widgets on the page
