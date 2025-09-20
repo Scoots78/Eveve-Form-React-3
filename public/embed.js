@@ -24,9 +24,10 @@
   // Configuration - all paths are relative to the script's location
   const CONFIG = {
     basePath: scriptBasePath,
-    // Use different paths for development vs production
-    cssPath: 'assets/index-D6KS7z4e.css',
-    jsPath: 'assets/index-Bf_GMni7.js',
+    /* -------------------------------------------------------------
+       Built asset filenames (with hashes) are resolved dynamically
+       at runtime from Vite's manifest.json – nothing is hard-coded.
+    --------------------------------------------------------------*/
     themesPath: 'themes/',
     defaultTheme: 'light',
     defaultSelector: '[data-eveve-widget], .eveve-widget, #eveve-booking',
@@ -150,6 +151,50 @@
       
       // Otherwise, resolve against the script's base URL
       return `${CONFIG.basePath}${path}`;
+    },
+
+    /* -----------------------------------------------------------
+       Discover built JS & CSS assets from Vite's manifest.json.
+       Returns a Promise that resolves with:
+         { jsFile: 'absolute/url.js', cssFiles: ['absolute/url.css', …] }
+    ----------------------------------------------------------- */
+    loadAssetsFromManifest: function() {
+      // Vite 5 places the manifest inside the .vite folder by default.
+      // Try that location first, then fall back to the root-level manifest.json
+      const candidatePaths = ['.vite/manifest.json', 'manifest.json'];
+
+      const tryFetch = (index) => {
+        if (index >= candidatePaths.length) {
+          // Exhausted all options
+          throw new Error('manifest.json not found in any expected location');
+        }
+
+        const url = utils.getAbsoluteUrl(candidatePaths[index]);
+        return fetch(url, { cache: 'no-cache' }).then(res => {
+          if (res.ok) {
+            return res.json();
+          }
+          // If 404/not ok, try next path
+          return tryFetch(index + 1);
+        }).catch(() => {
+          // Network error, try next path
+          return tryFetch(index + 1);
+        });
+      };
+
+      return tryFetch(0)
+        .then(manifest => {
+          // Prefer explicit key for index.html, else first entry marked isEntry
+          let entry = manifest['index.html'];
+          if (!entry) {
+            entry = Object.values(manifest).find(x => x.isEntry);
+          }
+          if (!entry) throw new Error('No entry found in manifest');
+
+          const jsFile = utils.getAbsoluteUrl(entry.file);
+          const cssFiles = (entry.css || []).map(utils.getAbsoluteUrl);
+          return { jsFile, cssFiles };
+        });
     },
 
     // Create a loading indicator
@@ -346,12 +391,6 @@
     rootElement.id = 'root';
     widgetContainer.appendChild(rootElement);
 
-    // Ensure CSS is loaded (once)
-    const cssUrl = utils.getAbsoluteUrl(CONFIG.cssPath);
-    if (!document.querySelector(`link[href="${cssUrl}"]`)) {
-      utils.loadStylesheet(cssUrl);
-    }
-
     // Load theme CSS if specified and not already loaded
     if (config.theme && !config.themeCss) {
       const themeCssPath = `${CONFIG.themesPath}${config.theme}.css`;
@@ -383,52 +422,45 @@
     container.innerHTML = '';
     container.appendChild(widgetContainer);
 
-    // Store a reference to the container for health checks
+    // Store container ref for health checks
     window.__EVEVE_CONTAINERS__ = window.__EVEVE_CONTAINERS__ || {};
     window.__EVEVE_CONTAINERS__[container.id] = container;
 
-    // Load the widget script
-    const jsUrl = utils.getAbsoluteUrl(CONFIG.jsPath);
-    utils.loadScript(jsUrl, function(error) {
-      if (error) {
-        // Before showing error, do one final check - maybe the app is actually running
-        // despite the script load error
-        setTimeout(function() {
-          // Check if there's any content in the root element
-          const rootContent = document.getElementById('root');
-          if (rootContent && rootContent.children && rootContent.children.length > 0) {
-            // App is actually running, don't show error
-            console.log('[Eveve Widget] App appears to be running despite script load error');
-            return;
+    /* ------------------------------------------------------------
+       Dynamically load built assets via manifest.json
+    ------------------------------------------------------------ */
+    utils.loadAssetsFromManifest()
+      .then(({ jsFile, cssFiles }) => {
+        // Ensure main CSS files are loaded once
+        cssFiles.forEach(cssUrl => {
+          if (!document.querySelector(`link[href="${cssUrl}"]`)) {
+            utils.loadStylesheet(cssUrl);
           }
-          
-          // Check if we see any console logs indicating the app is running
-          const appRunningLogs = window.console && 
-            Array.from(document.querySelectorAll('body *')).some(el => 
-              el.textContent && (
-                el.textContent.includes('Loading app configuration') || 
-                el.textContent.includes('App Config Loaded')
-              )
-            );
-            
-          if (appRunningLogs) {
-            console.log('[Eveve Widget] App appears to be running based on console logs');
-            return;
-          }
-          
-          // If we get here, the app is truly not running, show error
-          container.innerHTML = '';
-          container.appendChild(utils.createErrorMessage(
-            'Failed to load the booking widget. Please try again later or contact support.'
-          ));
-        }, 2000); // Give it 2 more seconds before showing error
-        
-        return;
-      }
+        });
 
-      // Script loaded successfully
-      console.log(`[Eveve Widget] Initialized for restaurant ID: ${config.restaurant}`);
-    });
+        utils.loadScript(jsFile, function(error) {
+          if (error) {
+            // Extra verification same as previous logic
+            setTimeout(function() {
+              const rootContent = document.getElementById('root');
+              if (rootContent && rootContent.children.length > 0) return;
+              container.innerHTML = '';
+              container.appendChild(utils.createErrorMessage(
+                'Failed to load the booking widget. Please try again later or contact support.'
+              ));
+            }, 2000);
+            return;
+          }
+          console.log(`[Eveve Widget] Initialized for restaurant ID: ${config.restaurant}`);
+        });
+      })
+      .catch(err => {
+        console.error('[Eveve Widget] Asset discovery failed:', err);
+        container.innerHTML = '';
+        container.appendChild(utils.createErrorMessage(
+          'Unable to locate widget assets (manifest.json missing). Ensure the full build output, including manifest.json, is deployed alongside embed.js.'
+        ));
+      });
   }
 
   // Initialize all widgets on the page

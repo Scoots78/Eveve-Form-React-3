@@ -31,4 +31,9 @@ export default defineConfig({
       });
     },
   },
+
+  // Emit manifest.json to allow embed.js to discover hashed asset filenames
+  build: {
+    manifest: true,
+  },
 });
