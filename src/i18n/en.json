@@ -122,5 +122,6 @@
   "eventName": "Event name",
   "tickToAccept": "Tick to accept ",
   "customerOptionsTitle": "Customer Options",
-  "vacateAgreeLabel": "You must agree to vacate the table by the end of your booking time."
+  "vacateAgreeLabel": "You must agree to vacate the table by the end of your booking time.",
+  "vacateTitle": "Your table time is restricted"
 }
