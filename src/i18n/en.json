@@ -123,5 +123,6 @@
   "tickToAccept": "Tick to accept ",
   "customerOptionsTitle": "Customer Options",
   "vacateAgreeLabel": "You must agree to vacate the table by the end of your booking time.",
-  "vacateTitle": "Your table time is restricted"
+  "vacateTitle": "Your table time is restricted",
+  "vacateRequiredError": "You must tick the box agree to vacate by the time specified"
 }
