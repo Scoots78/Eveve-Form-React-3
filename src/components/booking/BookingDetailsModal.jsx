@@ -71,6 +71,41 @@ export default function BookingDetailsModal({
   const [validationErrors, setValidationErrors] = useState({});
   const [formTouched, setFormTouched] = useState(false);
   
+  /* ------------------------------------------------------------------
+     Eveve "ots" Booking & Customer Options
+     ------------------------------------------------------------------
+     • type 0 ⇒ booking-scope  (passed as   bookopt)
+     • type 1 ⇒ customer-scope (passed as  guestopt)
+     ------------------------------------------------------------------ */
+  // Map raw holdData.ots entries [type, uid, optionType, description]
+  const bookingOptions = useMemo(() => {
+    if (!holdData?.ots) return [];
+    return holdData.ots
+      .filter(arr => Array.isArray(arr) && arr[0] === 0)
+      .map(arr => ({
+        scope: 'booking',
+        uid: String(arr[1]),
+        optionType: arr[2],
+        description: arr[3]
+      }));
+  }, [holdData]);
+
+  const customerOptions = useMemo(() => {
+    if (!holdData?.ots) return [];
+    return holdData.ots
+      .filter(arr => Array.isArray(arr) && arr[0] === 1)
+      .map(arr => ({
+        scope: 'customer',
+        uid: String(arr[1]),
+        optionType: arr[2],
+        description: arr[3]
+      }));
+  }, [holdData]);
+
+  // Selected UID arrays – store as strings
+  const [selectedBookOpts, setSelectedBookOpts] = useState([]);
+  const [selectedGuestOpts, setSelectedGuestOpts] = useState([]);
+
   // Stripe payment state
   const [cardState, setCardState] = useState({
     complete: false,
@@ -285,8 +320,26 @@ export default function BookingDetailsModal({
         clearTimeout(paymentTimeoutRef.current);
         paymentTimeoutRef.current = null;
       }
+
+      // Initialize selected options with 'Must tick' defaults
+      const defaultSelectedBook = bookingOptions
+        .filter(o => o.optionType === 'Must tick')
+        .map(o => o.uid);
+      const defaultSelectedGuest = customerOptions
+        .filter(o => o.optionType === 'Must tick')
+        .map(o => o.uid);
+      setSelectedBookOpts(defaultSelectedBook);
+      setSelectedGuestOpts(defaultSelectedGuest);
     }
-  }, [isOpen, holdData, effectiveHoldData, resetStripePayment, STEPS.PERSONAL_DETAILS]);
+  }, [
+    isOpen,
+    holdData,
+    effectiveHoldData,
+    resetStripePayment,
+    STEPS.PERSONAL_DETAILS,
+    bookingOptions,
+    customerOptions
+  ]);
 
   /* ------------------------------------------------------------------
      DEBUG: Track cardState changes to verify error lifecycle
@@ -387,6 +440,27 @@ export default function BookingDetailsModal({
       setFormTouched(true);
     }
   };
+
+  /* ------------------------------------------------------------------
+     Helper functions for Booking & Customer Option selection
+     ------------------------------------------------------------------ */
+  function setBookOpt(uid, isSelected) {
+    setSelectedBookOpts(prev => {
+      const s = new Set(prev);
+      if (isSelected) s.add(String(uid));
+      else s.delete(String(uid));
+      return Array.from(s);
+    });
+  }
+
+  function setGuestOpt(uid, isSelected) {
+    setSelectedGuestOpts(prev => {
+      const s = new Set(prev);
+      if (isSelected) s.add(String(uid));
+      else s.delete(String(uid));
+      return Array.from(s);
+    });
+  }
   
   // Handle card element change
   const handleCardChange = (event) => {
@@ -621,7 +695,11 @@ export default function BookingDetailsModal({
       if (validateForm()) {
         try {
           logWithTimestamp('Submitting non-card booking');
-          onSubmit(effectiveHoldData.uid, customerData);
+          onSubmit(effectiveHoldData.uid, {
+            ...customerData,
+            bookopt: selectedBookOpts,
+            guestopt: selectedGuestOpts
+          });
           
           // Set local success state in case parent doesn't update
           setTimeout(() => {
@@ -785,6 +863,8 @@ export default function BookingDetailsModal({
         // Add payment information to customer data for the booking update
         const updatedCustomerData = {
           ...customerData,
+          bookopt: selectedBookOpts,
+          guestopt: selectedGuestOpts,
           paymentMethodId: paymentResult.paymentMethodId,
           paymentAmount: paymentResult.amount,
           paymentCurrency: paymentResult.currency,
@@ -1622,6 +1702,122 @@ export default function BookingDetailsModal({
                           </div>
                         </div>
                         
+                        {/* Booking Options (from holdData.ots type 0) */}
+                        {bookingOptions.length > 0 && (
+                          <div className="mb-6">
+                            <h4 className="font-medium text-gray-700 mb-2">{appConfig?.lng?.bookingOptionsTitle || 'Booking Options'}</h4>
+                            <div className="space-y-2">
+                              {bookingOptions.map(opt => (
+                                <div key={opt.uid} className="flex items-center justify-between">
+                                  <div className="flex-1 mr-4 text-sm text-gray-800">{opt.description}</div>
+                                  {opt.optionType === 'Yes/No' ? (
+                                    <div className="flex items-center gap-4">
+                                      <label className="inline-flex items-center text-sm">
+                                        <input
+                                          type="radio"
+                                          name={`bookopt-${opt.uid}`}
+                                          className="radio radio-primary"
+                                          checked={selectedBookOpts.includes(opt.uid)}
+                                          onChange={() => setBookOpt(opt.uid, true)}
+                                          disabled={timerExpired}
+                                        />{' '}
+                                        <span className="ml-1">Yes</span>
+                                      </label>
+                                      <label className="inline-flex items-center text-sm">
+                                        <input
+                                          type="radio"
+                                          name={`bookopt-${opt.uid}`}
+                                          className="radio radio-primary"
+                                          checked={!selectedBookOpts.includes(opt.uid)}
+                                          onChange={() => setBookOpt(opt.uid, false)}
+                                          disabled={timerExpired}
+                                        />{' '}
+                                        <span className="ml-1">No</span>
+                                      </label>
+                                    </div>
+                                  ) : (
+                                    <label className="inline-flex items-center text-sm">
+                                      <input
+                                        type="checkbox"
+                                        className="checkbox checkbox-primary"
+                                        checked={selectedBookOpts.includes(opt.uid)}
+                                        onChange={e => setBookOpt(opt.uid, e.target.checked)}
+                                        disabled={timerExpired}
+                                      />
+                                      <span className="ml-2">
+                                        {opt.optionType === 'Must tick' && (
+                                          <span className="px-2 py-0.5 text-xs rounded bg-red-100 text-red-700 mr-2">
+                                            Required
+                                          </span>
+                                        )}
+                                        {appConfig?.lng?.tickToAccept || 'Tick to accept'}
+                                      </span>
+                                    </label>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Customer Options (from holdData.ots type 1) */}
+                        {customerOptions.length > 0 && (
+                          <div className="mb-6">
+                            <h4 className="font-medium text-gray-700 mb-2">{appConfig?.lng?.customerOptionsTitle || 'Customer Options'}</h4>
+                            <div className="space-y-2">
+                              {customerOptions.map(opt => (
+                                <div key={opt.uid} className="flex items-center justify-between">
+                                  <div className="flex-1 mr-4 text-sm text-gray-800">{opt.description}</div>
+                                  {opt.optionType === 'Yes/No' ? (
+                                    <div className="flex items-center gap-4">
+                                      <label className="inline-flex items-center text-sm">
+                                        <input
+                                          type="radio"
+                                          name={`guestopt-${opt.uid}`}
+                                          className="radio radio-primary"
+                                          checked={selectedGuestOpts.includes(opt.uid)}
+                                          onChange={() => setGuestOpt(opt.uid, true)}
+                                          disabled={timerExpired}
+                                        />{' '}
+                                        <span className="ml-1">Yes</span>
+                                      </label>
+                                      <label className="inline-flex items-center text-sm">
+                                        <input
+                                          type="radio"
+                                          name={`guestopt-${opt.uid}`}
+                                          className="radio radio-primary"
+                                          checked={!selectedGuestOpts.includes(opt.uid)}
+                                          onChange={() => setGuestOpt(opt.uid, false)}
+                                          disabled={timerExpired}
+                                        />{' '}
+                                        <span className="ml-1">No</span>
+                                      </label>
+                                    </div>
+                                  ) : (
+                                    <label className="inline-flex items-center text-sm">
+                                      <input
+                                        type="checkbox"
+                                        className="checkbox checkbox-primary"
+                                        checked={selectedGuestOpts.includes(opt.uid)}
+                                        onChange={e => setGuestOpt(opt.uid, e.target.checked)}
+                                        disabled={timerExpired}
+                                      />
+                                      <span className="ml-2">
+                                        {opt.optionType === 'Must tick' && (
+                                          <span className="px-2 py-0.5 text-xs rounded bg-red-100 text-red-700 mr-2">
+                                            Required
+                                          </span>
+                                        )}
+                                        {appConfig?.lng?.tickToAccept || 'Tick to accept'}
+                                      </span>
+                                    </label>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Allergies section */}
                         <div className="mb-6">
                           <h4 className="font-medium text-gray-700 mb-2">
