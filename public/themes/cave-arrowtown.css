@@ -1,0 +1,236 @@
+/* Cave Arrowtown Theme - White page, black text (Sorts Mill Goudy) */
+@import url('https://fonts.googleapis.com/css2?family=Sorts+Mill+Goudy:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+/* -----------------------------------------------------------
+   RestaurantHub Widget – Scoped Reset (safe baseline)
+   Scope: ONLY inside #eveve-widget
+----------------------------------------------------------- */
+
+@layer widget-reset, widget-base, widget-components;
+
+/* Base container defaults */
+#eveve-widget {
+  /* Baseline tokens (override in your theme) */
+  --rh-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
+  --rh-fg: #111;
+  --rh-bg: #fff;
+  --rh-focus: #3b82f6;
+
+  font-family: var(--rh-font);
+  line-height: 1.5;
+  color: var(--rh-fg);
+  background: transparent; /* keep host page background unless your theme sets one */
+}
+
+/* 1) Box model + margin collapse neutralisation */
+#eveve-widget :where(*, *::before, *::after) {
+  box-sizing: border-box;
+}
+#eveve-widget :where(h1,h2,h3,h4,h5,h6,p,figure,blockquote,dl,dd) {
+  margin: 0;
+}
+#eveve-widget :where(ul[role="list"], ol[role="list"]) {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* 2) Media elements behave predictably */
+#eveve-widget :where(img, video, canvas, audio, iframe) {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* 3) Links + text */
+#eveve-widget :where(a) {
+  color: inherit;
+  text-decoration: none;
+}
+#eveve-widget :where(a:hover, a:focus-visible) {
+  text-decoration: underline;
+}
+
+/* 4) Forms are sane and inherit typography */
+#eveve-widget :where(button, input, select, textarea) {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  border: 1px solid transparent; /* keep layout stable; theme can set color */
+  background: transparent;
+  margin: 0;
+}
+#eveve-widget :where(button) { cursor: pointer; }
+#eveve-widget :where(textarea) { resize: vertical; }
+
+/* 5) Tables */
+#eveve-widget :where(table) { border-collapse: collapse; border-spacing: 0; }
+
+/* 6) Focus visibility (accessible and themeable) */
+#eveve-widget :where(:focus-visible) {
+  outline: 2px solid var(--rh-focus);
+  outline-offset: 2px;
+}
+
+/* 7) Motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  #eveve-widget :where(*, *::before, *::after) {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Example theme hooks (optional) */
+#eveve-widget[data-theme="dark"] {
+  --rh-fg: #e5e7eb;
+  --rh-bg: #0b0f14;
+}
+
+
+
+/* Scope to the widget container */
+#eveve-widget[data-theme="cave-arrowtown"] {
+  /* Core palette (light) */
+  --p: 208 23% 22%;          /* keep brand blue available for accents if needed */
+  --s: 208 23% 32%;
+  --a: 208 23% 42%;
+  --n: 0 0% 96%;
+
+  --b1: 0 0% 100%;           /* base background = white */
+  --b2: 0 0% 96%;            /* light surfaces */
+  --b3: 0 0% 92%;            /* hover bg */
+  --fallback-b3: #f2f2f2;
+
+  --bc: 0 0% 10%;            /* base-content = near black text */
+
+  --in: 207 90% 54%;
+  --su: 64.8% 0.150 160;      /* green */
+  --wa: 38 92% 50%;
+  --er: 0 84% 60%;
+
+  /* Shortcuts */
+  --p-color: #2C3A46;        /* brand blue (optional accent) */
+  --b2c: #ffffff;
+  --pc: 0 0% 10%;            /* primary-content = black text on white buttons */
+
+  --rounded-box: 0.5rem;
+  --rounded-btn: 0.25rem;
+  --font-ui: 'Sorts Mill Goudy', ui-serif, Georgia, Cambria, "Times New Roman", serif;
+
+  font-family: var(--font-ui);
+  color: hsl(var(--bc));     /* <-- BLACK TEXT */
+  background-color: transparent; /* blend into white page */
+}
+
+/* Headings and body text explicitly inherit black */
+#eveve-widget[data-theme="cave-arrowtown"] h1,
+#eveve-widget[data-theme="cave-arrowtown"] h2,
+#eveve-widget[data-theme="cave-arrowtown"] h3,
+#eveve-widget[data-theme="cave-arrowtown"] h4,
+#eveve-widget[data-theme="cave-arrowtown"] h5,
+#eveve-widget[data-theme="cave-arrowtown"] h6,
+#eveve-widget[data-theme="cave-arrowtown"] p,
+#eveve-widget[data-theme="cave-arrowtown"] span,
+#eveve-widget[data-theme="cave-arrowtown"] label {
+  color: hsl(var(--bc));
+}
+
+/* Buttons: WHITE background, BLACK text (fits light page) */
+#eveve-widget[data-theme="cave-arrowtown"] .btn-primary,
+#eveve-widget[data-theme="cave-arrowtown"] .bg-primary,
+#eveve-widget[data-theme="cave-arrowtown"] button.bg-primary {
+  background-color: #fff !important;
+  color: #111 !important;
+  border: 1px solid #111 !important;
+}
+
+#eveve-widget[data-theme="cave-arrowtown"] .btn-primary:hover,
+#eveve-widget[data-theme="cave-arrowtown"] .bg-primary:hover,
+#eveve-widget[data-theme="cave-arrowtown"] button.bg-primary:hover {
+  background-color: #f5f5f5 !important;
+  box-shadow: 0 0 0 1px #111;
+}
+
+#eveve-widget[data-theme="cave-arrowtown"] .btn-primary:focus,
+#eveve-widget[data-theme="cave-arrowtown"] .bg-primary:focus,
+#eveve-widget[data-theme="cave-arrowtown"] button.bg-primary:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.28);
+}
+
+/* Keep disabled readable on light bg */
+#eveve-widget[data-theme="cave-arrowtown"] button.bg-primary:disabled,
+#eveve-widget[data-theme="cave-arrowtown"] .btn-primary:disabled {
+  opacity: 1 !important;
+  background-color: #eee !important;
+  color: #666 !important;
+  border-color: #bbb !important;
+}
+
+/* Make nested text-primary-content BLACK on white primary backgrounds */
+#eveve-widget[data-theme="cave-arrowtown"] .bg-primary .text-primary-content {
+  color: #111 !important;
+}
+#eveve-widget[data-theme="cave-arrowtown"] .bg-primary .text-primary-content\/70 {
+  color: rgba(17, 17, 17, 0.7) !important;
+}
+
+/* Inputs: white bg, black text, subtle dark border */
+#eveve-widget[data-theme="cave-arrowtown"] input,
+#eveve-widget[data-theme="cave-arrowtown"] select,
+#eveve-widget[data-theme="cave-arrowtown"] textarea {
+  background-color: #fff;
+  color: #111;
+  border-color: rgba(17, 17, 17, 0.35);
+}
+#eveve-widget[data-theme="cave-arrowtown"] ::placeholder {
+  color: rgba(17, 17, 17, 0.55);
+}
+
+/* Calendar day states: crisp black/white */
+#eveve-widget[data-theme="cave-arrowtown"] .react-calendar-custom .react-calendar__tile:enabled:hover abbr,
+#eveve-widget[data-theme="cave-arrowtown"] .react-calendar-custom .react-calendar__tile:enabled:focus abbr,
+#eveve-widget[data-theme="cave-arrowtown"] .react-calendar-custom .react-calendar__tile--active abbr {
+  background-color: #111 !important;
+  color: #fff !important;
+  border: 1px solid #111 !important;
+}
+
+/* Light hover for accordions */
+#eveve-widget[data-theme="cave-arrowtown"] {
+  --selected-time-bg: #22C55E;
+  --selected-time-text: #ffffff;
+  --selected-time-border: #1FAA53;
+  --accordion-hover: #f2f2f2;
+}
+#eveve-widget[data-theme="cave-arrowtown"] .accordion-toggle:hover {
+  background-color: var(--accordion-hover) !important;
+  border-color: var(--accordion-hover) !important;
+}
+#eveve-widget[data-theme="cave-arrowtown"] .time-btn[data-selected="true"] {
+  background-color: var(--selected-time-bg) !important;
+  color: var(--selected-time-text) !important;
+  border: 1px solid var(--selected-time-border) !important;
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--selected-time-bg) 30%, transparent);
+}
+
+/* Calendar month label (black on light bg) */
+#eveve-widget[data-theme="cave-arrowtown"] .react-calendar__navigation__label__labelText {
+  color: #111 !important;
+}
+
+/* change warning box used for rota messages */
+#eveve-widget[data-theme="cave-arrowtown"] .border-warning {
+  border-color: var(--fallback-b3, oklch(var(--b3) / var(--tw-border-opacity, 1)));
+  
+}
+
+/* time buttons covert to lower case */
+#eveve-widget[data-theme="cave-arrowtown"] button.time-btn {
+  text-transform:lowercase;
+  
+}
+
+

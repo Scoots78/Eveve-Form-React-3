@@ -14,6 +14,11 @@ import { formatDecimalTime } from "../utils/time"; // Import the utility functio
 import { useDebounce } from "../hooks/useDebounce"; // Import the custom hook
 import AddonSelection from "./AddonSelection"; // Import the new component
 import SelectedAddonsSummary from "./SelectedAddonsSummary"; // Import the summary component
+// --- Event-availability helpers ---
+import {
+  getEventAvailableTimes,
+  filterEventTimes
+} from "../utils/eventAvailability"; // NEW – utility to constrain Event shift times
 import {
   formatSelectedAddonsForApi,
   formatAddonsForDisplay,
@@ -360,6 +365,18 @@ export default function ReservationForm() {
       ),
     [monthClosedDates]
   );
+
+  /* ------------------------------------------------------------------
+     Derive a flat, de-duplicated list of times that are actually
+     available for Event bookings.  We memoise this so the calculation
+     only re-runs when the underlying shifts array changes.
+  ------------------------------------------------------------------ */
+  const availableTimesForEvents = useMemo(() => {
+    if (availabilityData?.shifts) {
+      return getEventAvailableTimes(availabilityData.shifts);
+    }
+    return [];
+  }, [availabilityData?.shifts]);
 
   /* ------------------------------------------------------------------
      DEBUG: log whenever monthClosedDates or disabledDates change
@@ -1103,7 +1120,7 @@ export default function ReservationForm() {
 
   if (isConfigLoading) {
     return (
-      <div className="p-6 w-full max-w-[1000px] mx-auto bg-base-100 shadow-xl rounded-lg space-y-6 text-center">
+      <div className="p-2 w-full max-w-[1000px] mx-auto bg-base-100 shadow-xl rounded-lg space-y-6 text-center">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-primary mx-auto"></div>
         <p className="text-xl text-primary mt-4">
           {appConfig?.lng?.loading || 'Loading configuration...'}
@@ -1128,7 +1145,7 @@ export default function ReservationForm() {
 
   // Render form only if config is loaded and no errors
   return (
-    <div className="p-6 w-full max-w-[1000px] mx-auto bg-base-100 shadow-xl rounded-lg space-y-6">
+    <div className="p-4 w-full max-w-[1000px] mx-auto bg-base-100 shadow-xl rounded-lg space-y-6">
       <h1 className="text-2xl font-bold text-center text-base-content">
         {appConfig?.lng?.makeBookingAtTitlePrefix || "Make a Booking at "}{appConfig.estFull}
       </h1>
@@ -1138,7 +1155,7 @@ export default function ReservationForm() {
           {/* Calendar – full width */}
           <div className="flex justify-center w-full">
             {/* Added wrapper to give calendar consistent styling */}
-            <div className="mt-6 w-full max-w-[600px] p-4 rounded-lg shadow bg-base-100 border border-base-300">
+            <div className="mt-6 w-full max-w-[600px] rounded-lg shadow bg-base-100 border border-base-300">
               <ReactCalendarPicker
                 /* When selectedDate is null (initial load) show today in the
                    calendar control but keep our controlled value unset so the
@@ -1202,7 +1219,7 @@ export default function ReservationForm() {
                   {selectedDateForSummary ? format(selectedDateForSummary, 'EEEE do MMMM') : 'Date not set'}
                   {selectedGuestsForSummary ? ` for ${selectedGuestsForSummary} Guest${selectedGuestsForSummary > 1 ? 's' : ''}` : ''}
                 </h3>
-                <p className="text-xs text-base-content/60 mt-1">Click to change</p>
+                <p className="text-s p-3 italic text-base-content/60 mt-1">Click to change</p>
               </div>
               {/* The availabilityData.message can still be relevant here */}
               {availabilityData.message && (
@@ -1221,7 +1238,6 @@ export default function ReservationForm() {
                 const isExpanded = expandedShiftIdentifier === currentShiftIdentifier;
                 // Determine if the currently selected time belongs to this shift
                 const isSelectedShift = selectedShiftTime && (selectedShiftTime.uid ? selectedShiftTime.uid === shift.uid : selectedShiftTime.originalIndexInAvailabilityData === index);
-
 
                 return (
                   <div key={currentShiftIdentifier} className="border border-base-300 rounded-lg shadow-sm bg-base-100 overflow-hidden">
@@ -1288,15 +1304,24 @@ export default function ReservationForm() {
                           <div className="mt-3">
                             <p className="text-sm font-semibold text-base-content mb-2">{appConfig?.lng?.availableBookingTimesTitle || "Available Booking Times:"}</p>
                             <div className="flex flex-wrap gap-2">
-                              {/* Filter out negative times (blocked times) */}
-                                {shift.times
-                                  .filter(timeObj => {
-                                    // Extract the time value, whether it's a direct decimal or an object with a time property
-                                    const timeValue = typeof timeObj === 'object' ? timeObj.time : timeObj;
-                                    // Only include positive time values (available times)
-                                    return timeValue >= 0;
-                                  })
-                                  .map((timeObj, timeIndex) => (
+                              {/* Filter times based on shift type */}
+                              {shift.times
+                                .filter(timeObj => {
+                                  // Extract the time value, whether it's a direct decimal or an object with a time property
+                                  const timeValue = typeof timeObj === 'object' ? timeObj.time : timeObj;
+                                  
+                                  // First, filter out negative times (blocked times)
+                                  if (timeValue < 0) return false;
+                                  
+                                  // If this is an Event shift, filter by available times from non-Event shifts
+                                  if (shift.type === "Event") {
+                                    return availableTimesForEvents.includes(timeValue);
+                                  }
+                                  
+                                  // For non-Event shifts, just return true (keep all positive times)
+                                  return true;
+                                })
+                                .map((timeObj, timeIndex) => (
                                 <button
                                   key={timeIndex}
                                   onClick={() => handleTimeSelection(shift, timeObj, index)} // Pass originalIndexInAvailabilityData
@@ -1379,7 +1404,7 @@ export default function ReservationForm() {
                             >
                               <span>{proceedButtonState.text}</span>
                               {selectedShiftTime?.selectedTime && selectedDate && guests && ( // Summary still shown if time selected
-                                <div className="text-xs font-normal mt-1 text-primary-content/70">
+                                <div className="text-sm font-normal mt-1 text-primary-content/70">
                                   {selectedShiftTime.name} - {format(selectedDate, appConfig?.dateFormat || 'MMM d, yyyy')} - {guests} Guest{guests > 1 ? 's' : ''} - {formatDecimalTime(selectedShiftTime.selectedTime, appConfig?.timeFormat)}
                                   {selectedAreaName && ` - ${selectedAreaName}`}
                                 </div>

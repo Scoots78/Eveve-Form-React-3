@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eveve Booking Widget - Advanced Examples</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        .container {
+            margin: 40px 0;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background-color: #f9fafb;
+        }
+        .widget-container {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+        .widget-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .widget-col {
+            flex: 1;
+            min-width: 300px;
+        }
+        h1 {
+            color: #1f2937;
+            margin-bottom: 24px;
+        }
+        h2 {
+            color: #374151;
+            margin-top: 32px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 8px;
+        }
+        h3 {
+            color: #4b5563;
+            margin-top: 24px;
+            margin-bottom: 12px;
+        }
+        pre {
+            background-color: #f3f4f6;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-bottom: 24px;
+        }
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 14px;
+        }
+        .note {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+        .tip {
+            background-color: #ecfdf5;
+            border-left: 4px solid #10b981;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+        .warning {
+            background-color: #fee2e2;
+            border-left: 4px solid #ef4444;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 16px;
+        }
+        .tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-bottom: none;
+            border-radius: 4px 4px 0 0;
+            margin-right: 4px;
+            background-color: #f3f4f6;
+        }
+        .tab.active {
+            background-color: white;
+            border-color: #e5e7eb;
+            margin-bottom: -1px;
+        }
+        .tab-content {
+            display: none;
+            padding: 16px;
+            border: 1px solid #e5e7eb;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+        }
+        th, td {
+            border: 1px solid #e5e7eb;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #f3f4f6;
+            font-weight: 600;
+        }
+        .theme-dark {
+            background-color: #1f2937;
+            color: white;
+        }
+        .theme-light {
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+        }
+        .theme-brand {
+            background-color: #2C3A46;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Eveve Booking Widget - Advanced Examples</h1>
+    
+    <p>This page demonstrates advanced usage of the Eveve booking widget, including multiple widgets on the same page, different themes, and integration with various CMS platforms.</p>
+    
+    <div class="note">
+        <strong>Note:</strong> Replace <code>123</code>, <code>456</code>, etc. with your actual restaurant IDs provided by Eveve.
+    </div>
+
+    <h2>Multiple Widgets on the Same Page</h2>
+    
+    <p>You can embed multiple booking widgets on the same page, each with different configurations and themes:</p>
+    
+    <div class="widget-row">
+        <div class="widget-col">
+            <h3>Standard Light Theme</h3>
+            <div class="widget-container theme-light">
+                <div class="eveve-widget" data-restaurant="123" data-theme="light" data-default-guests="2"></div>
+            </div>
+            <pre><code>&lt;div class="eveve-widget" 
+    data-restaurant="123" 
+    data-theme="light"
+    data-default-guests="2"&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+        
+        <div class="widget-col">
+            <h3>Brand Roboto Theme</h3>
+            <div class="widget-container theme-brand">
+                <div class="eveve-widget" data-restaurant="456" data-theme="brand-roboto" data-default-guests="4"></div>
+            </div>
+            <pre><code>&lt;div class="eveve-widget" 
+    data-restaurant="456" 
+    data-theme="brand-roboto"
+    data-default-guests="4"&gt;
+&lt;/div&gt;</code></pre>
+        </div>
+    </div>
+
+    <div class="tip">
+        <strong>Tip:</strong> Each widget operates independently and can have different restaurant IDs, themes, and configurations.
+    </div>
+
+    <h2>Advanced Configuration Options</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Attribute</th>
+                <th>Description</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>data-restaurant</code> or <code>data-est</code></td>
+                <td>Your Eveve restaurant ID (required)</td>
+                <td><code>data-restaurant="123"</code></td>
+            </tr>
+            <tr>
+                <td><code>data-theme</code></td>
+                <td>Widget theme name</td>
+                <td><code>data-theme="brand-roboto"</code></td>
+            </tr>
+            <tr>
+                <td><code>data-theme-css</code></td>
+                <td>URL to a custom theme CSS file</td>
+                <td><code>data-theme-css="/custom-themes/my-theme.css"</code></td>
+            </tr>
+            <tr>
+                <td><code>data-default-guests</code></td>
+                <td>Pre-selected guest count</td>
+                <td><code>data-default-guests="4"</code></td>
+            </tr>
+            <tr>
+                <td><code>data-default-date</code></td>
+                <td>Pre-selected date (YYYY-MM-DD format)</td>
+                <td><code>data-default-date="2025-12-31"</code></td>
+            </tr>
+            <tr>
+                <td><code>data-lang</code></td>
+                <td>Language code</td>
+                <td><code>data-lang="en"</code></td>
+            </tr>
+            <tr>
+                <td><code>data-debug</code></td>
+                <td>Enable debug mode</td>
+                <td><code>data-debug="true"</code></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>CMS Integration Examples</h2>
+    
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab(event, 'wordpress')">WordPress</div>
+        <div class="tab" onclick="switchTab(event, 'squarespace')">Squarespace</div>
+        <div class="tab" onclick="switchTab(event, 'wix')">Wix</div>
+        <div class="tab" onclick="switchTab(event, 'shopify')">Shopify</div>
+        <div class="tab" onclick="switchTab(event, 'custom')">Custom HTML</div>
+    </div>
+    
+    <div id="wordpress" class="tab-content active">
+        <h3>WordPress Integration</h3>
+        <p>Add the widget to your WordPress site using one of these methods:</p>
+        
+        <h4>Method 1: Using a Custom HTML Block</h4>
+        <ol>
+            <li>Edit the page where you want to add the booking widget</li>
+            <li>Add a "Custom HTML" block</li>
+            <li>Paste the following code:</li>
+        </ol>
+        <pre><code>&lt;div id="eveve-booking" data-restaurant="123" data-theme="brand-roboto"&gt;&lt;/div&gt;
+&lt;script src="https://yourdomain.com/form1-0-0/embed.js"&gt;&lt;/script&gt;</code></pre>
+        
+        <h4>Method 2: Using a WordPress Plugin</h4>
+        <ol>
+            <li>Install and activate the "Insert Headers and Footers" plugin</li>
+            <li>Go to Settings > Insert Headers and Footers</li>
+            <li>Add the script to the footer section:</li>
+        </ol>
+        <pre><code>&lt;script src="https://yourdomain.com/form1-0-0/embed.js"&gt;&lt;/script&gt;</code></pre>
+        <li>Then add the container div to any page using a Custom HTML block:</li>
+        <pre><code>&lt;div id="eveve-booking" data-restaurant="123" data-theme="brand-roboto"&gt;&lt;/div&gt;</code></pre>
+        
+        <h4>Method 3: Using a Shortcode</h4>
+        <p>Add this code to your theme's functions.php file:</p>
+        <pre><code>function eveve_booking_shortcode($atts) {
+    $atts = shortcode_atts(array(
+        'restaurant' => '',
+        'theme' => 'light',
+        'guests' => '',
+        'date' => '',
+        'lang' => 'en'
+    ), $atts);
+    
+    $html = '&lt;div class="eveve-widget"';
+    foreach($atts as $key => $value) {
+        if(!empty($value)) {
+            $html .= ' data-' . esc_attr($key) . '="' . esc_attr($value) . '"';
+        }
+    }
+    $html .= '&gt;&lt;/div&gt;';
+    
+    return $html;
+}
+add_shortcode('eveve_booking', 'eveve_booking_shortcode');
+
+// Add the script to the footer
+function eveve_booking_script() {
+    echo '&lt;script src="https://yourdomain.com/form1-0-0/embed.js"&gt;&lt;/script&gt;';
+}
+add_action('wp_footer', 'eveve_booking_script');</code></pre>
+        <p>Then use the shortcode in your pages or posts:</p>
+        <pre><code>[eveve_booking restaurant="123" theme="brand-roboto" guests="4"]</code></pre>
+    </div>
+    
+    <div id="squarespace" class="tab-content">
+        <h3>Squarespace Integration</h3>
+        <ol>
+            <li>Go to the page where you want to add the booking widget</li>
+            <li>Add a "Code" block</li>
+            <li>Paste the following code:</li>
+        </ol>
+        <pre><code>&lt;div id="eveve-booking" data-restaurant="123" data-theme="brand-roboto"&gt;&lt;/div&gt;
+&lt;script src="https://yourdomain.com/form1-0-0/embed.js"&gt;&lt;/script&gt;</code></pre>
+
+        <p>For site-wide integration:</p>
+        <ol>
+            <li>Go to Settings > Advanced > Code Injection</li>
+            <li>Add the script to the Footer section:</li>
+        </ol>
+        <pre><code>&lt;script src="https://yourdomain.com/form1-0-0/embed.js"&gt;&lt;/script&gt;</code></pre>
+        <li>Then add just the container div to any page using a Code block:</li>
+        <pre><code>&lt;div id="eveve-booking" data-restaurant="123" data-theme="brand-roboto"&gt;&lt;/div&gt;</code></pre>
+    </div>
+    
+    <div id="wix" class="tab-content">
+        <h3>Wix Integration</h3>
+        <ol>
+            <li>Go to the page where you want to add the booking widget</li>
+            <li>Add an "HTML iframe" element</li>
+            <li>Click "Enter code"</li>
+            <li>Paste the following code:</li>
+        </ol>
+        <pre><code>&lt;div id="eveve-booking" data-restaurant="123" data-theme="brand-roboto"&gt;&lt;/div&gt;
+&lt;script src="https://yourdomain.com/form1-0-0/embed.js"&gt;&lt;/script&gt;</code></pre>
+
+        <p>For advanced integration with Wix Velo (formerly Corvid):</p>
+        <ol>
+            <li>Go to Settings > Custom Code</li>
+            <li>Add a new script in the "Body - End" section:</li>
+        </ol>
+        <pre><code>&lt;script src="https://yourdomain.com/form1-0-0/embed.js"&gt;&lt;/script&gt;</code></pre>
+        <li>Then use the Wix HTML component to add just the container:</li>
+        <pre><code>&lt;div id="eveve-booking" data-restaurant="123" data-theme="brand-roboto"&gt;&lt;/div&gt;</code></pre>
+    </div>
+    
+    <div id="shopify" class="tab-content">
+        <h3>Shopify Integration</h3>
+        <ol>
+            <li>Go to Online Store > Themes</li>
+            <li>Click "Actions" > "Edit code"</li>
+            <li>Add the script to theme.liquid before the closing &lt;/body&gt; tag:</li>
+        </ol>
+        <pre><code>&lt;script src="https://yourdomain.com/form1-0-0/embed.js"&gt;&lt;/script&gt;</code></pre>
+        
+        <p>Then add the container to any page using a Custom HTML section:</p>
+        <ol>
+            <li>Edit the page where you want to add the booking widget</li>
+            <li>Add a "Custom HTML" section</li>
+            <li>Paste the following code:</li>
+        </ol>
+        <pre><code>&lt;div id="eveve-booking" data-restaurant="123" data-theme="brand-roboto"&gt;&lt;/div&gt;</code></pre>
+        
+        <p>Alternatively, you can create a custom page template with the widget:</p>
+        <ol>
+            <li>Go to Online Store > Themes > Actions > Edit code</li>
+            <li>Create a new template under Templates (e.g., page.booking.liquid)</li>
+            <li>Add your page content and the widget code:</li>
+        </ol>
+        <pre><code>{% extends 'page' %}
+
+{% block content %}
+  &lt;div class="page-width"&gt;
+    &lt;div class="grid"&gt;
+      &lt;div class="grid__item medium-up--one-whole"&gt;
+        &lt;h1&gt;{{ page.title }}&lt;/h1&gt;
+        {{ page.content }}
+        
+        &lt;div id="eveve-booking" data-restaurant="123" data-theme="brand-roboto"&gt;&lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+{% endblock %}</code></pre>
+    </div>
+    
+    <div id="custom" class="tab-content">
+        <h3>Custom HTML Integration</h3>
+        <p>For custom websites or HTML pages, simply add the following code where you want the widget to appear:</p>
+        
+        <pre><code>&lt;!-- Eveve Booking Widget Container --&gt;
+&lt;div id="eveve-booking" data-restaurant="123" data-theme="brand-roboto"&gt;&lt;/div&gt;
+
+&lt;!-- Eveve Booking Widget Script --&gt;
+&lt;script src="https://yourdomain.com/form1-0-0/embed.js"&gt;&lt;/script&gt;</code></pre>
+        
+        <p>For multiple widgets or site-wide integration, add the script once in the footer:</p>
+        
+        <pre><code>&lt;!-- In the &lt;head&gt; or before &lt;/body&gt; --&gt;
+&lt;script src="https://yourdomain.com/form1-0-0/embed.js"&gt;&lt;/script&gt;
+
+&lt;!-- Then add containers wherever needed --&gt;
+&lt;div id="eveve-booking-1" data-restaurant="123" data-theme="light"&gt;&lt;/div&gt;
+&lt;div id="eveve-booking-2" data-restaurant="456" data-theme="brand-roboto"&gt;&lt;/div&gt;</code></pre>
+    </div>
+
+    <h2>Advanced Features</h2>
+    
+    <h3>Programmatic Initialization</h3>
+    <p>You can manually initialize widgets or reinitialize them after DOM changes:</p>
+    
+    <pre><code>// Initialize a specific container
+const container = document.getElementById('my-booking-widget');
+window.EveveWidget.init(container);
+
+// Initialize all widgets on the page
+window.EveveWidget.initAll();</code></pre>
+
+    <h3>Dynamic Widget Creation</h3>
+    <p>Create widgets dynamically with JavaScript:</p>
+    
+    <pre><code>// Create a new widget container
+const container = document.createElement('div');
+container.className = 'eveve-widget';
+container.dataset.restaurant = '123';
+container.dataset.theme = 'brand-roboto';
+container.dataset.defaultGuests = '4';
+
+// Add it to the DOM
+document.getElementById('booking-section').appendChild(container);
+
+// Initialize it
+window.EveveWidget.init(container);</code></pre>
+
+    <h3>Responsive Design</h3>
+    <p>The widget is fully responsive, but you can control its container width:</p>
+    
+    <pre><code>&lt;!-- Full width on mobile, 50% on desktop --&gt;
+&lt;div class="booking-container" style="width: 100%; max-width: 500px; margin: 0 auto;"&gt;
+    &lt;div id="eveve-booking" data-restaurant="123"&gt;&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;style&gt;
+@media (min-width: 768px) {
+    .booking-container {
+        width: 50%;
+        float: right;
+        margin: 0 0 20px 20px;
+    }
+}
+&lt;/style&gt;</code></pre>
+
+    <h2>Best Practices</h2>
+    
+    <div class="tip">
+        <strong>Performance Tip:</strong> Add the script at the end of your HTML body to avoid blocking page rendering.
+    </div>
+    
+    <div class="warning">
+        <strong>Important:</strong> Always use a unique ID for each widget container on the same page.
+    </div>
+    
+    <ul>
+        <li>Use a CDN for faster loading of the embed script</li>
+        <li>Test your integration in different browsers and devices</li>
+        <li>Consider adding a loading placeholder before the widget initializes</li>
+        <li>Place the widget in a prominent location on your site for better conversion</li>
+        <li>Use the debug mode during development and disable it in production</li>
+    </ul>
+
+    <!-- Eveve Booking Widget Script -->
+    <script src="/form1-0-0/embed.js"></script>
+    
+    <script>
+        // Tab switching functionality
+        function switchTab(event, tabId) {
+            // Hide all tab contents
+            const tabContents = document.getElementsByClassName('tab-content');
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove('active');
+            }
+            
+            // Remove active class from all tabs
+            const tabs = document.getElementsByClassName('tab');
+            for (let i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove('active');
+            }
+            
+            // Show the selected tab content and mark tab as active
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+    </script>
+</body>
+</html>

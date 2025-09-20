@@ -154,13 +154,15 @@ export default function BookingDetailsModal({
       logWithTimestamp('Original holdData:', {
         uid: holdData.uid,
         card: holdData.card,
-        perHead: holdData.perHead
+        perHead: holdData.perHead,
+        total: holdData.card?.total
       });
       
       logWithTimestamp('Effective holdData (after shift.charge=2 override):', {
         uid: effectiveHoldData.uid,
         card: effectiveHoldData.card,
         perHead: effectiveHoldData.perHead,
+        total: effectiveHoldData.card?.total,
         isOverridden: holdData.card !== effectiveHoldData.card || holdData.perHead !== effectiveHoldData.perHead
       });
       
@@ -233,6 +235,7 @@ export default function BookingDetailsModal({
         uid: holdData.uid,
         card: holdData.card,
         perHead: holdData.perHead,
+        total: holdData.card?.total,
         effectiveCard: effectiveHoldData.card,
         effectivePerHead: effectiveHoldData.perHead
       });
@@ -252,12 +255,23 @@ export default function BookingDetailsModal({
       });
       setValidationErrors({});
       setFormTouched(false);
-      setCardState({
+      /*
+       * IMPORTANT:
+       * ----------
+       * Do NOT blindly clear `cardState.error` here. If the user just attempted
+       * a payment and it failed (e.g. “Your card was declined”) we want that
+       * error message to remain visible when the modal refreshes so the guest
+       * understands what went wrong.
+       *
+       * We therefore preserve any existing `error` value that might already be
+       * in state. All other card fields can safely reset.
+       */
+      setCardState(prev => ({
         complete: false,
-        error: null,
+        error: prev.error,   // Preserve previously-captured payment error
         empty: true,
         brand: null
-      });
+      }));
       setPaymentProcessing(false);
       setStripePublicKey(null);
       setLocalSuccess(false);
@@ -273,6 +287,20 @@ export default function BookingDetailsModal({
       }
     }
   }, [isOpen, holdData, effectiveHoldData, resetStripePayment, STEPS.PERSONAL_DETAILS]);
+
+  /* ------------------------------------------------------------------
+     DEBUG: Track cardState changes to verify error lifecycle
+     ------------------------------------------------------------------ */
+  useEffect(() => {
+    /* eslint-disable no-console */
+    console.log('🔍 [DEBUG] cardState changed:', {
+      error: cardState.error,
+      complete: cardState.complete,
+      empty: cardState.empty,
+      brand: cardState.brand
+    });
+    /* eslint-enable  no-console */
+  }, [cardState]);
 
   // Monitor success prop changes from parent
   useEffect(() => {
@@ -370,14 +398,27 @@ export default function BookingDetailsModal({
       elements: !!event.elements
     });
     
-    setCardState({
+    /*
+     * IMPORTANT:
+     * ----------
+     * Stripe fires `onChange` after every keystroke and also once more
+     * when the CardElement is recreated (e.g. after a failed payment).
+     * When that final event comes through, `event.error` is usually null.
+     * If we blindly overwrite `cardState.error` with `null` we lose any
+     * payment-processing error we just set (e.g. “Your card was declined.”)
+     * and the red error box disappears.
+     *
+     * Solution: Only replace `error` when the CardElement itself reports
+     * a validation error. Otherwise preserve the existing payment error.
+     */
+    setCardState(prev => ({
       complete: event.complete,
-      error: event.error ? event.error.message : null,
+      error: event.error ? event.error.message : prev.error, // Preserve existing payment errors
       empty: event.empty,
       brand: event.brand,
       stripe: event.stripe,
       elements: event.elements
-    });
+    }));
   };
 
   // Validate just the personal details section
@@ -660,6 +701,50 @@ export default function BookingDetailsModal({
             console.log('[BookingDetailsModal] Using preCalculatedDeposit object', preCalculatedDeposit);
             /* eslint-enable no-console */
           }
+        } else if (effectiveHoldData.card && effectiveHoldData.card.total) {
+          // For regular deposit bookings, use card.total from the hold response
+          preCalculatedDeposit = {
+            isDeposit: true,
+            isNoShow: false,
+            amount: effectiveHoldData.card.total,     // Use the total amount directly
+            currency: appConfig?.currency || 'USD'
+          };
+          if (debugMode) {
+            /* eslint-disable no-console */
+            console.log('[BookingDetailsModal] Using card.total for deposit amount', preCalculatedDeposit);
+            /* eslint-enable no-console */
+          }
+        }
+
+        // Determine if this is an Event booking with paid addons
+        const isEventBooking = selectedShiftTime?.type === "Event";
+        
+        // Check if there are any paid addons (with cost > 0)
+        const hasPaidAddons = (() => {
+          // Check selected menus for cost > 0
+          const hasPaidMenus = selectedAddons.menus.some(menu => {
+            const menuAddon = currentShiftAddons?.find(addon => addon.uid === menu.uid);
+            return menuAddon && menuAddon.cost > 0;
+          });
+          
+          // Check selected options for cost > 0
+          const hasPaidOptions = Object.keys(selectedAddons.options).some(optionId => {
+            const optionAddon = currentShiftAddons?.find(addon => String(addon.uid) === optionId);
+            return optionAddon && optionAddon.cost > 0;
+          });
+          
+          return hasPaidMenus || hasPaidOptions;
+        })();
+        
+        // Only set isEventWithPaidAddons to true if BOTH conditions are met
+        const isEventWithPaidAddons = isEventBooking && hasPaidAddons;
+        
+        if (debugMode) {
+          console.log('[BookingDetailsModal] Event and paid addon detection:', {
+            isEventBooking,
+            hasPaidAddons,
+            isEventWithPaidAddons
+          });
         }
 
         const paymentResult = await completePaymentFlow({
@@ -671,7 +756,10 @@ export default function BookingDetailsModal({
           email: customerData.email,
           cardElement: cardElement,
           // pass only when applicable
-          ...(preCalculatedDeposit ? { preCalculatedDeposit } : {})
+          ...(preCalculatedDeposit ? { preCalculatedDeposit } : {}),
+          // Add the isEventWithPaidAddons flag to distinguish between Event bookings with paid addons
+          // and normal bookings with deposits
+          isEventWithPaidAddons
         });
         
         logWithTimestamp('Payment flow result', {
@@ -757,10 +845,23 @@ export default function BookingDetailsModal({
           param: err.param
         });
         
-        setCardState(prev => ({
-          ...prev,
-          error: err.message || "Failed to process payment"
-        }));
+        /* ---------------------------------------------------------------
+           DEBUG: Inspect why error message not surfacing in UI
+         --------------------------------------------------------------- */
+        /* eslint-disable no-console */
+        console.log('🚨 [DEBUG] About to set cardState.error:', err.message);
+        setCardState(prev => {
+          console.log('🚨 [DEBUG] Setting cardState.error – prev state:', prev);
+          const newState = {
+            ...prev,
+            error: err.message || "Failed to process payment"
+          };
+          console.log('🚨 [DEBUG] Setting cardState.error – new state:', newState);
+          return newState;
+        });
+        console.log('🚨 [DEBUG] After setCardState call');
+        /* eslint-enable no-console */
+
         setPaymentProcessing(false);
       } finally {
         console.timeEnd(timerLabel);
@@ -809,6 +910,69 @@ export default function BookingDetailsModal({
     );
   }, [stripePublicKey, paymentProcessing, appConfig]);
 
+  // Helper function to get the deposit amount in cents
+  const getDepositAmountCents = () => {
+    /* ------------------------------------------------------------
+       Absolute guard – if effectiveHoldData itself is null/undefined
+       (or still loading) return 0 immediately so the UI can render
+       gracefully without throwing.
+    ------------------------------------------------------------ */
+    if (!effectiveHoldData) {
+      return 0;
+    }
+
+    /* ------------------------------------------------------------
+       1) Regular deposit bookings return `card` as an OBJECT:
+          { code: 1|2, perHead: <cents>, total: <cents>, … }
+          Safely return `total` when present.
+    ------------------------------------------------------------ */
+    const cardField = effectiveHoldData.card;
+    if (
+      cardField &&
+      typeof cardField === "object" &&
+      typeof cardField.total === "number"
+    ) {
+      return effectiveHoldData.card.total;
+    }
+    
+    // When shift.charge === 2, perHead already contains the TOTAL
+    const isShiftDeposit = selectedShiftTime?.charge === 2;
+    if (isShiftDeposit) {
+      return typeof effectiveHoldData.perHead === "number"
+        ? effectiveHoldData.perHead
+        : 0;
+    }
+    
+    /* ------------------------------------------------------------
+       2) Regular bookings where `card` is a NUMBER (1 or 2):
+          use root-level perHead (if defined) × covers
+    ------------------------------------------------------------ */
+    if (typeof effectiveHoldData.perHead === "number") {
+      const covers = typeof bookingData?.covers === "number" ? bookingData.covers : 0;
+      return effectiveHoldData.perHead * covers;
+    }
+
+    // Graceful fallback – avoid undefined errors
+    return 0;
+  };
+
+  // Helper function to format the perHead amount for display
+  const formatPerHeadAmount = () => {
+    if (!effectiveHoldData || typeof effectiveHoldData.perHead !== "number") {
+      return "$0.00";
+    }
+    return `$${(effectiveHoldData.perHead / 100).toFixed(2)}`;
+  };
+
+  // Helper function to replace placeholders in the noShowProtectionMessage
+  const getNoShowProtectionMessage = () => {
+    let message = appConfig?.lng?.noShowProtectionMessage || 
+      "A credit card is required to secure your reservation - your card will NOT be charged at this stage. A {{perHead}} per person no-show fee applies if we are not informed of changes to your group size, or if you don't show up for your booking.";
+    
+    // Replace the {{perHead}} placeholder with the actual formatted amount
+    return message.replace("{{perHead}}", formatPerHeadAmount());
+  };
+
   // Render content based on card requirement
   const renderCardSection = () => {
     if (!isCardRequired || currentStep !== STEPS.PAYMENT) return null;
@@ -826,63 +990,13 @@ export default function BookingDetailsModal({
           <p className="text-sm text-blue-800">
             {isDepositRequired ? (
               <>
-                {(() => {
-                  // When shift.charge === 2, perHead already contains the TOTAL
-                  const isShiftDeposit = selectedShiftTime?.charge === 2;
-                  const amountCents = isShiftDeposit
-                    ? effectiveHoldData.perHead
-                    : effectiveHoldData.perHead * bookingData.covers;
-
-                  // Debug
-                  if (debugMode) {
-                    /* eslint-disable no-console */
-                    console.log(
-                      `[BookingDetailsModal] renderCardSection – ` +
-                        (isShiftDeposit
-                          ? 'Using perHead as TOTAL (shift.charge=2)'
-                          : 'Using perHead × covers'),
-                      { amountCents }
-                    );
-                    /* eslint-enable no-console */
-                  }
-
-                  return (
-                    <>
-                      <span className="font-semibold">Deposit Required:</span>{' '}
-                      ${(amountCents / 100).toFixed(2)}
-                    </>
-                  );
-                })()}
+                <span className="font-semibold">Deposit Required:</span>{' '}
+                ${(getDepositAmountCents() / 100).toFixed(2)}
                 <span className="block mt-1 text-xs">Your card will be charged immediately.</span>
               </>
             ) : (
               <>
-                {(() => {
-                  const isShiftDeposit = selectedShiftTime?.charge === 2;
-                  const amountCents = isShiftDeposit
-                    ? effectiveHoldData.perHead
-                    : effectiveHoldData.perHead * bookingData.covers;
-
-                  if (debugMode) {
-                    /* eslint-disable no-console */
-                    console.log(
-                      `[BookingDetailsModal] renderCardSection – ` +
-                        (isShiftDeposit
-                          ? 'Using perHead as TOTAL (shift.charge=2)'
-                          : 'Using perHead × covers'),
-                      { amountCents }
-                    );
-                    /* eslint-enable no-console */
-                  }
-
-                  return (
-                    <>
-                      <span className="font-semibold">No-Show Protection:</span>{' '}
-                      ${(amountCents / 100).toFixed(2)}
-                    </>
-                  );
-                })()}
-                <span className="block mt-1 text-xs">Your card will only be charged in case of a no-show.</span>
+                {getNoShowProtectionMessage()}
               </>
             )}
           </p>
@@ -979,38 +1093,28 @@ export default function BookingDetailsModal({
         {/* Display selected addons if any, using the friendly names when possible */}
         {displayAddons && (
           <div className="mt-2 text-sm">
-            <div className="font-medium">{appConfig?.lng?.addons || "Add-ons"}:</div>
-            <div className="pl-2">{displayAddons}</div>
+            <span className="font-medium">{appConfig?.lng?.addons || "Add-ons"}:</span>{' '}
+            {displayAddons}
           </div>
         )}
-        {/* Display price if available in hold data */}
-        {effectiveHoldData && effectiveHoldData.perHead && (
+        {/* Display price only when a charge will actually be taken (deposit or other),
+            NOT when card == 1 (no-show protection) */}
+        {effectiveHoldData && (
+          /* show when: (no card required) OR (deposit-type card 2) OR (future card >2) */
+          (!isCardRequired || effectiveHoldData.card === 2 || effectiveHoldData.card > 2)
+        ) && (
           <div className="mt-2 text-sm font-bold">
-            {(() => {
-              const isShiftDeposit = selectedShiftTime?.charge === 2;
-              const amountCents = isShiftDeposit
-                ? effectiveHoldData.perHead
-                : effectiveHoldData.perHead * bookingData.covers;
+            <span>{appConfig?.lng?.bookingTotalPrice || 'Total Price'}:</span>{' '}
+            ${(getDepositAmountCents() / 100).toFixed(2)}
+          </div>
+        )}
 
-              if (debugMode) {
-                /* eslint-disable no-console */
-                console.log(
-                  `[BookingDetailsModal] renderBookingSummary – ` +
-                    (isShiftDeposit
-                      ? 'Using perHead as TOTAL (shift.charge=2)'
-                      : 'Using perHead × covers'),
-                  { amountCents }
-                );
-                /* eslint-enable no-console */
-              }
-
-              return (
-                <>
-                  <span>{appConfig?.lng?.bookingTotalPrice || 'Total Price'}:</span>{' '}
-                  ${(amountCents / 100).toFixed(2)}
-                </>
-              );
-            })()}
+        {/* Payment type information for card-required bookings */}
+        {isCardRequired && (
+          <div className="mt-1 text-xs text-blue-700">
+            {isDepositRequired
+              ? "Your card will be charged immediately."
+              : getNoShowProtectionMessage()}
           </div>
         )}
 
@@ -1078,6 +1182,10 @@ export default function BookingDetailsModal({
                   <span className="font-mono">{holdData?.perHead || 'null'}</span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="font-mono">holdData.card.total:</span>
+                  <span className="font-mono">{holdData?.card?.total || 'null'}</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="font-mono">holdData.uid:</span>
                   <span className="font-mono">{holdData?.uid || 'null'}</span>
                 </div>
@@ -1094,8 +1202,20 @@ export default function BookingDetailsModal({
                   <span className="font-mono">{effectiveHoldData?.perHead || 'null'}</span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="font-mono">effectiveHoldData.card.total:</span>
+                  <span className="font-mono">{effectiveHoldData?.card?.total || 'null'}</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="font-mono">effectiveHoldData.card:</span>
                   <span className="font-mono">{effectiveHoldData?.card || 'null'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-mono">Deposit Amount (cents):</span>
+                  <span className="font-mono">{getDepositAmountCents()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-mono">Deposit Amount ($):</span>
+                  <span className="font-mono">${(getDepositAmountCents() / 100).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="font-mono">isOverridden:</span>
