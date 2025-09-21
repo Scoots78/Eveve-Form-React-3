@@ -1455,7 +1455,7 @@ export default function BookingDetailsModal({
             leaveFrom="opacity-100 scale-100"
             leaveTo="opacity-0 scale-95"
           >
-            <div className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
+            <div className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl eveve-modal">
               {/* Loading overlay */}
               {(isLoading || paymentProcessing || isInitializingStripe) && (
                 <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">

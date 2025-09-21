@@ -132,3 +132,30 @@ eveve-widget.text-success {
   color: #6b7280 !important; /* gray-500 placeholder */
   opacity: 1;                /* ensure visible        */
 }
+
+/* -------------------------------------------------------------
+   Booking Details Modal (portal) – Force light scheme & controls
+-------------------------------------------------------------- */
+.eveve-modal {
+  /* Prevent user-agent dark-mode adjustments */
+  color-scheme: light;
+}
+
+.eveve-modal input[type="text"],
+.eveve-modal input[type="email"],
+.eveve-modal input[type="tel"],
+.eveve-modal input[type="number"],
+.eveve-modal input[type="search"],
+.eveve-modal textarea,
+.eveve-modal select {
+  background-color: #ffffff !important; /* white background */
+  color: #111827 !important;            /* gray-900 text    */
+  -webkit-text-fill-color: #111827 !important; /* Safari override */
+  border-color: #d1d5db !important;     /* gray-300 border  */
+  caret-color: #111827;
+}
+
+.eveve-modal ::placeholder {
+  color: #6b7280 !important; /* gray-500 placeholder */
+  opacity: 1;
+}
