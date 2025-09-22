@@ -972,6 +972,9 @@ export default function BookingDetailsModal({
     logWithTimestamp('Creating Stripe provider with key:', 
       stripePublicKey ? `${stripePublicKey.substring(0, 8)}...` : 'none');
     
+    // Detect whether the provided key is a live key (starts with 'pk_live_')
+    const isLiveStripeKey = stripePublicKey?.startsWith('pk_live_');
+    
     return (
       <StripeProvider 
         stripeKey={stripePublicKey}
@@ -996,7 +999,7 @@ export default function BookingDetailsModal({
         <StripeCardElement
           onChange={handleCardChange}
           disabled={paymentProcessing}
-          showTestCards={true}
+          showTestCards={!isLiveStripeKey}
           label={appConfig?.lng?.cardDetailsLabel || "Card Details"}
         />
       </StripeProvider>
@@ -1455,7 +1458,7 @@ export default function BookingDetailsModal({
             leaveFrom="opacity-100 scale-100"
             leaveTo="opacity-0 scale-95"
           >
-            <div className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
+            <div className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl eveve-modal">
               {/* Loading overlay */}
               {(isLoading || paymentProcessing || isInitializingStripe) && (
                 <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
@@ -1611,7 +1614,11 @@ export default function BookingDetailsModal({
                           <div className="w-8 h-0.5 mx-2 bg-gray-300"></div>
                           <div className={`flex items-center ${currentStep === STEPS.PAYMENT ? 'text-purple-600 font-medium' : 'text-gray-500'}`}>
                             <span className={`flex items-center justify-center w-6 h-6 rounded-full mr-2 ${currentStep === STEPS.PAYMENT ? 'bg-purple-100 text-purple-600' : 'bg-gray-200 text-gray-600'}`}>2</span>
-                            <span>Payment</span>
+                            <span>
+                              {isNoShowProtection
+                                ? (appConfig?.lng?.creditCardRegistrationStepTitle || "Credit Card Registration")
+                                : (appConfig?.lng?.paymentStepTitle || "Payment")}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -1763,7 +1770,7 @@ export default function BookingDetailsModal({
                                             Required
                                           </span>
                                         )}
-                                        {appConfig?.lng?.tickToAccept || 'Tick to accept'}
+                                        {appConfig?.lng?.tickToAccept || ''}
                                       </span>
                                     </label>
                                   )}
@@ -1821,7 +1828,7 @@ export default function BookingDetailsModal({
                                             Required
                                           </span>
                                         )}
-                                        {appConfig?.lng?.tickToAccept || 'Tick to accept'}
+                                        {appConfig?.lng?.tickToAccept || ''}
                                       </span>
                                     </label>
                                   )}
@@ -1992,7 +1999,9 @@ export default function BookingDetailsModal({
                               className="px-4 py-2 bg-primary text-primary-content rounded-md hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
                               disabled={isLoading || isInitializingStripe || timerExpired}
                             >
-                              {appConfig?.lng?.continueToPaymentButton || "Continue to Payment"}
+                              {isNoShowProtection
+                                ? (appConfig?.lng?.registerCardButton || "Register Credit Card")
+                                : (appConfig?.lng?.continueToPaymentButton || "Continue to Payment")}
                             </button>
                           ) : (
                             <button
@@ -2047,7 +2056,9 @@ export default function BookingDetailsModal({
                               });
                             }}
                           >
-                            {appConfig?.lng?.bookingConfirmWithPaymentButton || "Complete Payment & Book"}
+                            {isNoShowProtection
+                              ? (appConfig?.lng?.bookingConfirmWithCardRegistrationButton || "Complete Credit Card Registration and Book")
+                              : (appConfig?.lng?.bookingConfirmWithPaymentButton || "Complete Payment & Book")}
                           </button>
                         </div>
                       </form>

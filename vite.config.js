@@ -31,4 +31,26 @@ export default defineConfig({
       });
     },
   },
+
+  // Emit manifest.json and use stable filenames so the embed script can
+  // reference assets directly (no runtime CORS manifest fetch needed)
+  build: {
+    manifest: true,
+    rollupOptions: {
+      output: {
+        // Stable entry for the main bundle
+        entryFileNames: 'assets/index.js',
+        // Keep chunk names deterministic but without hashes
+        chunkFileNames: 'assets/[name].js',
+        // Ensure the primary CSS bundle is always assets/index.css,
+        // other assets retain hashed names to avoid collisions
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name && assetInfo.name.endsWith('.css')) {
+            return 'assets/index.css';
+          }
+          return 'assets/[name]-[hash][extname]';
+        },
+      },
+    },
+  },
 });
