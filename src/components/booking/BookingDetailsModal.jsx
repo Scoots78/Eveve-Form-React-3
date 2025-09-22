@@ -972,6 +972,9 @@ export default function BookingDetailsModal({
     logWithTimestamp('Creating Stripe provider with key:', 
       stripePublicKey ? `${stripePublicKey.substring(0, 8)}...` : 'none');
     
+    // Detect whether the provided key is a live key (starts with 'pk_live_')
+    const isLiveStripeKey = stripePublicKey?.startsWith('pk_live_');
+    
     return (
       <StripeProvider 
         stripeKey={stripePublicKey}
@@ -996,7 +999,7 @@ export default function BookingDetailsModal({
         <StripeCardElement
           onChange={handleCardChange}
           disabled={paymentProcessing}
-          showTestCards={true}
+          showTestCards={!isLiveStripeKey}
           label={appConfig?.lng?.cardDetailsLabel || "Card Details"}
         />
       </StripeProvider>
@@ -1763,7 +1766,7 @@ export default function BookingDetailsModal({
                                             Required
                                           </span>
                                         )}
-                                        {appConfig?.lng?.tickToAccept || 'Tick to accept'}
+                                        {appConfig?.lng?.tickToAccept || ''}
                                       </span>
                                     </label>
                                   )}
@@ -1821,7 +1824,7 @@ export default function BookingDetailsModal({
                                             Required
                                           </span>
                                         )}
-                                        {appConfig?.lng?.tickToAccept || 'Tick to accept'}
+                                        {appConfig?.lng?.tickToAccept || ''}
                                       </span>
                                     </label>
                                   )}
