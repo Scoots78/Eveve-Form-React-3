@@ -134,6 +134,7 @@ export default function BookingDetailsModal({
     fetchStripeKeys,
     fetchDepositInfo,
     completePaymentFlow,
+    attachPaymentMethod,
     reset: resetStripePayment
   } = useStripePayment();
 
@@ -885,20 +886,33 @@ export default function BookingDetailsModal({
           isNoShow: paymentResult.isNoShow
         };
         
-        logWithTimestamp('Payment successful, updating booking with payment info', {
+        logWithTimestamp('Payment successful, updating booking with payment info (calling /web/update FIRST)', {
           paymentMethodId: paymentResult.paymentMethodId ? 
             `${paymentResult.paymentMethodId.substring(0, 8)}...` : null,
           amount: paymentResult.amount,
           isDeposit: paymentResult.isDeposit,
-          step: 'before-onSubmit'
+          step: 'before-onSubmit (update)'
         });
         
-        // Payment successful, now update booking
+        // Payment successful, now update booking (UPDATE → then RESTORE+PM-ID)
         try {
-          onSubmit(effectiveHoldData.uid, updatedCustomerData);
-          
-          logWithTimestamp('Booking update submitted', {
-            step: 'after-onSubmit'
+          await onSubmit(effectiveHoldData.uid, updatedCustomerData);
+          logWithTimestamp('Booking update completed, proceeding to attach payment method (restore → pm-id)', {
+            step: 'after-update-before-attach'
+          });
+
+          // Attach payment method AFTER successful update to satisfy ordering
+          const attachResult = await attachPaymentMethod({
+            est: bookingData.est || effectiveHoldData.est,
+            uid: effectiveHoldData.uid,
+            created: effectiveHoldData.created,
+            paymentMethodId: paymentResult.paymentMethodId,
+            total: paymentResult.amount
+          });
+
+          logWithTimestamp('Attach payment method result', {
+            success: attachResult.success,
+            message: attachResult.message || null
           });
           
           // Set up a safety timeout to ensure we complete even if parent doesn't signal success
@@ -916,15 +930,9 @@ export default function BookingDetailsModal({
             stack: submitError.stack
           });
           
-          // Even if onSubmit fails, the payment was successful, so we should still complete
-          // The booking might have been updated on the server despite the error
-          setTimeout(() => {
-            logWithTimestamp('Forcing completion despite onSubmit error');
-            setPaymentProcessing(false);
-            setCurrentStep(STEPS.COMPLETE);
-            setLocalSuccess(true);
-          }, 5000);
-          
+          // Even if update or attach fails, the Stripe payment may have succeeded.
+          // Preserve error in UI; do not auto-complete success.
+          setPaymentProcessing(false);
           throw submitError;
         }
       } catch (err) {
