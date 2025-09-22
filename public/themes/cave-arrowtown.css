@@ -19,7 +19,11 @@
   font-family: var(--rh-font);
   line-height: 1.5;
   color: var(--rh-fg);
-  background: transparent; /* keep host page background unless your theme sets one */
+  background: var(--rh-bg); /* keep host page background unless your theme sets one (Attention dark mode error) */
+}
+
+#eveve-widget #root {
+  background: var(--rh-bg);
 }
 
 /* 1) Box model + margin collapse neutralisation */
@@ -34,6 +38,7 @@
   margin: 0;
   padding: 0;
 }
+
 
 /* 2) Media elements behave predictably */
 #eveve-widget :where(img, video, canvas, audio, iframe) {
@@ -58,7 +63,8 @@
   letter-spacing: inherit;
   border: 1px solid transparent; /* keep layout stable; theme can set color */
   background: transparent;
-  margin: 0;
+  margin: 0; 
+  white-space: break-spaces;
 }
 #eveve-widget :where(button) { cursor: pointer; }
 #eveve-widget :where(textarea) { resize: vertical; }
@@ -181,12 +187,25 @@
 #eveve-widget[data-theme="cave-arrowtown"] input,
 #eveve-widget[data-theme="cave-arrowtown"] select,
 #eveve-widget[data-theme="cave-arrowtown"] textarea {
-  background-color: #fff;
-  color: #111;
-  border-color: rgba(17, 17, 17, 0.35);
+  background-color: #fff !important;
+  color: #111 !important;
+  border-color: rgba(17, 17, 17, 0.35)  !important;
 }
 #eveve-widget[data-theme="cave-arrowtown"] ::placeholder {
   color: rgba(17, 17, 17, 0.55);
+}
+
+#eveve-widget [data-theme="cave-arrowtown"] input[type=date], 
+#eveve-widget [data-theme="cave-arrowtown"] input[type=email], 
+#eveve-widget [data-theme="cave-arrowtown"] input[type=number], 
+#eveve-widget [data-theme="cave-arrowtown"] input[type=password], 
+#eveve-widget [data-theme="cave-arrowtown"] input[type=search], 
+#eveve-widget [data-theme="cave-arrowtown"] input[type=tel], 
+#eveve-widget [data-theme="cave-arrowtown"] input[type=text], 
+#eveve-widget [data-theme="cave-arrowtown"] input[type=url], 
+#eveve-widget [data-theme="cave-arrowtown"] select, 
+#eveve-widget [data-theme="cave-arrowtown"] textarea {
+    background-color: #ffffff !important;
 }
 
 /* Calendar day states: crisp black/white */

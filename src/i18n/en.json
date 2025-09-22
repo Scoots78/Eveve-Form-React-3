@@ -120,9 +120,12 @@
   "emailFormatError": "Please enter a valid email address",
   "phoneFormatError": "Please enter a valid phone number",
   "eventName": "Event name",
-  "tickToAccept": "Tick to accept ",
+  "tickToAccept": "",
   "customerOptionsTitle": "Customer Options",
   "vacateAgreeLabel": "You must agree to vacate the table by the end of your booking time.",
   "vacateTitle": "Your table time is restricted",
-  "vacateRequiredError": "You must tick the box agree to vacate by the time specified"
+  "vacateRequiredError": "You must tick the box agree to vacate by the time specified",
+  "creditCardRegistrationStepTitle": "Credit Card Registration",
+  "registerCardButton": "Register Credit Credit Card",
+  "bookingConfirmWithCardRegistrationButton": "Register and Book"
 }
