@@ -113,6 +113,10 @@ export default function BookingDetailsModal({
   const [cardState, setCardState] = useState({
     complete: false,
     error: null,
+    // Distinguish between inline element validation errors (e.g. invalid card number)
+    // and payment-processing errors (e.g. card declined). Inline errors should clear
+    // as soon as the user corrects the input.
+    errorSource: null, // 'element' | 'payment' | null
     empty: true,
     brand: null
   });
@@ -307,7 +311,10 @@ export default function BookingDetailsModal({
        */
       setCardState(prev => ({
         complete: false,
-        error: prev.error,   // Preserve previously-captured payment error
+        // Preserve previously-captured PAYMENT error; element errors will be
+        // cleared on next onChange event from CardElement
+        error: prev.error,
+        errorSource: prev.errorSource,
         empty: true,
         brand: null
       }));
@@ -493,7 +500,15 @@ export default function BookingDetailsModal({
      */
     setCardState(prev => ({
       complete: event.complete,
-      error: event.error ? event.error.message : prev.error, // Preserve existing payment errors
+      // If Stripe reports an inline validation error, display it and mark source
+      // as 'element'. If Stripe reports no error, clear any previous 'element'
+      // error but preserve a 'payment' error from a previous failed attempt.
+      error: event.error
+        ? event.error.message
+        : (prev.errorSource === 'element' ? null : prev.error),
+      errorSource: event.error
+        ? 'element'
+        : (prev.errorSource === 'element' ? null : prev.errorSource),
       empty: event.empty,
       brand: event.brand,
       stripe: event.stripe,
@@ -955,7 +970,8 @@ export default function BookingDetailsModal({
           console.log('🚨 [DEBUG] Setting cardState.error – prev state:', prev);
           const newState = {
             ...prev,
-            error: err.message || "Failed to process payment"
+            error: err.message || "Failed to process payment",
+            errorSource: 'payment'
           };
           console.log('🚨 [DEBUG] Setting cardState.error – new state:', newState);
           return newState;
