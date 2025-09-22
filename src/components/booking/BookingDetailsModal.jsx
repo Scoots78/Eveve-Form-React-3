@@ -1614,7 +1614,11 @@ export default function BookingDetailsModal({
                           <div className="w-8 h-0.5 mx-2 bg-gray-300"></div>
                           <div className={`flex items-center ${currentStep === STEPS.PAYMENT ? 'text-purple-600 font-medium' : 'text-gray-500'}`}>
                             <span className={`flex items-center justify-center w-6 h-6 rounded-full mr-2 ${currentStep === STEPS.PAYMENT ? 'bg-purple-100 text-purple-600' : 'bg-gray-200 text-gray-600'}`}>2</span>
-                            <span>Payment</span>
+                            <span>
+                              {isNoShowProtection
+                                ? (appConfig?.lng?.creditCardRegistrationStepTitle || "Credit Card Registration")
+                                : (appConfig?.lng?.paymentStepTitle || "Payment")}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -1995,7 +1999,9 @@ export default function BookingDetailsModal({
                               className="px-4 py-2 bg-primary text-primary-content rounded-md hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
                               disabled={isLoading || isInitializingStripe || timerExpired}
                             >
-                              {appConfig?.lng?.continueToPaymentButton || "Continue to Payment"}
+                              {isNoShowProtection
+                                ? (appConfig?.lng?.registerCardButton || "Register Credit Card")
+                                : (appConfig?.lng?.continueToPaymentButton || "Continue to Payment")}
                             </button>
                           ) : (
                             <button
@@ -2050,7 +2056,9 @@ export default function BookingDetailsModal({
                               });
                             }}
                           >
-                            {appConfig?.lng?.bookingConfirmWithPaymentButton || "Complete Payment & Book"}
+                            {isNoShowProtection
+                              ? (appConfig?.lng?.bookingConfirmWithCardRegistrationButton || "Complete Credit Card Registration and Book")
+                              : (appConfig?.lng?.bookingConfirmWithPaymentButton || "Complete Payment & Book")}
                           </button>
                         </div>
                       </form>
