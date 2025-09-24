@@ -11,8 +11,8 @@ const SelectedAddonsSummary = ({
 }) => {
   const numericGuestCount = parseInt(guestCount, 10) || 1; // Default to 1 if guestCount is not valid, for per-guest calculation
   const displaySymbol = currencySymbol || '$';
-  // Quantity-based menus (usage === 2) flag – affects cost calc for "per Guest"
-  const isUsageQuantity = selectedShiftTime?.usage === 2;
+  // Quantity-based menus (usage === 2 or 4) flag – affects cost calc for "per Guest"
+  const isUsageQuantity = selectedShiftTime?.usage === 2 || selectedShiftTime?.usage === 4;
 
   const findAddonByUid = (uid) => { // uid here is optionUid from the loop, which is a string
     if (!currentShiftAddons) return null;

@@ -291,7 +291,7 @@ const AddonSelection = ({
         );
         break;
 
-      case 2: // Quantity selectors for Menus
+      case 2: // Quantity selectors for Menus (Each Guest any Menu)
         const currentTotalMenuUsage2Quantity = selectedAddons.menus.reduce((sum, menu) => sum + (menu.quantity || 0), 0);
         const canIncrementAnyMenuUsage2 = numericGuestCount === 0 || currentTotalMenuUsage2Quantity < numericGuestCount;
 
@@ -355,6 +355,73 @@ const AddonSelection = ({
             {numericGuestCount > 0 && finalMenuAddons.length > 0 && (
               <p className="text-xs text-base-content/60 mt-1">
                 {languageStrings?.menuUsage2TotalQuantityNote || `Total quantity of all selected menus cannot exceed guest count (${numericGuestCount}).`} ({currentTotalMenuUsage2Quantity}/{numericGuestCount} total quantity selected)
+              </p>
+            )}
+          </div>
+        );
+        break;
+      case 4: // Quantity selectors for Menus (Some guests same menu)
+        const currentTotalMenuUsage4Quantity = selectedAddons.menus.reduce((sum, menu) => sum + (menu.quantity || 0), 0);
+        const canIncrementAnyMenuUsage4 = numericGuestCount === 0 || currentTotalMenuUsage4Quantity < numericGuestCount;
+
+        menuContent = (
+          <div className="space-y-3">
+            {finalMenuAddons.map(addon => {
+              const selectedMenu = selectedAddons.menus.find(m => m.uid === addon.uid);
+              const currentQuantity = selectedMenu ? selectedMenu.quantity : 0;
+
+              let effectivePlusDisabled = false;
+              // Rule 1: Sum of quantities <= guestCount (no equality requirement)
+              if (numericGuestCount > 0 && currentTotalMenuUsage4Quantity >= numericGuestCount) {
+                effectivePlusDisabled = true;
+              }
+
+              // Rule 2: Number of distinct menu types <= maxMenuTypesAllowed
+              const maxMenuTypesAllowed = selectedShiftTime?.maxMenuTypes;
+              if (!effectivePlusDisabled && maxMenuTypesAllowed > 0 && currentQuantity === 0) { // Only when selecting a NEW distinct menu
+                const distinctSelectedMenuTypesCount = new Set(selectedAddons.menus.filter(m => m.quantity > 0).map(m => m.uid)).size;
+                if (distinctSelectedMenuTypesCount >= maxMenuTypesAllowed) {
+                  effectivePlusDisabled = true;
+                }
+              }
+
+              return (
+                <div key={addon.uid} className={`addon-item usage4-item p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-base-300 transition-colors ${effectivePlusDisabled && currentQuantity === 0 ? 'opacity-60 cursor-not-allowed' : ''}`}>
+                  <div className="addon-info mb-2 sm:mb-0 sm:mr-4 flex-grow">
+                    <span className="addon-name font-medium text-base-content">{addon.name}</span>
+                    {(() => { const ps = getAddonPriceString(addon); return ps ? (<span className="addon-price text-sm text-base-content/70 ml-2">({ps})</span>) : null; })()}
+                    {addon.desc && <p className="text-xs text-base-content/60 mt-1">{addon.desc}</p>}
+                  </div>
+                  <div className="addon-quantity-selector flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => commonMenuChangeHandler(addon, currentQuantity - 1, 'quantity')}
+                      disabled={currentQuantity === 0}
+                      className="qty-btn minus-btn px-3 py-1 bg-base-200 text-base-content rounded-md hover:bg-base-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="text"
+                      className="qty-input w-12 text-center border-base-300 rounded-md shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                      value={currentQuantity}
+                      readOnly
+                    />
+                    <button
+                      type="button"
+                      onClick={() => commonMenuChangeHandler(addon, currentQuantity + 1, 'quantity')}
+                      disabled={effectivePlusDisabled}
+                      className="qty-btn plus-btn px-3 py-1 bg-base-200 text-base-content rounded-md hover:bg-base-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+            {numericGuestCount > 0 && finalMenuAddons.length > 0 && (
+              <p className="text-xs text-base-content/60 mt-1">
+                {languageStrings?.menuUsage4TotalQuantityNote || `You may select between 1 and ${numericGuestCount} total menu(s).`} ({currentTotalMenuUsage4Quantity}/{numericGuestCount} total selected)
               </p>
             )}
           </div>
