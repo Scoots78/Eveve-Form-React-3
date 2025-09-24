@@ -28,6 +28,11 @@ const SelectedAddonsSummary = ({
 
     const formattedBasePrice = `${displaySymbol}${(itemBasePrice / 100).toFixed(2)}`;
 
+    // For zero-priced addons, suppress any price text entirely in the summary
+    if (itemBasePrice === 0) {
+      return { text: addon.name, cost: 0 };
+    }
+
     if (addon.per === 'Guest') {
       // For usage 2 (quantity-based) the user already selected quantity for each guest.
       if (isUsageQuantity) {
@@ -61,10 +66,6 @@ const SelectedAddonsSummary = ({
       }
     }
 
-    if (addon.price === 0) {
-        priceDescription = languageStrings?.free || "Free";
-    }
-
     return { text: `${addon.name} (${priceDescription})`, cost: itemTotalCost };
   };
 
@@ -83,9 +84,7 @@ const SelectedAddonsSummary = ({
     }
 
     let pricePortion = "";
-    if (menu.price === 0) {
-        pricePortion = `(${languageStrings?.free || "Free"})`
-    } else if (menu.price > 0) {
+    if (menu.price > 0) {
         const unitPriceString = `${displaySymbol}${(menu.price / 100).toFixed(2)}`;
         let perWhat = "";
         if (menu.per === 'Guest') {
@@ -139,9 +138,7 @@ const SelectedAddonsSummary = ({
         }
 
         let priceStr = "";
-        if (optionAddon.price === 0 && !(optionAddon.per === "Guest")) { // Avoid "$0.00 per Person" for free non-guest items
-            priceStr = `(${languageStrings?.free || "Free"})`;
-        } else if (typeof optionAddon.price === 'number') {
+        if (typeof optionAddon.price === 'number' && optionAddon.price > 0) {
             const unitPrice = `${displaySymbol}${(optionAddon.price / 100).toFixed(2)}`;
             let perText = "";
             if (optionAddon.per === 'Guest') {
