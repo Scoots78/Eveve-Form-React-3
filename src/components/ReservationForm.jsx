@@ -1293,9 +1293,10 @@ export default function ReservationForm() {
               </div>
               {/* The availabilityData.message can still be relevant here */}
               {availabilityData.message && (
-                <p className="text-sm p-3 bg-warning/10 border border-warning text-warning rounded-md mt-2">
-                  {availabilityData.message}
-                </p>
+                <div
+                  className="text-sm p-3 bg-warning/10 border border-warning text-warning rounded-md mt-2 prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: availabilityData.message }}
+                />
               )}
             </div>
           )}
@@ -1366,9 +1367,10 @@ export default function ReservationForm() {
                           />
                         )}
                         {shift.message && (
-                          <p className="text-xs mt-2 p-2 bg-info/10 border border-primary text-primary rounded">
-                            {shift.message}
-                          </p>
+                          <div
+                            className="text-xs mt-2 p-2 bg-info/10 border border-primary text-primary rounded prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ __html: shift.message }}
+                          />
                         )}
                         {shift.times && shift.times.length > 0 ? (
                           <div className="mt-3">
