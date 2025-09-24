@@ -475,7 +475,7 @@ const AddonSelection = ({
                     ? String(languageStrings.menuUsage3NoteWithCap).replace('{maxMenuTypes}', baseMaxTypes)
                     : `Optional menus: you can select up to ${baseMaxTypes} menu type(s) or your guest count, whichever is smaller.`)
                 : (languageStrings?.menuUsage3NoteGuestsOnly || `Optional menus: no menu-type limit; selections are restricted by your guest count.`)
-              } ({currentSelectionsCount}/{Number.isFinite(effectiveMaxSelections) ? effectiveMaxSelections : '∞'} selected)
+              }
             </p>
           </div>
         );
