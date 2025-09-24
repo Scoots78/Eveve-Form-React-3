@@ -4,7 +4,7 @@
 /* Scope to the widget container with the black theme */
 #eveve-widget[data-theme="black-orange"] {
   /* Core palette (HSL components) */
-  --p: 0 0% 10%;    /* primary: dark blue */
+  --p: 0 0% 50%;    /* primary: dark blue */
   --s: 0 0% 20%;    /* secondary: slightly lighter blue */
   --a: 0 0% 30%;    /* accent: even lighter blue */
   --n: 0 0% 80%;    /* neutral */
@@ -13,7 +13,8 @@
   --b2: 0 0% 10%;        /*SS base-200: slightly lighter surface */
   --b3: 220 2% 45%;   /* base-300: lighter blue for hover states */
   /* Fallback for DaisyUI's bg-base-300 utilities */
-  --fallback-b3: #5e5e5e; /* lighter blue used for accordion hover */
+  --fallback-b3: #5e5e5e !important; /* lighter blue used for accordion hover */
+  --fallback-p: #f27133 !important; /*SS fallback primary button color*/
   --bc: 18 88% 58%;     /*SS base-content:  MAIN TEXT COLOR */
 
   --in: 207 90% 54%;   /* info: bright blue */
@@ -47,6 +48,10 @@
   background-color: #f27133 !important;
   color: #000000 !important;
   border: 1px solid #2C3A46 !important;
+}
+
+#eveve-widget[data-theme="black-orange"] .border-base-300 {
+    border:1px solid #4b4b4b  !important
 }
 
 #eveve-widget[data-theme="black-orange"] .btn-primary:hover,
@@ -99,15 +104,18 @@
   color: #2C3A46;
 }
 
-/* Ensure headings and other text are white */
+/* Ensure headings and other text are themed */
 #eveve-widget[data-theme="black-orange"] h1,
 #eveve-widget[data-theme="black-orange"] h2,
 #eveve-widget[data-theme="black-orange"] h3,
 #eveve-widget[data-theme="black-orange"] h4,
 #eveve-widget[data-theme="black-orange"] h5,
-#eveve-widget[data-theme="black-orange"] h6,
-#eveve-widget[data-theme="black-orange"] p {
+#eveve-widget[data-theme="black-orange"] h6 {
   color: hsl(var(--bc));
+}
+/* SS Ensure Paragraph text are picked */
+#eveve-widget[data-theme="black-orange"] p {
+  color: #ffffff !important;
 }
 
 /* ------------------------------------------------------------------
@@ -140,6 +148,6 @@
 }
 
 #eveve-widget[data-theme="black-orange"] .addon-item {
-    border-color: #474344 !important; /*SS Border on addons*/
+    border: 1px solid #474344 !important; /*SS Border on addons*/
 
 }
