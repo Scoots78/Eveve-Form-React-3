@@ -2,19 +2,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Jost:wght@400;500;700&display=swap');
 
 /* Scope to the widget container with the black theme */
-#eveve-widget[data-theme="grey-green"] {
+#eveve-widget[data-theme="black-orange"] {
   /* Core palette (HSL components) */
   --p: 0 0% 10%;    /* primary: dark blue */
   --s: 0 0% 20%;    /* secondary: slightly lighter blue */
   --a: 0 0% 30%;    /* accent: even lighter blue */
   --n: 0 0% 80%;    /* neutral */
 
-  --b1: 220 2% 26%;   /* base-100: dark blue background */
-  --b2: 220 2% 35%;   /* base-200: slightly lighter surface */
+  --b1: 0 0% 0%;       /*SS base-100: dark blue background */
+  --b2: 0 0% 10%;        /*SS base-200: slightly lighter surface */
   --b3: 220 2% 45%;   /* base-300: lighter blue for hover states */
   /* Fallback for DaisyUI's bg-base-300 utilities */
   --fallback-b3: #5e5e5e; /* lighter blue used for accordion hover */
-  --bc: 82 35% 54%;     /* base-content: white text */
+  --bc: 18 88% 58%;     /*SS base-content:  MAIN TEXT COLOR */
 
   --in: 207 90% 54%;   /* info: bright blue */
   --su: 142 71% 45%;   /* success: green */
@@ -40,24 +40,25 @@
 }
 
 /* Button overrides for white background with dark blue text */
-#eveve-widget[data-theme="grey-green"] .btn-primary,
-#eveve-widget[data-theme="grey-green"] .bg-primary,
-#eveve-widget[data-theme="grey-green"] button.bg-primary {
-  background-color: white !important;
-  color: #2C3A46 !important;
+/* SS changed button color */
+#eveve-widget[data-theme="black-orange"] .btn-primary,
+#eveve-widget[data-theme="black-orange"] .bg-primary,
+#eveve-widget[data-theme="black-orange"] button.bg-primary {
+  background-color: #f27133 !important;
+  color: #000000 !important;
   border: 1px solid #2C3A46 !important;
 }
 
-#eveve-widget[data-theme="grey-green"] .btn-primary:hover,
-#eveve-widget[data-theme="grey-green"] .bg-primary:hover,
-#eveve-widget[data-theme="grey-green"] button.bg-primary:hover {
+#eveve-widget[data-theme="black-orange"] .btn-primary:hover,
+#eveve-widget[data-theme="black-orange"] .bg-primary:hover,
+#eveve-widget[data-theme="black-orange"] button.bg-primary:hover {
   background-color: #f8f9fa !important;
   box-shadow: 0 0 0 1px #2C3A46;
 }
 
-#eveve-widget[data-theme="grey-green"] .btn-primary:focus,
-#eveve-widget[data-theme="grey-green"] .bg-primary:focus,
-#eveve-widget[data-theme="grey-green"] button.bg-primary:focus {
+#eveve-widget[data-theme="black-orange"] .btn-primary:focus,
+#eveve-widget[data-theme="black-orange"] .bg-primary:focus,
+#eveve-widget[data-theme="black-orange"] button.bg-primary:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgba(44, 58, 70, 0.3);
 }
@@ -66,46 +67,46 @@
    Accessibility: keep text readable on disabled/active primary buttons
 -------------------------------------------------------------------*/
 
-#eveve-widget[data-theme="grey-green"] button.bg-primary:disabled,
-#eveve-widget[data-theme="grey-green"] .btn-primary:disabled {
-  opacity: 1 !important;            /* retain full contrast */
+#eveve-widget[data-theme="black-orange"] button.bg-primary:disabled,
+#eveve-widget[data-theme="black-orange"] .btn-primary:disabled {
+  opacity: 0.4 !important;            /* retain full contrast */
 }
 
 /* Ensure nested Tailwind text-primary-content utilities stay dark blue
    when the button background is white */
-#eveve-widget[data-theme="grey-green"] .bg-primary .text-primary-content {
+#eveve-widget[data-theme="black-orange"] .bg-primary .text-primary-content {
   color: #2C3A46 !important;
 }
-#eveve-widget[data-theme="grey-green"] .bg-primary .text-primary-content\/70 {
+#eveve-widget[data-theme="black-orange"] .bg-primary .text-primary-content\/70 {
   color: rgba(44, 58, 70, 0.7) !important;
 }
 
 /* Calendar day styling */
-#eveve-widget[data-theme="grey-green"] .react-calendar-custom .react-calendar__tile:enabled:hover abbr,
-#eveve-widget[data-theme="grey-green"] .react-calendar-custom .react-calendar__tile:enabled:focus abbr,
-#eveve-widget[data-theme="grey-green"] .react-calendar-custom .react-calendar__tile--active abbr {
+#eveve-widget[data-theme="black-orange"] .react-calendar-custom .react-calendar__tile:enabled:hover abbr,
+#eveve-widget[data-theme="black-orange"] .react-calendar-custom .react-calendar__tile:enabled:focus abbr,
+#eveve-widget[data-theme="black-orange"] .react-calendar-custom .react-calendar__tile--active abbr {
   background-color: white !important;
   color: #2C3A46 !important;
   border: 1px solid #2C3A46 !important;
 }
 
 /* Ensure text inputs have white background with dark borders */
-#eveve-widget[data-theme="grey-green"] input,
-#eveve-widget[data-theme="grey-green"] select,
-#eveve-widget[data-theme="grey-green"] textarea {
+#eveve-widget[data-theme="black-orange"] input,
+#eveve-widget[data-theme="black-orange"] select,
+#eveve-widget[data-theme="black-orange"] textarea {
   background-color: white;
   border-color: rgba(44, 58, 70, 0.5);
   color: #2C3A46;
 }
 
 /* Ensure headings and other text are white */
-#eveve-widget[data-theme="grey-green"] h1,
-#eveve-widget[data-theme="grey-green"] h2,
-#eveve-widget[data-theme="grey-green"] h3,
-#eveve-widget[data-theme="grey-green"] h4,
-#eveve-widget[data-theme="grey-green"] h5,
-#eveve-widget[data-theme="grey-green"] h6,
-#eveve-widget[data-theme="grey-green"] p {
+#eveve-widget[data-theme="black-orange"] h1,
+#eveve-widget[data-theme="black-orange"] h2,
+#eveve-widget[data-theme="black-orange"] h3,
+#eveve-widget[data-theme="black-orange"] h4,
+#eveve-widget[data-theme="black-orange"] h5,
+#eveve-widget[data-theme="black-orange"] h6,
+#eveve-widget[data-theme="black-orange"] p {
   color: hsl(var(--bc));
 }
 
@@ -113,7 +114,7 @@
    Custom overrides for selected time buttons and accordion hovers
 -------------------------------------------------------------------*/
 
-#eveve-widget[data-theme="grey-green"] {
+#eveve-widget[data-theme="black-orange"] {
   /* Theme-specific tokens so projects can tweak in one place */
   --selected-time-bg: #22C55E;   /* customizable green */
   --selected-time-text: #ffffff;
@@ -121,19 +122,24 @@
   --accordion-hover: #363636;    /* slightly lighter than base-200 */
 }
 
-#eveve-widget[data-theme="grey-green"] .time-btn[data-selected="true"] {
+#eveve-widget[data-theme="black-orange"] .time-btn[data-selected="true"] {
   background-color: var(--selected-time-bg) !important;
   color: var(--selected-time-text) !important;
   border: 1px solid var(--selected-time-border) !important;
   box-shadow: 0 0 0 2px color-mix(in oklab, var(--selected-time-bg) 30%, transparent);
 }
 
-#eveve-widget[data-theme="grey-green"] .accordion-toggle:hover {
+#eveve-widget[data-theme="black-orange"] .accordion-toggle:hover {
   background-color: var(--accordion-hover) !important;
   border-color: var(--accordion-hover) !important;
 }
 
-#eveve-widget[data-theme="grey-green"] .react-calendar-custom .react-calendar__navigation button:disabled {
-    color: #94b360 !important;
+#eveve-widget[data-theme="black-orange"] .react-calendar-custom .react-calendar__navigation button:disabled {
+    color: #f26f36 !important; /*SS Calender month text color*/
     opacity: 1;
+}
+
+#eveve-widget[data-theme="black-orange"] .addon-item {
+    border-color: #474344 !important; /*SS Border on addons*/
+
 }
