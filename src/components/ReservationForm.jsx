@@ -1087,19 +1087,22 @@ export default function ReservationForm() {
     } else if (currentShiftUsagePolicy === 3) { // Checkbox Menu (Optional)
       if (effectiveMenuAddons.length > 0) {
         const selectedMenuCount = selectedAddons.menus.length;
-        // Optional: zero selections are allowed; only enforce upper bound
-        const maxSelections = selectedShiftTime?.maxMenuTypes > 0 ? selectedShiftTime.maxMenuTypes : (numericGuestCount > 0 ? numericGuestCount : (effectiveMenuAddons.length > 0 ? 1: 0));
-        if (maxSelections > 0 && selectedMenuCount > maxSelections) {
-          console.log(`Validation Fail: Policy 3 - Selected menu count (${selectedMenuCount}) exceeds maximum allowed (${maxSelections}).`);
+        // Optional: zero selections are allowed; enforce upper bound = min(maxMenuTypes>0 ? maxMenuTypes : ∞, guests>0 ? guests : ∞)
+        const baseMaxTypes = selectedShiftTime?.maxMenuTypes || 0; // 0 = unlimited
+        const guestCap = numericGuestCount > 0 ? numericGuestCount : Infinity;
+        const effectiveMax = baseMaxTypes > 0 ? Math.min(baseMaxTypes, guestCap) : guestCap;
+        if (Number.isFinite(effectiveMax) && selectedMenuCount > effectiveMax) {
+          console.log(`Validation Fail: Policy 3 - Selected menu count (${selectedMenuCount}) exceeds effective maximum allowed (${effectiveMax}).`);
           return { isValid: false, reasonCode: 'MAX_MENU_TYPES_EXCEEDED_POLICY_3' };
         }
       }
     } else if (currentShiftUsagePolicy === 4) { // Quantity Menu (Some guests same menu)
       if (effectiveMenuAddons.length > 0 && numericGuestCount > 0) {
         const totalMenuQuantity = selectedAddons.menus.reduce((sum, menu) => sum + (menu.quantity || 0), 0);
-        if (totalMenuQuantity < 1 || totalMenuQuantity > numericGuestCount) {
-          console.log(`Validation Fail: Policy 4 - Total menu quantity (${totalMenuQuantity}) must be between 1 and guest count (${numericGuestCount}).`);
-          return { isValid: false, reasonCode: 'TOTAL_MENU_QUANTITY_OUT_OF_RANGE_POLICY_4' };
+        // Optional lower bound: allow zero; only enforce upper bound by guest count
+        if (totalMenuQuantity > numericGuestCount) {
+          console.log(`Validation Fail: Policy 4 - Total menu quantity (${totalMenuQuantity}) must not exceed guest count (${numericGuestCount}).`);
+          return { isValid: false, reasonCode: 'TOTAL_MENU_QUANTITY_EXCEEDS_GUESTS_POLICY_4' };
         }
         if (selectedShiftTime?.maxMenuTypes > 0) {
           const distinctSelectedMenuTypes = new Set(selectedAddons.menus.filter(m => m.quantity > 0).map(m => m.uid)).size;
@@ -1108,13 +1111,7 @@ export default function ReservationForm() {
             return { isValid: false, reasonCode: 'MAX_MENU_TYPES_EXCEEDED_POLICY_4' };
           }
         }
-      } else if (effectiveMenuAddons.length > 0 && numericGuestCount === 0) {
-        const totalMenuQuantity = selectedAddons.menus.reduce((sum, menu) => sum + (menu.quantity || 0), 0);
-        if (totalMenuQuantity === 0) {
-          console.log("Validation Fail: Policy 4 (0 guests) - At least one menu item must be selected if available.");
-          return { isValid: false, reasonCode: 'SELECT_MENU_POLICY_4_GUESTS_0' };
-        }
-      }
+      } // when guest count is 0: also optional, no lower bound
     }
     // Usage Policy 0 needs no specific menu validation here for proceeding.
 

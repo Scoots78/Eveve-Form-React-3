@@ -182,7 +182,7 @@ The availability (`/web/day-avail`) provides a `usage` value per shift/time that
 
 - Usage 4 – Some guests same menu (new)
   - UI: Plus/minus quantity selectors per menu (same UI as usage 2).
-  - Validation: Sum of all selected quantities is optional and must be between 1 and guest count (inclusive). Does not need to equal guest count; `maxMenuTypes` enforced when present. When guest count is 0 (edge case), at least one selection is required if menus are offered.
+  - Validation: Selection is optional. Sum of all selected quantities must be ≤ guest count. It does NOT need to equal guest count; `maxMenuTypes` enforced when present. Guests=0 is also allowed with zero selection.
   - Pricing/Cost: Treated as quantity-based like usage 2 for per-guest priced items.
   - API format: `uid:qty` for each selected menu.
 

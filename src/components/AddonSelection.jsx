@@ -419,19 +419,24 @@ const AddonSelection = ({
                 </div>
               );
             })}
-            {numericGuestCount > 0 && finalMenuAddons.length > 0 && (
+            {finalMenuAddons.length > 0 && (
               <p className="text-xs text-base-content/60 mt-1">
-                {languageStrings?.menuUsage4TotalQuantityNote || `You may select between 1 and ${numericGuestCount} total menu(s).`} ({currentTotalMenuUsage4Quantity}/{numericGuestCount} total selected)
+                {languageStrings?.menuUsage4TotalQuantityNote || (numericGuestCount > 0
+                  ? `Optional menus: you may select up to ${numericGuestCount} total menu(s).`
+                  : `Optional menus: select any quantity.`)} ({currentTotalMenuUsage4Quantity}{numericGuestCount > 0 ? `/${numericGuestCount}` : ''} total selected)
               </p>
             )}
           </div>
         );
         break;
 
-      case 3: // Checkboxes for Menus
-        const maxSelections = selectedShiftTime?.maxMenuTypes > 0 ? selectedShiftTime.maxMenuTypes : numericGuestCount > 0 ? numericGuestCount : (finalMenuAddons.length > 0 ? 1 : 0) ;
+      case 3: // Checkboxes for Menus (Optional; cap = min(maxMenuTypes>0 ? maxMenuTypes : ∞, guests>0 ? guests : ∞))
+        const baseMaxTypes = selectedShiftTime?.maxMenuTypes || 0; // 0 means unlimited
+        const hasMaxTypesCap = baseMaxTypes > 0;
+        const guestCap = numericGuestCount > 0 ? numericGuestCount : Infinity;
+        const effectiveMaxSelections = hasMaxTypesCap ? Math.min(baseMaxTypes, guestCap) : guestCap;
         const currentSelectionsCount = selectedAddons.menus.length;
-        const canSelectMoreMenus = currentSelectionsCount < maxSelections;
+        const canSelectMoreMenus = currentSelectionsCount < effectiveMaxSelections;
 
         menuContent = (
           <div className="space-y-2">
@@ -459,11 +464,12 @@ const AddonSelection = ({
                 </div>
               );
             })}
-            {maxSelections > 0 && maxSelections < Infinity && (
-              <p className="text-xs text-base-content/60 mt-1">
-                {languageStrings?.maxMenuSelectionNote || `Select up to ${maxSelections} menu(s).`} ({currentSelectionsCount}/{maxSelections} selected)
-              </p>
-            )}
+            <p className="text-xs text-base-content/60 mt-1">
+              {hasMaxTypesCap
+                ? (languageStrings?.menuUsage3NoteWithCap || `Optional menus: you can select up to ${baseMaxTypes} menu type(s) or your guest count, whichever is smaller.`)
+                : (languageStrings?.menuUsage3NoteGuestsOnly || `Optional menus: no menu-type limit; selections are restricted by your guest count.`)
+              } ({currentSelectionsCount}/{Number.isFinite(effectiveMaxSelections) ? effectiveMaxSelections : '∞'} selected)
+            </p>
           </div>
         );
         break;
