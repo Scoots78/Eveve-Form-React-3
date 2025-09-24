@@ -280,7 +280,7 @@ const AddonSelection = ({
                     />
                     <div className="flex-grow">
                       <span className="addon-name font-medium text-base-content">{addon.name}</span>
-                      {addon.price >= 0 && <span className="addon-price text-sm text-base-content/70 ml-2">({getAddonPriceString(addon)})</span>}
+                      {(() => { const ps = getAddonPriceString(addon); return ps ? (<span className="addon-price text-sm text-base-content/70 ml-2">({ps})</span>) : null; })()}
                       {addon.desc && <p className="text-xs text-base-content/60 mt-1">{addon.desc}</p>}
                     </div>
                   </label>
