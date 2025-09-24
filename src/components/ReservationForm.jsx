@@ -493,7 +493,7 @@ export default function ReservationForm() {
     }
   }, [est, appConfig]);
 
-  const [debouncedFetchAvailability, clearDebouncedFetchAvailability] = useDebounce(fetchAvailability, 800);
+  const [debouncedFetchAvailability, clearDebouncedFetchAvailability] = useDebounce(fetchAvailability, 1500);
 
   useEffect(() => {
     const numericGuests = parseInt(guests, 10);
