@@ -421,9 +421,14 @@ const AddonSelection = ({
             })}
             {finalMenuAddons.length > 0 && (
               <p className="text-xs text-base-content/60 mt-1">
-                {languageStrings?.menuUsage4TotalQuantityNote || (numericGuestCount > 0
-                  ? `Optional menus: you may select up to ${numericGuestCount} total menu(s).`
-                  : `Optional menus: select any quantity.`)} ({currentTotalMenuUsage4Quantity}{numericGuestCount > 0 ? `/${numericGuestCount}` : ''} total selected)
+                {(() => {
+                  if (languageStrings?.menuUsage4TotalQuantityNote && numericGuestCount > 0) {
+                    return String(languageStrings.menuUsage4TotalQuantityNote).replace('{guestCount}', numericGuestCount);
+                  }
+                  return numericGuestCount > 0
+                    ? `Optional menus: you may select up to ${numericGuestCount} total menu(s).`
+                    : `Optional menus: select any quantity.`;
+                })()} ({currentTotalMenuUsage4Quantity}{numericGuestCount > 0 ? `/${numericGuestCount}` : ''} total selected)
               </p>
             )}
           </div>
@@ -466,7 +471,9 @@ const AddonSelection = ({
             })}
             <p className="text-xs text-base-content/60 mt-1">
               {hasMaxTypesCap
-                ? (languageStrings?.menuUsage3NoteWithCap || `Optional menus: you can select up to ${baseMaxTypes} menu type(s) or your guest count, whichever is smaller.`)
+                ? (languageStrings?.menuUsage3NoteWithCap
+                    ? String(languageStrings.menuUsage3NoteWithCap).replace('{maxMenuTypes}', baseMaxTypes)
+                    : `Optional menus: you can select up to ${baseMaxTypes} menu type(s) or your guest count, whichever is smaller.`)
                 : (languageStrings?.menuUsage3NoteGuestsOnly || `Optional menus: no menu-type limit; selections are restricted by your guest count.`)
               } ({currentSelectionsCount}/{Number.isFinite(effectiveMaxSelections) ? effectiveMaxSelections : '∞'} selected)
             </p>
