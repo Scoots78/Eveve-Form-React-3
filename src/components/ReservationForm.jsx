@@ -404,6 +404,12 @@ export default function ReservationForm() {
       setAvailabilityData(null);
       setApiError(null);
       setShowDateTimePicker(true); // Show pickers when date changes
+      // Reset addons and areas; if the same time remains valid on the new date,
+      // an effect below will repopulate the correct addons/areas for that time.
+      setSelectedAddons({ menus: [], options: {} });
+      setAvailableAreas([]);
+      setSelectedArea(null);
+      setSelectedAreaName(null);
     }
   };
 
@@ -507,6 +513,70 @@ export default function ReservationForm() {
       clearDebouncedFetchAvailability();
     };
   }, [selectedDate, guests, debouncedFetchAvailability, clearDebouncedFetchAvailability]);
+
+  // Sync selected time's addons/areas when availabilityData updates for a new date
+  // This ensures the Addons section refreshes immediately after changing date
+  // if the previously selected time is still valid on the new day.
+  useEffect(() => {
+    if (!availabilityData || !selectedShiftTime?.selectedTime) return;
+    if (!Array.isArray(availabilityData.shifts) || availabilityData.shifts.length === 0) return;
+
+    const selectedTime = selectedShiftTime.selectedTime;
+
+    // Resolve the corresponding shift on the new availability
+    let resolvedShiftIndex = -1;
+    if (selectedShiftTime.uid !== undefined) {
+      resolvedShiftIndex = availabilityData.shifts.findIndex((s) => s.uid === selectedShiftTime.uid);
+    }
+    if (resolvedShiftIndex === -1 && typeof selectedShiftTime.originalIndexInAvailabilityData === 'number') {
+      const idx = selectedShiftTime.originalIndexInAvailabilityData;
+      if (idx >= 0 && idx < availabilityData.shifts.length) {
+        resolvedShiftIndex = idx;
+      }
+    }
+    if (resolvedShiftIndex === -1) {
+      resolvedShiftIndex = availabilityData.shifts.findIndex((s) =>
+        (s.times || []).some((t) => (typeof t === 'object' ? t.time : t) === selectedTime)
+      );
+    }
+
+    // If no matching shift/time on the new day, clear context and exit
+    if (resolvedShiftIndex === -1) {
+      setCurrentShiftAddons([]);
+      setCurrentShiftUsagePolicy(null);
+      setAvailableAreas([]);
+      return;
+    }
+
+    const newShift = availabilityData.shifts[resolvedShiftIndex];
+    const timeObj = (newShift.times || []).find((t) => (typeof t === 'object' ? t.time : t) === selectedTime);
+
+    // Derive addons and usage policy prioritising time-level overrides
+    const rawAddons = (typeof timeObj === 'object' && timeObj?.addons) ? timeObj.addons : (newShift?.addons || []);
+    const processedAddons = (rawAddons || []).map((addon, index) => ({ ...addon, originalIndexInShift: index }));
+    setCurrentShiftAddons(processedAddons);
+
+    const usagePolicy = (typeof timeObj === 'object' && timeObj?.usage !== undefined) ? timeObj.usage : newShift?.usage;
+    setCurrentShiftUsagePolicy(usagePolicy === undefined ? null : Number(usagePolicy));
+
+    // Update available areas for this time
+    const allAreas = availabilityData?.areas || [];
+    const filteredAreas = allAreas.filter((area) => Array.isArray(area.times) && area.times.includes(selectedTime));
+    setAvailableAreas(filteredAreas);
+
+    // Ensure the correct shift is expanded
+    setExpandedShiftIdentifier(newShift.uid || resolvedShiftIndex);
+
+    // Update selectedShiftTime with refreshed context for the new day
+    setSelectedShiftTime((prev) => ({
+      ...(prev || {}),
+      ...newShift,
+      selectedTime,
+      addons: rawAddons || [],
+      usage: usagePolicy,
+      originalIndexInAvailabilityData: resolvedShiftIndex,
+    }));
+  }, [availabilityData, selectedShiftTime?.selectedTime]);
 
   const handleTimeSelection = (shift, timeObject, shiftIndexInAvailabilityData) => {
     // Assuming timeObject could be just the decimal time, or an object containing the time
