@@ -743,6 +743,51 @@ export default function ReservationForm() {
               newSelected.menus.splice(menuIndex, 1);
             }
           }
+        } else if (menuUsagePolicy === 4) { // Quantity selectors for Menus (Some guests same menu)
+          const newProposedQuantity = parseInt(value, 10);
+          const oldQuantity = prev.menus.find(m => m.uid === addonData.uid)?.quantity || 0;
+
+          if (newProposedQuantity > oldQuantity) { // Incrementing
+            const numericGuests = parseInt(guests, 10) || 0;
+
+            // Sum of quantities must not exceed guest count
+            if (numericGuests > 0) {
+              const currentTotalMenuUsage4Quantity = prev.menus.reduce((sum, menu) => {
+                if (menu.uid === addonData.uid) return sum; // Exclude current item's old quantity
+                return sum + (menu.quantity || 0);
+              }, 0);
+              if (currentTotalMenuUsage4Quantity + newProposedQuantity > numericGuests) {
+                console.warn(`Usage 4 Menu (Sum Limit): Cannot increment ${addonData.name}. Total quantity ${currentTotalMenuUsage4Quantity + newProposedQuantity} would exceed guest count ${numericGuests}.`);
+                return prev;
+              }
+            }
+
+            // maxMenuTypes constraint (only when adding new distinct type)
+            if (oldQuantity === 0 && newProposedQuantity > 0) {
+              const maxMenuTypesAllowed = selectedShiftTime?.maxMenuTypes;
+              if (maxMenuTypesAllowed > 0) {
+                const distinctSelectedMenuTypesCount = new Set(prev.menus.filter(m => m.quantity > 0).map(m => m.uid)).size;
+                if (distinctSelectedMenuTypesCount >= maxMenuTypesAllowed) {
+                  console.warn(`Usage 4 Menu (Max Types): Cannot select new menu type ${addonData.name}. Max ${maxMenuTypesAllowed} distinct menu types already selected.`);
+                  return prev;
+                }
+              }
+            }
+          }
+
+          // Proceed with update
+          if (newProposedQuantity > 0) {
+            if (menuIndex > -1) {
+              newSelected.menus[menuIndex].quantity = newProposedQuantity;
+              newSelected.menus[menuIndex].usagePolicy = menuUsagePolicy;
+            } else {
+              newSelected.menus.push({ ...addonData, quantity: newProposedQuantity, usagePolicy: menuUsagePolicy });
+            }
+          } else {
+            if (menuIndex > -1) {
+              newSelected.menus.splice(menuIndex, 1);
+            }
+          }
         }
       } else if (addonType === 'option') {
         const quantity = parseInt(value, 10);
@@ -1039,26 +1084,34 @@ export default function ReservationForm() {
             return { isValid: false, reasonCode: 'SELECT_MENU_POLICY_2_GUESTS_0' };
         }
       }
-    } else if (currentShiftUsagePolicy === 3) { // Checkbox Menu
+    } else if (currentShiftUsagePolicy === 3) { // Checkbox Menu (Optional)
       if (effectiveMenuAddons.length > 0) {
         const selectedMenuCount = selectedAddons.menus.length;
-        // Assuming if policy 3 and menus are available, at least one must be selected if minMenuTypes/maxMenuTypes implies a selection is needed.
-        // Or if shift itself has a property like 'minRequiredMenusPolicy3'
-        // For now, let's assume a general "must select at least one if available and policy 3 implies selection"
-        // A more robust check might involve selectedShiftTime?.minMenuTypes for policy 3.
-        // If no specific min, but menus are there, it's often implied one should be picked.
-        // This is a bit ambiguous without explicit minRequired for policy 3.
-        // Let's assume for now: if effectiveMenuAddons exist, and it's policy 3, at least one must be chosen.
-        if (selectedMenuCount === 0) { // This could be refined with a specific config for min selections on policy 3.
-          console.log("Validation Fail: Policy 3 - At least one menu selection might be required.");
-          return { isValid: false, reasonCode: 'SELECT_MENU_POLICY_3' };
-        }
-        const maxSelections = selectedShiftTime?.maxMenuTypes > 0 ? selectedShiftTime.maxMenuTypes : (numericGuestCount > 0 ? numericGuestCount : (effectiveMenuAddons.length > 0 ? 1: 0));
-         if (maxSelections > 0 && selectedMenuCount > maxSelections) {
-            console.log(`Validation Fail: Policy 3 - Selected menu count (${selectedMenuCount}) exceeds maximum allowed (${maxSelections}).`);
-            return { isValid: false, reasonCode: 'MAX_MENU_TYPES_EXCEEDED_POLICY_3' };
+        // Optional: zero selections are allowed; enforce upper bound = min(maxMenuTypes>0 ? maxMenuTypes : ∞, guests>0 ? guests : ∞)
+        const baseMaxTypes = selectedShiftTime?.maxMenuTypes || 0; // 0 = unlimited
+        const guestCap = numericGuestCount > 0 ? numericGuestCount : Infinity;
+        const effectiveMax = baseMaxTypes > 0 ? Math.min(baseMaxTypes, guestCap) : guestCap;
+        if (Number.isFinite(effectiveMax) && selectedMenuCount > effectiveMax) {
+          console.log(`Validation Fail: Policy 3 - Selected menu count (${selectedMenuCount}) exceeds effective maximum allowed (${effectiveMax}).`);
+          return { isValid: false, reasonCode: 'MAX_MENU_TYPES_EXCEEDED_POLICY_3' };
         }
       }
+    } else if (currentShiftUsagePolicy === 4) { // Quantity Menu (Some guests same menu)
+      if (effectiveMenuAddons.length > 0 && numericGuestCount > 0) {
+        const totalMenuQuantity = selectedAddons.menus.reduce((sum, menu) => sum + (menu.quantity || 0), 0);
+        // Optional lower bound: allow zero; only enforce upper bound by guest count
+        if (totalMenuQuantity > numericGuestCount) {
+          console.log(`Validation Fail: Policy 4 - Total menu quantity (${totalMenuQuantity}) must not exceed guest count (${numericGuestCount}).`);
+          return { isValid: false, reasonCode: 'TOTAL_MENU_QUANTITY_EXCEEDS_GUESTS_POLICY_4' };
+        }
+        if (selectedShiftTime?.maxMenuTypes > 0) {
+          const distinctSelectedMenuTypes = new Set(selectedAddons.menus.filter(m => m.quantity > 0).map(m => m.uid)).size;
+          if (distinctSelectedMenuTypes > selectedShiftTime.maxMenuTypes) {
+            console.log(`Validation Fail: Policy 4 - Exceeded max menu types (${selectedShiftTime.maxMenuTypes}).`);
+            return { isValid: false, reasonCode: 'MAX_MENU_TYPES_EXCEEDED_POLICY_4' };
+          }
+        }
+      } // when guest count is 0: also optional, no lower bound
     }
     // Usage Policy 0 needs no specific menu validation here for proceeding.
 
