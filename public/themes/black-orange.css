@@ -151,3 +151,16 @@
     border: 1px solid #474344 !important; /*SS Border on addons*/
 
 }
+
+#eveve-widget[data-theme="black-orange"] form {
+    background-color: #ffffff !important; /*SS Background color on form*/
+
+}
+
+#eveve-widget[data-theme="black-orange"] #headlessui-portal-root {
+    background-color: #ffffff !important; /*SS Background color on form*/
+}
+
+#eveve-widget form.mt-4 {
+    background: #ffffff;
+}
