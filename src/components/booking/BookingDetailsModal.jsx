@@ -740,9 +740,28 @@ export default function BookingDetailsModal({
       return;
     }
     
-    // For card bookings, process payment first
+    // For card bookings, ensure UPDATE succeeds BEFORE any Stripe processing
     if (validateForm()) {
       try {
+        // 0) HARD STOP: Update booking first. If this fails, DO NOT process card.
+        logWithTimestamp('Updating booking details before any Stripe processing (hard stop on error)');
+        try {
+          await onSubmit(effectiveHoldData.uid, {
+            ...customerData,
+            bookopt: selectedBookOpts,
+            guestopt: selectedGuestOpts
+          });
+        } catch (updateErr) {
+          logWithTimestamp('Pre-payment update failed. Aborting Stripe processing.', { error: updateErr.message });
+          setCardState(prev => ({
+            ...prev,
+            error: updateErr.message || 'Failed to update booking before payment',
+            errorSource: 'payment'
+          }));
+          console.timeEnd(timerLabel);
+          return; // HARD STOP
+        }
+
         logWithTimestamp('Processing payment for card-required booking', {
           step: 'start',
           uid: effectiveHoldData.uid,
@@ -750,7 +769,7 @@ export default function BookingDetailsModal({
           hasStripe: !!cardState.stripe,
           hasElements: !!cardState.elements
         });
-        
+
         setPaymentProcessing(true);
         paymentStartTimeRef.current = Date.now();
         
