@@ -28,15 +28,16 @@ export function formatSelectedAddonsForApi(
 
       if (idOrName) {
         if (typeof menu.quantity === 'number' && menu.quantity > 0) {
-          // This case is for menus selected under usage:2 (quantity selectors)
+          // usage:2 (quantity selectors)
           apiParams.push(`${idOrName}:${menu.quantity}`);
         } else if (menu.usagePolicy === 1 && numericGuestCount && numericGuestCount > 0) {
-          // For usage=1 menus (same menu for all guests), include the guest count
+          // usage:1 (all guests same menu) – qty = guest count
           apiParams.push(`${idOrName}:${numericGuestCount}`);
+        } else if (menu.usagePolicy === 3) {
+          // usage:3 (optional checkbox) – API requires an explicit quantity of 1
+          apiParams.push(`${idOrName}:1`);
         } else {
-          // This case is for menus selected under usage:3 (checkbox)
-          // or usage:2 menus with quantity 0 that somehow didn't get removed (shouldn't happen with current logic)
-          // For simplicity, if quantity is not present or not > 0, just send UID.
+          // Fallback: send UID as-is (should be rare)
           apiParams.push(idOrName);
         }
       }
