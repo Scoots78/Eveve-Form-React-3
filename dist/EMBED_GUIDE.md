@@ -67,8 +67,8 @@ You may use **either** `data-restaurant` **or** `data-est` – they’re interch
 Just add more containers – the script initialises each one independently.
 
 ```html
-<div class="eveve-widget" data-restaurant="123" data-theme="light"></div>
-<div class="eveve-widget" data-restaurant="456" data-theme="brand-roboto"
+<div class="eveve-widget" data-restaurant="TestNZB" data-theme="light"></div>
+<div class="eveve-widget" data-restaurant="TestNZB" data-theme="brand-roboto"
      data-default-guests="4"></div>
 
 <script src="https://booking.eveve.com/form1-0-0/embed.js"></script>
@@ -88,7 +88,7 @@ The embed script scans for:
 // Initialise one container added dynamically:
 const el = document.createElement('div');
 el.className = 'eveve-widget';
-el.dataset.restaurant = '123';
+el.dataset.restaurant = 'TestNZB';
 document.body.appendChild(el);
 window.EveveWidget.init(el);
 
@@ -121,7 +121,7 @@ Full step-by-step samples live under `public/embed-examples/`.
 3. Reference it with `data-theme-css`:
 
 ```html
-<div class="eveve-widget" data-restaurant="123"
+<div class="eveve-widget" data-restaurant="TestNZB"
      data-theme="my-brand" data-theme-css="https://example.com/my-brand.css"></div>
 ```
 
@@ -141,7 +141,7 @@ Full step-by-step samples live under `public/embed-examples/`.
 ## 9 · FAQ  
 
 **Q:** Do I need to host any files?  
-**A:** **No.** Everything lives on `booking.eveve.com`. Just one script tag.
+**A:** **No.** Everything lives on `book.eveve.com`. Just one script tag.
 
 **Q:** Can I self-host?  
 **A:** Optional. Copy `/form1-0-0/` to your own server and change the script `src`.  

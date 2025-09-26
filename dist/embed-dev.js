@@ -45,6 +45,8 @@
       iframe.style.height = CONFIG.iframeHeight;
       iframe.style.border = 'none';
       iframe.style.overflow = 'hidden';
+      // Smooth height transitions to reduce visual jitter
+      iframe.style.transition = 'height 200ms ease';
       iframe.id = `${container.id}-iframe`;
       
       // Build the URL with all the parameters
@@ -64,13 +66,39 @@
       container.innerHTML = '';
       container.appendChild(iframe);
       
+      // Helper to determine if element is (partially) in viewport
+      const isInViewport = (el) => {
+        const r = el.getBoundingClientRect();
+        return r.bottom > 0 && r.top < (window.innerHeight || document.documentElement.clientHeight);
+      };
+
       // Set up communication between parent and iframe
       window.addEventListener('message', function(event) {
         // Only accept messages from our iframe
         if (event.source === iframe.contentWindow) {
           // Handle height adjustments
           if (event.data && event.data.type === 'resize') {
-            iframe.style.height = `${event.data.height}px`;
+            const targetHeight = Math.max(100, Number(event.data.height) || 0);
+            const currentHeight = iframe.offsetHeight;
+            // Ignore tiny changes to avoid jitter
+            if (Math.abs(targetHeight - currentHeight) < 4) return;
+
+            const anchorScroll = document.activeElement === iframe || isInViewport(iframe);
+            const beforeTop = anchorScroll ? iframe.getBoundingClientRect().top : 0;
+
+            // Apply the new height with a smooth transition
+            iframe.style.height = `${targetHeight}px`;
+
+            if (anchorScroll) {
+              // After layout, compensate any page shift so the iframe's top stays fixed
+              requestAnimationFrame(() => {
+                const afterTop = iframe.getBoundingClientRect().top;
+                const delta = afterTop - beforeTop;
+                if (Math.abs(delta) > 1) {
+                  window.scrollBy(0, delta);
+                }
+              });
+            }
           }
           
           // Forward booking events to parent document
@@ -113,17 +141,34 @@
               });
               
               // Send height updates to parent
-              const sendHeight = function() {
-                const height = document.body.scrollHeight;
-                window.parent.postMessage({
-                  type: 'resize',
-                  height: height
-                }, '*');
+              const sendHeight = () => {
+                const doc = document.documentElement;
+                const height = Math.max(
+                  doc.scrollHeight,
+                  document.body ? document.body.scrollHeight : 0
+                );
+                window.parent.postMessage({ type: 'resize', height }, '*');
               };
-              
-              // Send height periodically and on window resize
-              window.addEventListener('resize', sendHeight);
-              setInterval(sendHeight, ${CONFIG.iframeResizeInterval});
+
+              // Use ResizeObserver for smooth, accurate resizing
+              try {
+                const ro = new ResizeObserver(() => requestAnimationFrame(sendHeight));
+                ro.observe(document.documentElement);
+              } catch (e) {
+                // Fallback if ResizeObserver not available
+                window.addEventListener('resize', () => requestAnimationFrame(sendHeight));
+              }
+
+              // Mutation observer to catch DOM content changes
+              try {
+                const mo = new MutationObserver(() => requestAnimationFrame(sendHeight));
+                mo.observe(document.documentElement, { subtree: true, childList: true, attributes: true, characterData: true });
+              } catch (e) {}
+
+              // As a safety net, also send periodically but at a low cadence
+              setInterval(sendHeight, ${Math.max(1000, CONFIG.iframeResizeInterval)});
+              window.addEventListener('load', sendHeight);
+              document.addEventListener('DOMContentLoaded', sendHeight);
               sendHeight();
             `;
             iframe.contentDocument.head.appendChild(script);
