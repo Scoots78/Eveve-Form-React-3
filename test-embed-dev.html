@@ -136,6 +136,65 @@
             </li>
             <li>Changes to your local dev files will be reflected immediately</li>
         </ol>
+        <hr style="margin:16px 0;">
+        <h3>Events You Can Listen To</h3>
+        <p>
+            The embed forwards custom events on the parent page:
+            <code>eveve-booking-success</code> and <code>eveve-booking-error</code>.
+            Access the event payload via <code>e.detail</code>.
+        </p>
+        <pre><code>// Example
+document.addEventListener('eveve-booking-success', (e) => {
+  console.log('Booking success:', e.detail);
+});
+
+document.addEventListener('eveve-booking-error', (e) => {
+  console.log('Booking error:', e.detail);
+});
+        </code></pre>
+
+        <h3>Analytics Examples (copy/paste)</h3>
+        <p>GA4 (gtag):</p>
+        <pre><code>document.addEventListener('eveve-booking-success', (e) => {
+  const p = sanitizeBookingDetail(e.detail);
+  window.gtag && gtag('event', 'eveve_booking_success', p);
+});
+
+function sanitizeBookingDetail(d = {}) {
+  const { date, time, guests, est, area, total, currency } = d;
+  return { date, time, guests, est, area, total, currency };
+}
+        </code></pre>
+        <p>Google Tag Manager (dataLayer):</p>
+        <pre><code>document.addEventListener('eveve-booking-success', (e) => {
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({
+    event: 'eveve_booking_success',
+    ...sanitizeBookingDetail(e.detail)
+  });
+});
+        </code></pre>
+
+        <h3>Customer Embed Snippet (iframe-based)</h3>
+        <p>Place this on the customer's site. Replace values as needed.</p>
+        <pre><code>&lt;!-- Container --&gt;
+&lt;div id="eveve-booking"
+     data-restaurant="YOUR_EST_UID"
+     data-theme="your-theme"
+     data-lang="en"&gt;&lt;/div&gt;
+
+&lt;!-- Embed script (production CDN URL provided by Eveve) --&gt;
+&lt;script src="https://YOUR-CDN-HOST/form1-0-0/embed.js"&gt;&lt;/script&gt;
+
+&lt;!-- Optional: analytics listeners --&gt;
+&lt;script&gt;
+document.addEventListener('eveve-booking-success', (e) =&gt; {
+  window.dataLayer = window.dataLayer || [];
+  const { date, time, guests, est, area, total, currency } = e.detail || {};
+  window.dataLayer.push({ event: 'eveve_booking_success', date, time, guests, est, area, total, currency });
+});
+&lt;/script&gt;
+        </code></pre>
     </div>
     
     <button id="toggle-styles" class="toggle-styles">Toggle Problematic Parent Styles</button>
