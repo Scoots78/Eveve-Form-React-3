@@ -60,6 +60,7 @@ export default function BookingDetailsModal({
     email: "",
     phone: "",
     notes: "",
+    xtra: "",
     optin: true, // Pre-ticked by default
     allergy: {
       has: false,
@@ -290,6 +291,7 @@ export default function BookingDetailsModal({
         email: "",
         phone: "",
         notes: "",
+        xtra: "",
         optin: true,
         allergy: {
           has: false,
@@ -2011,6 +2013,23 @@ export default function BookingDetailsModal({
                             Special requests are not guaranteed and are subject to availability.
                           </p>
                         </div>
+
+                        {/* Extra notes (dynamic label from /web/form → xtraNotes) */}
+                        {appConfig?.xtraNotes && String(appConfig.xtraNotes).trim().length > 0 && (
+                          <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              {appConfig.xtraNotes}
+                            </label>
+                            <input
+                              type="text"
+                              name="xtra"
+                              value={customerData.xtra}
+                              onChange={handleInputChange}
+                              className="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 border-gray-300"
+                              disabled={timerExpired}
+                            />
+                          </div>
+                        )}
                         
                         {/* Opt-in for marketing */}
                         <div className="mb-6">
