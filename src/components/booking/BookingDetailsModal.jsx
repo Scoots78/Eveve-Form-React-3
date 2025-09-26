@@ -724,19 +724,12 @@ export default function BookingDetailsModal({
       if (validateForm()) {
         try {
           logWithTimestamp('Submitting non-card booking');
-          onSubmit(effectiveHoldData.uid, {
+          await onSubmit(effectiveHoldData.uid, {
             ...customerData,
             bookopt: selectedBookOpts,
             guestopt: selectedGuestOpts
           });
-          
-          // Set local success state in case parent doesn't update
-          setTimeout(() => {
-            if (!success) {
-              logWithTimestamp('Setting local success state for non-card booking');
-              setLocalSuccess(true);
-            }
-          }, 3000);
+          // Do not auto-complete locally; rely on parent success signal
         } catch (err) {
           console.error(`${new Date().toISOString()} [BookingDetailsModal] Error processing booking:`, err);
         }
