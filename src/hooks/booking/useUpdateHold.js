@@ -67,6 +67,11 @@ export function useUpdateHold(baseUrl) {
         url.searchParams.append("notes", customerData.notes);
       }
       
+      // Add xtra parameter from dynamic field if present
+      if (customerData.xtra && String(customerData.xtra).trim().length > 0) {
+        url.searchParams.append("xtra", customerData.xtra);
+      }
+      
       // Opt-in is true by default unless explicitly set to false
       const optinValue = customerData.optin !== false ? 1 : 0;
       url.searchParams.append("optem", optinValue);
