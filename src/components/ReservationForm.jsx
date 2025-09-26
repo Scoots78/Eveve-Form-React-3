@@ -969,8 +969,12 @@ export default function ReservationForm() {
       const updateResult = await updateHold(holdToken, enhancedCustomerData);
       console.log("Update Result:", updateResult);
 
-      // /web/update is the final confirmation call — mark success immediately
-      setBookingState(prev => ({ ...prev, bookingSuccess: true }));
+      // Mark success only when appropriate:
+      // - Non-card flow: modal calls once (no skipSuccess flag)
+      // - Card flow: pre-payment passes skipSuccess=true; post-payment update omits it
+      if (!customerData?.skipSuccess) {
+        setBookingState(prev => ({ ...prev, bookingSuccess: true }));
+      }
     } catch (err) {
       console.error("Error during booking process:", err);
       setBookingState(prev => ({ 

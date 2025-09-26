@@ -724,19 +724,12 @@ export default function BookingDetailsModal({
       if (validateForm()) {
         try {
           logWithTimestamp('Submitting non-card booking');
-          onSubmit(effectiveHoldData.uid, {
+          await onSubmit(effectiveHoldData.uid, {
             ...customerData,
             bookopt: selectedBookOpts,
             guestopt: selectedGuestOpts
           });
-          
-          // Set local success state in case parent doesn't update
-          setTimeout(() => {
-            if (!success) {
-              logWithTimestamp('Setting local success state for non-card booking');
-              setLocalSuccess(true);
-            }
-          }, 3000);
+          // Do not auto-complete locally; rely on parent success signal
         } catch (err) {
           console.error(`${new Date().toISOString()} [BookingDetailsModal] Error processing booking:`, err);
         }
@@ -747,9 +740,30 @@ export default function BookingDetailsModal({
       return;
     }
     
-    // For card bookings, process payment first
+    // For card bookings, ensure UPDATE succeeds BEFORE any Stripe processing
     if (validateForm()) {
       try {
+        // 0) HARD STOP: Update booking first. If this fails, DO NOT process card.
+        logWithTimestamp('Updating booking details before any Stripe processing (hard stop on error)');
+        try {
+          await onSubmit(effectiveHoldData.uid, {
+            ...customerData,
+            bookopt: selectedBookOpts,
+            guestopt: selectedGuestOpts,
+            // Signal to parent not to mark success yet (card flow pre-payment)
+            skipSuccess: true
+          });
+        } catch (updateErr) {
+          logWithTimestamp('Pre-payment update failed. Aborting Stripe processing.', { error: updateErr.message });
+          setCardState(prev => ({
+            ...prev,
+            error: updateErr.message || 'Failed to update booking before payment',
+            errorSource: 'payment'
+          }));
+          console.timeEnd(timerLabel);
+          return; // HARD STOP
+        }
+
         logWithTimestamp('Processing payment for card-required booking', {
           step: 'start',
           uid: effectiveHoldData.uid,
@@ -757,7 +771,7 @@ export default function BookingDetailsModal({
           hasStripe: !!cardState.stripe,
           hasElements: !!cardState.elements
         });
-        
+
         setPaymentProcessing(true);
         paymentStartTimeRef.current = Date.now();
         
@@ -929,7 +943,17 @@ export default function BookingDetailsModal({
             success: attachResult.success,
             message: attachResult.message || null
           });
-          
+          // If attach failed, show error and do NOT mark success
+          if (!attachResult.success) {
+            setPaymentProcessing(false);
+            setCardState(prev => ({
+              ...prev,
+              error: attachResult.error || 'Failed to attach payment to booking',
+              errorSource: 'payment'
+            }));
+            return;
+          }
+
           // Set up a safety timeout to ensure we complete even if parent doesn't signal success
           paymentTimeoutRef.current = setTimeout(() => {
             logWithTimestamp('Safety timeout triggered - forcing completion');
