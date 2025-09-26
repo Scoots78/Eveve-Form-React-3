@@ -247,11 +247,16 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
     
     try {
       // Validate booking exists first (optional but recommended)
-      await eveveApi.restore({
-        est: params.est,
-        uid: params.uid,
-        type: 0
-      });
+      // Use UID (upper-case) to match other Eveve endpoints; continue even if this fails
+      try {
+        await eveveApi.restore({
+          est: params.est,
+          UID: params.uid,
+          type: 0
+        });
+      } catch (restoreErr) {
+        console.warn('⚠️ restore preflight failed, proceeding to pm-id anyway:', restoreErr?.message);
+      }
       
       // Call pm-id to attach the payment method to the booking
       const pmIdParams = {

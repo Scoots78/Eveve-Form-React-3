@@ -749,7 +749,9 @@ export default function BookingDetailsModal({
           await onSubmit(effectiveHoldData.uid, {
             ...customerData,
             bookopt: selectedBookOpts,
-            guestopt: selectedGuestOpts
+            guestopt: selectedGuestOpts,
+            // Signal to parent not to mark success yet (card flow pre-payment)
+            skipSuccess: true
           });
         } catch (updateErr) {
           logWithTimestamp('Pre-payment update failed. Aborting Stripe processing.', { error: updateErr.message });
@@ -941,7 +943,17 @@ export default function BookingDetailsModal({
             success: attachResult.success,
             message: attachResult.message || null
           });
-          
+          // If attach failed, show error and do NOT mark success
+          if (!attachResult.success) {
+            setPaymentProcessing(false);
+            setCardState(prev => ({
+              ...prev,
+              error: attachResult.error || 'Failed to attach payment to booking',
+              errorSource: 'payment'
+            }));
+            return;
+          }
+
           // Set up a safety timeout to ensure we complete even if parent doesn't signal success
           paymentTimeoutRef.current = setTimeout(() => {
             logWithTimestamp('Safety timeout triggered - forcing completion');
