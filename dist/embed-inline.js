@@ -74,6 +74,23 @@
     document.head.appendChild(s);
   }
 
+  function injectThemeCss(theme, themeCss) {
+    let href = '';
+    if (themeCss) {
+      href = /^https?:\/\//i.test(themeCss)
+        ? themeCss
+        : (themeCss.startsWith('/') ? (appOrigin + themeCss) : (appOrigin + '/' + themeCss.replace(/^\.\//, '')));
+    } else if (theme) {
+      href = appOrigin + '/themes/' + theme + '.css';
+    }
+    if (!href) return;
+    if (document.querySelector(`link[href="${href}"]`)) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+  }
+
   function wireAnalytics(container) {
     // Listen to app's DOM events and forward to GTM/GA4 + prefixed DOM events
     const onSuccess = function (e) {
@@ -124,8 +141,33 @@
     window.__EVEVE_INLINE_ROOT_ID = rootId;
     window.__EVEVE_EMBED = cfg;
 
+    // Ensure theme attribute on container for DaisyUI theme scoping
+    if (cfg.theme && !container.getAttribute('data-theme')) {
+      container.setAttribute('data-theme', cfg.theme);
+    }
+
+    // Sync URL params so the app (and any loaders expecting location.search) can read est/theme/etc.
+    try {
+      const current = new URLSearchParams(window.location.search);
+      const addIfMissing = (k, v) => { if (v && !current.has(k)) current.append(k, v); };
+      addIfMissing('est', cfg.est);
+      addIfMissing('theme', cfg.theme);
+      if (cfg.themeCss) addIfMissing('themeCss', cfg.themeCss);
+      addIfMissing('lang', cfg.lang);
+      if (cfg.guests) addIfMissing('guests', cfg.guests);
+      if (cfg.date) addIfMissing('date', cfg.date);
+      if (cfg.debug) addIfMissing('debug', 'true');
+      const newSearch = '?' + current.toString();
+      const newUrl = window.location.pathname + newSearch + window.location.hash;
+      if (newSearch !== window.location.search) {
+        window.history.replaceState(null, '', newUrl);
+      }
+    } catch (_) {}
+
     // Load app assets from our origin
     injectCssOnce(appOrigin + '/assets/index.css');
+    // Load theme CSS (built-in or custom)
+    injectThemeCss(cfg.theme, cfg.themeCss);
     injectScript(appOrigin + '/assets/index.js');
   }
 
