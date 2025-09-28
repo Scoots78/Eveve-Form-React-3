@@ -42,6 +42,9 @@
       iframe.style.overflow = 'hidden';
       iframe.style.transition = 'height 200ms ease';
       iframe.id = `${container.id}-iframe`;
+      // Allow Payment Request API inside the embedded app
+      try { iframe.allow = (iframe.allow ? iframe.allow + '; ' : '') + 'payment *'; } catch (_) {}
+      try { iframe.allowPaymentRequest = true; iframe.setAttribute('allowpaymentrequest', 'true'); } catch (_) {}
 
       // Build query string for the app inside the iframe
       const queryParams = new URLSearchParams();
