@@ -242,7 +242,7 @@ Full step-by-step samples live under `public/embed-examples/`.
 
 | Symptom | Likely Cause | Fix |
 |---------|--------------|-----|
-| Widget doesn’t appear | Missing script tag or wrong path | Ensure script `src` is `https://form-1-0-2.hosting.eveve.co.nz/embed-iframe.js`. |
+| Widget doesn’t appear | Missing script tag or wrong path | Ensure script `src` is `https://form-1-0-2.hosting.eveve.co.nz/embed-inline.js` (inline) or `.../embed-iframe.js` (iframe). |
 | “Error Loading Booking Widget” | Invalid `data-restaurant` ID | Verify your Eveve ID. |
 | Unstyled widget | Theme CSS failed to load | Check `data-theme` exists or supply `data-theme-css`. |
 | Payment error not visible | Cached old script | Hard-refresh or bust cache to load latest `embed-iframe.js`. |
