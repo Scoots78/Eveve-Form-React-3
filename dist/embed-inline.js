@@ -11,6 +11,8 @@
  */
 
 (function () {
+  if (window.__EVEVE_INLINE_BOOTSTRAPPED) return;
+  window.__EVEVE_INLINE_BOOTSTRAPPED = true;
   const scriptEl = document.currentScript || (function () {
     const scripts = document.getElementsByTagName('script');
     return scripts[scripts.length - 1];
@@ -20,7 +22,8 @@
   const baseUrl = scriptUrl.substring(0, scriptUrl.lastIndexOf('/') + 1);
   const appOrigin = new URL(scriptUrl).origin;
 
-  const SELECTOR = '[data-eveve-widget], .eveve-widget, #eveve-booking';
+  // Inline mode: target explicit inline containers only to avoid conflicts with iframe mode
+  const SELECTOR = '#eveve-booking, [data-eveve-inline]';
 
   function pickContainer() {
     const nodes = document.querySelectorAll(SELECTOR);
@@ -105,6 +108,8 @@
       console.error('[Eveve Inline] No container found. Add a div with id="eveve-booking" or class="eveve-widget".');
       return;
     }
+    if (container.dataset.eveveInitialized === 'true') return;
+    container.dataset.eveveInitialized = 'true';
 
     const cfg = extractConfig(container);
     if (!cfg.est) {
