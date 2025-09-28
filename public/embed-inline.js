@@ -34,12 +34,18 @@
     return nodes[0];
   }
 
-  function ensureRoot(container) {
+  function ensureRoot(container, cfg) {
     const rootId = `eveve-root-${Math.random().toString(36).slice(2, 9)}`;
+    const wrapper = document.createElement('div');
+    wrapper.id = 'eveve-widget';
+    if (cfg?.theme) wrapper.setAttribute('data-theme', cfg.theme);
+
     const root = document.createElement('div');
     root.id = rootId;
+    wrapper.appendChild(root);
+
     container.innerHTML = '';
-    container.appendChild(root);
+    container.appendChild(wrapper);
     return rootId;
   }
 
@@ -134,16 +140,17 @@
       return;
     }
 
-    const rootId = ensureRoot(container);
+    const rootId = ensureRoot(container, cfg);
     // Wire analytics listeners before app mounts
     wireAnalytics(container);
     // Expose config for the app to read (ReservationForm fallbacks)
     window.__EVEVE_INLINE_ROOT_ID = rootId;
     window.__EVEVE_EMBED = cfg;
 
-    // Ensure theme attribute on container for DaisyUI theme scoping
-    if (cfg.theme && !container.getAttribute('data-theme')) {
-      container.setAttribute('data-theme', cfg.theme);
+    // Ensure theme attribute on wrapper (#eveve-widget) for DaisyUI/theme CSS scoping
+    const wrapper = container.querySelector('#eveve-widget');
+    if (wrapper && cfg.theme && !wrapper.getAttribute('data-theme')) {
+      wrapper.setAttribute('data-theme', cfg.theme);
     }
 
     // Sync URL params so the app (and any loaders expecting location.search) can read est/theme/etc.
