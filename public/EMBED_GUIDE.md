@@ -1,5 +1,5 @@
 # Eveve Booking Widget – Embed Guide  
-*Version 1.0.0*  
+*Version 1.0.2*  
 
 Welcome 👋 and thanks for choosing the Eveve booking widget!  
 This guide shows **everything you need** to embed the widget on any website or CMS.
@@ -9,7 +9,7 @@ This guide shows **everything you need** to embed the widget on any website or C
 ## 1 · Why It’s Easy  
 
 The widget is a **fully-hosted**, self-contained application served from  
-`https://booking.eveve.com/form1-0-0/`.  
+`https://form-1-0-2.hosting.eveve.co.nz/`.  
 
 **You do NOT need to upload any files to your own server.**  
 All CSS, JavaScript and theme assets are loaded automatically from our CDN.
@@ -38,7 +38,7 @@ The embed script automatically:
 </div>
 
 <!-- 2. ONE script tag – load once per page, ideally before </body> -->
-<script src="https://booking.eveve.com/form1-0-0/embed.js"></script>
+<script src="https://form-1-0-2.hosting.eveve.co.nz/embed-iframe.js"></script>
 ```
 
 That’s it – the widget appears inside the div.  
@@ -71,7 +71,7 @@ Just add more containers – the script initialises each one independently.
 <div class="eveve-widget" data-restaurant="TestNZB" data-theme="brand-roboto"
      data-default-guests="4"></div>
 
-<script src="https://booking.eveve.com/form1-0-0/embed.js"></script>
+<script src="https://form-1-0-2.hosting.eveve.co.nz/embed-iframe.js"></script>
 ```
 
 The embed script scans for:
@@ -131,20 +131,20 @@ Full step-by-step samples live under `public/embed-examples/`.
 
 | Symptom | Likely Cause | Fix |
 |---------|--------------|-----|
-| Widget doesn’t appear | Missing script tag or wrong path | Ensure script `src` is `https://booking.eveve.com/form1-0-0/embed.js`. |
+| Widget doesn’t appear | Missing script tag or wrong path | Ensure script `src` is `https://form-1-0-2.hosting.eveve.co.nz/embed-iframe.js`. |
 | “Error Loading Booking Widget” | Invalid `data-restaurant` ID | Verify your Eveve ID. |
 | Unstyled widget | Theme CSS failed to load | Check `data-theme` exists or supply `data-theme-css`. |
-| Payment error not visible | Cached old script | Hard-refresh or bust cache to load latest embed.js. |
+| Payment error not visible | Cached old script | Hard-refresh or bust cache to load latest `embed-iframe.js`. |
 
 ---
 
 ## 9 · FAQ  
 
 **Q:** Do I need to host any files?  
-**A:** **No.** Everything lives on `book.eveve.com`. Just one script tag.
+**A:** **No.** Everything lives on `form-1-0-2.hosting.eveve.co.nz`. Just one script tag.
 
 **Q:** Can I self-host?  
-**A:** Optional. Copy `/form1-0-0/` to your own server and change the script `src`.  
+**A:** Optional. You may self-host the built app and reference your own `embed-iframe.js`.  
 Most users prefer the fully-hosted setup.
 
 **Q:** Is the widget responsive?  
@@ -159,7 +159,7 @@ Most users prefer the fully-hosted setup.
 
 | Version | Date | Notes |
 |---------|------|-------|
-| 1.0.0   | 2025-09-18 | Initial public release. Fully hosted, zero-install, multiple widgets, full error display. |
+| 1.0.2   | 2025-09-28 | Switch to root-hosted domain and `embed-iframe.js`; smooth iframe auto-resize; booking analytics events. |
 
 ---
 
