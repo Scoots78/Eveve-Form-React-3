@@ -51,7 +51,28 @@ Notes:
 
 ---
 
-## 2b · Alternative: Iframe Embed (direct)
+## 2b · Iframe Embed (scripted, recommended)
+
+Use this when you want iframe isolation but no custom code. The script creates the iframe,
+handles smooth auto-resize, pushes analytics to GTM/GA4, and enables payment permissions.
+
+```html
+<div class="eveve-widget"
+     data-restaurant="YOUR_EST_UID"
+     data-theme="light">
+</div>
+
+<script src="https://form-1-0-2.hosting.eveve.co.nz/embed-iframe.js"></script>
+```
+
+Notes:
+- Auto: resize, booking event analytics (GTM/GA4), and payment permissions (allow + allowpaymentrequest)
+- Supports multiple widgets per page; scans `.eveve-widget`, `#eveve-booking`, and `[data-eveve-widget]`
+- Optional attributes: `data-theme`, `data-theme-css`, `data-lang`, `data-default-guests`, `data-default-date`, `data-debug`
+
+---
+
+## 2c · Alternative: Iframe Embed (direct, advanced)
 
 If you prefer to embed a direct iframe (legacy/dev-style), use this pattern:
 
