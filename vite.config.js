@@ -2,8 +2,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  // Updated for production deployment
-  base: '/form1-0-0/', // 👈 important for subdirectory deployment
+  // Production is hosted at the domain root
+  base: '/',
   plugins: [react()],
 
   /* ------------------------------------------------------------------
@@ -21,7 +21,7 @@ export default defineConfig({
     headers: {
       'Access-Control-Allow-Origin': '*',
     },
-    // Small middleware to strip the base path during dev
+    // Back-compat middleware to strip legacy base path during dev
     configureServer(server) {
       server.middlewares.use((req, _res, next) => {
         if (req.url && req.url.startsWith('/form1-0-0/')) {

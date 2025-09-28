@@ -986,6 +986,32 @@ export default function ReservationForm() {
     }
   };
 
+  // Forward booking success to parent (for analytics) when embedded in iframe
+  useEffect(() => {
+    if (bookingState.bookingSuccess) {
+      try {
+        const detail = {
+          est,
+          date: bookingData?.formattedDate || bookingData?.date,
+          time: bookingData?.time || selectedShiftTime?.selectedTime,
+          guests: parseInt(guests, 10) || bookingData?.covers,
+          area: selectedAreaName || bookingData?.area,
+          currency: appConfig?.currency || 'USD'
+        };
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: 'booking-event', eventName: 'booking-success', detail }, '*');
+        }
+        // Also emit a DOM CustomEvent inside the iframe for same-origin dev tools
+        try {
+          const ce = new CustomEvent('booking-success', { detail, bubbles: true });
+          document.dispatchEvent(ce);
+        } catch (_) {}
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [bookingState.bookingSuccess]);
+
   const handleBookingModalClose = () => {
     // If booking was successful, we might want to reset the form
     if (bookingState.bookingSuccess) {
