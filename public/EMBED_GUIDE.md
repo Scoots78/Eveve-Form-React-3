@@ -31,13 +31,7 @@ The embed script automatically:
 ## 2 · Quick Start (Preferred: Inline Embed)  
 
 ```html
-<!-- 1. Widget container (inline, no iframe) -->
-<div id="eveve-booking"
-     data-restaurant="123"          <!-- ⭐ required -->
-     data-theme="brand-roboto">     <!-- optional -->
-</div>
-
-<!-- 2. ONE script tag – load once per page, ideally before </body> -->
+<div id="eveve-booking" data-restaurant="123" data-theme="brand-roboto"></div>
 <script src="https://form-1-0-2.hosting.eveve.co.nz/embed-inline.js"></script>
 ```
 
