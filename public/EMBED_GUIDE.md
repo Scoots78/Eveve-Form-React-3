@@ -45,6 +45,10 @@ That’s it – the widget mounts directly inside your div (no iframe).
 Zero install. Zero assets hosted on your side.  
 For the iframe fallback, see section 2b.
 
+Notes:
+- Inline embed automatically creates an internal wrapper `#eveve-widget` and applies `data-theme` to it so theme CSS (e.g. `themes/brand-roboto.css`) scopes correctly.
+- Theme CSS is auto-injected based on `data-theme` (or you can provide a full URL with `data-theme-css`).
+
 ---
 
 ## 2b · Alternative: Iframe Embed (direct)
@@ -56,6 +60,8 @@ If you prefer to embed a direct iframe (legacy/dev-style), use this pattern:
 <iframe
   id="eveve-booking-iframe"
   src="https://form-1-0-2.hosting.eveve.co.nz/?est=YOUR_EST_UID&theme=light&lang=en"
+  allow="payment *"
+  allowpaymentrequest
   style="width:100%; border:0; overflow:hidden; transition:height 200ms ease;"
   loading="lazy"
 ></iframe>
@@ -87,7 +93,8 @@ If you prefer to embed a direct iframe (legacy/dev-style), use this pattern:
   iframe.style.height = '700px';
   // Note: The app inside the iframe posts resize + booking events automatically.
   // This listener is required for analytics and smooth resizing when using direct iframes.
-  // With the script embed (section 2), this is handled for you.
+  // With the scripted iframe embed (`embed-iframe.js`), both the listener and
+  // the payment permissions (allow/allowpaymentrequest) are handled for you.
 </script>
 ```
 
@@ -205,6 +212,7 @@ The app posts messages to the parent window. Listen for `message` events with `t
 Notes:
 - GA/GTM tags must be present on the host page (outside the iframe).
 - For iframe embeds, the message listener above is required for analytics.
+- Scripted embeds (`embed-inline.js` or `embed-iframe.js`) automatically push standard booking events to GTM/GA4; no extra code needed.
 
 ---
 
@@ -246,6 +254,7 @@ Full step-by-step samples live under `public/embed-examples/`.
 | Unstyled widget | Theme CSS failed to load | Check `data-theme` exists or supply `data-theme-css`. |
 | Payment error not visible | Cached old script | Hard-refresh or bust cache to load latest `embed-iframe.js`. |
 | CORS error on assets | Cross-origin requests blocked | Ensure your asset host sends `Access-Control-Allow-Origin: *` on `/assets/*`. Inline loader uses `crossorigin="anonymous"`. |
+| Console warning: "Permissions-Policy: payment is not allowed" (iframe) | Host page’s Permissions-Policy blocks Payment Request API | Use the scripted iframe embed (`embed-iframe.js`) which sets `allow="payment *"` and `allowpaymentrequest` automatically, or add those attributes to your manual `<iframe>`. If your site sets a restrictive `Permissions-Policy` response header, include `payment=(self "https://form-1-0-2.hosting.eveve.co.nz")`. |
 
 ---
 
