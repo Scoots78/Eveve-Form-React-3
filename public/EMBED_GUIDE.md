@@ -46,6 +46,56 @@ Zero install. Zero assets hosted on your side.
 
 ---
 
+## 2b · Alternative: Iframe Embed (direct)
+
+If you prefer to embed a direct iframe (legacy/dev-style), use this pattern:
+
+```html
+<!-- Direct iframe embed -->
+<iframe
+  id="eveve-booking-iframe"
+  src="https://form-1-0-2.hosting.eveve.co.nz/?est=YOUR_EST_UID&theme=light&lang=en"
+  style="width:100%; border:0; overflow:hidden; transition:height 200ms ease;"
+  loading="lazy"
+></iframe>
+
+<script>
+  const iframe = document.getElementById('eveve-booking-iframe');
+  window.addEventListener('message', function (e) {
+    if (!e || !e.data || typeof e.data !== 'object') return;
+    if (e.source !== iframe.contentWindow) return;
+    // Optional: tighten origin check
+    // if (e.origin !== new URL(iframe.src).origin) return;
+
+    if (e.data.type === 'resize') {
+      const h = Math.max(120, Number(e.data.height) || 0);
+      iframe.style.height = h + 'px';
+    }
+
+    if (e.data.type === 'booking-event' && e.data.eventName === 'booking-success') {
+      const detail = e.data.detail || {};
+      // Send to GA4/GTM – see Analytics section below for full examples
+      if (window.gtag) {
+        window.gtag('event', 'eveve_booking_success', detail);
+      }
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ event: 'eveve_booking_success', ...detail });
+    }
+  });
+  // Optional: initial height while waiting for first resize
+  iframe.style.height = '700px';
+  // Note: The app inside the iframe posts resize + booking events automatically.
+  // This listener is required for analytics and smooth resizing when using direct iframes.
+  // With the script embed (section 2), this is handled for you.
+</script>
+```
+
+Parameters supported on the iframe `src` URL:
+- `est` (required)
+- `theme`, `themeCss`, `lang`, `guests`, `date`, `debug`
+
+---
+
 ## 3 · Container Attributes  
 
 | Attribute                            | Required | Description                                                                                                   |
@@ -95,6 +145,66 @@ window.EveveWidget.init(el);
 // Re-scan page for new widgets:
 window.EveveWidget.initAll();
 ```
+
+---
+
+## 6 · Analytics Integration (GA4 / GTM)
+
+The widget emits a booking success event with a structured payload:
+
+Payload fields:
+- `est`, `date`, `time`, `guests`, `area`, `currency`
+
+Choose the snippet based on your embed method.
+
+### A) Script Embed (recommended)
+
+Events bubble as DOM CustomEvents on the page. Listen for `eveve-booking-success`:
+
+```html
+<script>
+  // GA4 (gtag.js)
+  document.addEventListener('eveve-booking-success', function (e) {
+    const p = e.detail || {};
+    window.gtag && gtag('event', 'eveve_booking_success', p);
+  });
+
+  // GTM (dataLayer)
+  document.addEventListener('eveve-booking-success', function (e) {
+    const p = e.detail || {};
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ event: 'eveve_booking_success', ...p });
+  });
+</script>
+```
+
+Tip: If you only want to listen on a specific container, attach the listener to that element instead of `document`.
+
+### B) Direct Iframe Embed
+
+The app posts messages to the parent window. Listen for `message` events with `type: 'booking-event'`:
+
+```html
+<script>
+  const iframe = document.getElementById('eveve-booking-iframe');
+  window.addEventListener('message', function (e) {
+    if (!e || !e.data || typeof e.data !== 'object') return;
+    if (e.source !== iframe.contentWindow) return;
+    if (e.data.type === 'booking-event' && e.data.eventName === 'booking-success') {
+      const p = e.data.detail || {};
+      // GA4
+      window.gtag && gtag('event', 'eveve_booking_success', p);
+      // GTM
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ event: 'eveve_booking_success', ...p });
+    }
+  });
+</script>
+```
+
+Notes:
+- GA/GTM tags must be present on the host page (outside the iframe).
+- For iframe embeds, the message listener above is required for analytics.
 
 ---
 
