@@ -157,28 +157,27 @@ Payload fields:
 
 Choose the snippet based on your embed method.
 
-### A) Script Embed (recommended)
+### A) Script Embed (auto analytics)
 
-Events bubble as DOM CustomEvents on the page. Listen for `eveve-booking-success`:
+When you use our embed scripts (`embed-iframe.js` or `embed-inline.js`), booking events are automatically pushed to:
+- GTM via `dataLayer.push({ event: 'eveve_booking_success', ... })`
+- GA4 via `gtag('event', 'eveve_booking_success', ...)` (if `gtag` is present)
+
+No extra code is required for standard tracking.
+
+Optional: If you also want to run custom code, listen for the bubbled DOM event `eveve-booking-success`:
 
 ```html
 <script>
-  // GA4 (gtag.js)
   document.addEventListener('eveve-booking-success', function (e) {
     const p = e.detail || {};
-    window.gtag && gtag('event', 'eveve_booking_success', p);
-  });
-
-  // GTM (dataLayer)
-  document.addEventListener('eveve-booking-success', function (e) {
-    const p = e.detail || {};
-    window.dataLayer = window.dataLayer || [];
-    window.dataLayer.push({ event: 'eveve_booking_success', ...p });
+    console.log('Booking success', p);
+    // Your custom logic here
   });
 </script>
 ```
 
-Tip: If you only want to listen on a specific container, attach the listener to that element instead of `document`.
+Tip: Attach the listener to a specific container if you only want to scope to one widget.
 
 ### B) Direct Iframe Embed
 
@@ -245,6 +244,7 @@ Full step-by-step samples live under `public/embed-examples/`.
 | “Error Loading Booking Widget” | Invalid `data-restaurant` ID | Verify your Eveve ID. |
 | Unstyled widget | Theme CSS failed to load | Check `data-theme` exists or supply `data-theme-css`. |
 | Payment error not visible | Cached old script | Hard-refresh or bust cache to load latest `embed-iframe.js`. |
+| CORS error on assets | Cross-origin requests blocked | Ensure your asset host sends `Access-Control-Allow-Origin: *` on `/assets/*`. Inline loader uses `crossorigin="anonymous"`. |
 
 ---
 
