@@ -47,7 +47,21 @@ export default function ReservationForm() {
   const configLoadedRef = useRef(false);
 
   const urlParams = new URLSearchParams(window.location.search);
-  const est = urlParams.get("est"); // Removed fallback to "testnza"
+  // Support inline embed: allow global override or container dataset
+  let est = urlParams.get("est");
+  if (!est && typeof window !== 'undefined') {
+    const embedCfg = window.__EVEVE_EMBED || {};
+    est = embedCfg.est || embedCfg.restaurant || est;
+    if (!est && window.__EVEVE_INLINE_ROOT_ID) {
+      const rootEl = document.getElementById(window.__EVEVE_INLINE_ROOT_ID);
+      if (rootEl) {
+        const cont = rootEl.closest('[data-restaurant],[data-est]');
+        if (cont) {
+          est = cont.getAttribute('data-restaurant') || cont.getAttribute('data-est') || est;
+        }
+      }
+    }
+  }
   // Toggle developer debug features with ?debug=true in the URL
   const debugMode = urlParams.get("debug") === "true";
 

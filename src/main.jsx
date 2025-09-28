@@ -34,7 +34,10 @@ if (typeof window !== 'undefined' && window.parent && window.parent !== window) 
   sendHeight();
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+// Support inline embed: allow host script to set a specific root element ID
+const INLINE_ROOT_ID = (typeof window !== 'undefined' && window.__EVEVE_INLINE_ROOT_ID) || 'root';
+
+ReactDOM.createRoot(document.getElementById(INLINE_ROOT_ID)).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>
