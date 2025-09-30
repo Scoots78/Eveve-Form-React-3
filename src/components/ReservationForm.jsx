@@ -47,7 +47,7 @@ export default function ReservationForm() {
   const configLoadedRef = useRef(false);
 
   const urlParams = new URLSearchParams(window.location.search);
-  // Support inline embed: allow global override or container dataset
+  // Read est from URL first; fallback to inline embed globals/attributes
   let est = urlParams.get("est");
   if (!est && typeof window !== 'undefined') {
     const embedCfg = window.__EVEVE_EMBED || {};

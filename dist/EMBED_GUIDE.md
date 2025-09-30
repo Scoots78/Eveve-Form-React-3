@@ -1,5 +1,5 @@
 # Eveve Booking Widget – Embed Guide  
-*Version 1.0.0*  
+*Version 1.0.2*  
 
 Welcome 👋 and thanks for choosing the Eveve booking widget!  
 This guide shows **everything you need** to embed the widget on any website or CMS.
@@ -9,7 +9,7 @@ This guide shows **everything you need** to embed the widget on any website or C
 ## 1 · Why It’s Easy  
 
 The widget is a **fully-hosted**, self-contained application served from  
-`https://booking.eveve.com/form1-0-0/`.  
+`https://form-1-0-2.hosting.eveve.co.nz/`.  
 
 **You do NOT need to upload any files to your own server.**  
 All CSS, JavaScript and theme assets are loaded automatically from our CDN.
@@ -28,21 +28,94 @@ The embed script automatically:
 
 ---
 
-## 2 · Quick Start (Basic Embed)  
+## 2 · Quick Start (Preferred: Inline Embed)  
 
 ```html
-<!-- 1. Widget container -->
-<div id="eveve-booking"
-     data-restaurant="123"          <!-- ⭐ required -->
-     data-theme="brand-roboto">     <!-- optional -->
-</div>
-
-<!-- 2. ONE script tag – load once per page, ideally before </body> -->
-<script src="https://booking.eveve.com/form1-0-0/embed.js"></script>
+<div id="eveve-booking" data-restaurant="123" data-theme="brand-roboto"></div>
+<script src="https://form-1-0-2.hosting.eveve.co.nz/embed-inline.js"></script>
 ```
 
-That’s it – the widget appears inside the div.  
-Zero install. Zero assets hosted on your side.
+That’s it – the widget mounts directly inside your div (no iframe).  
+Zero install. Zero assets hosted on your side.  
+For the iframe fallback, see section 2b.
+
+Notes:
+- Inline embed automatically creates an internal wrapper `#eveve-widget` and applies `data-theme` to it so theme CSS (e.g. `themes/brand-roboto.css`) scopes correctly.
+- Theme CSS is auto-injected based on `data-theme` (or you can provide a full URL with `data-theme-css`).
+
+---
+
+## 2b · Iframe Embed (scripted, recommended)
+
+Use this when you want iframe isolation but no custom code. The script creates the iframe,
+handles smooth auto-resize, pushes analytics to GTM/GA4, and enables payment permissions.
+
+```html
+<div class="eveve-widget"
+     data-restaurant="YOUR_EST_UID"
+     data-theme="light">
+</div>
+
+<script src="https://form-1-0-2.hosting.eveve.co.nz/embed-iframe.js"></script>
+```
+
+Notes:
+- Auto: resize, booking event analytics (GTM/GA4), and payment permissions (allow + allowpaymentrequest)
+- Supports multiple widgets per page; scans `.eveve-widget`, `#eveve-booking`, and `[data-eveve-widget]`
+- Optional attributes: `data-theme`, `data-theme-css`, `data-lang`, `data-default-guests`, `data-default-date`, `data-debug`
+
+---
+
+## 2c · Alternative: Iframe Embed (direct, advanced)
+
+If you prefer to embed a direct iframe (legacy/dev-style), use this pattern:
+
+```html
+<!-- Direct iframe embed -->
+<iframe
+  id="eveve-booking-iframe"
+  src="https://form-1-0-2.hosting.eveve.co.nz/?est=YOUR_EST_UID&theme=light&lang=en"
+  allow="payment *"
+  allowpaymentrequest
+  style="width:100%; border:0; overflow:hidden; transition:height 200ms ease;"
+  loading="lazy"
+></iframe>
+
+<script>
+  const iframe = document.getElementById('eveve-booking-iframe');
+  window.addEventListener('message', function (e) {
+    if (!e || !e.data || typeof e.data !== 'object') return;
+    if (e.source !== iframe.contentWindow) return;
+    // Optional: tighten origin check
+    // if (e.origin !== new URL(iframe.src).origin) return;
+
+    if (e.data.type === 'resize') {
+      const h = Math.max(120, Number(e.data.height) || 0);
+      iframe.style.height = h + 'px';
+    }
+
+    if (e.data.type === 'booking-event' && e.data.eventName === 'booking-success') {
+      const detail = e.data.detail || {};
+      // Send to GA4/GTM – see Analytics section below for full examples
+      if (window.gtag) {
+        window.gtag('event', 'eveve_booking_success', detail);
+      }
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ event: 'eveve_booking_success', ...detail });
+    }
+  });
+  // Optional: initial height while waiting for first resize
+  iframe.style.height = '700px';
+  // Note: The app inside the iframe posts resize + booking events automatically.
+  // This listener is required for analytics and smooth resizing when using direct iframes.
+  // With the scripted iframe embed (`embed-iframe.js`), both the listener and
+  // the payment permissions (allow/allowpaymentrequest) are handled for you.
+</script>
+```
+
+Parameters supported on the iframe `src` URL:
+- `est` (required)
+- `theme`, `themeCss`, `lang`, `guests`, `date`, `debug`
 
 ---
 
@@ -71,7 +144,7 @@ Just add more containers – the script initialises each one independently.
 <div class="eveve-widget" data-restaurant="TestNZB" data-theme="brand-roboto"
      data-default-guests="4"></div>
 
-<script src="https://booking.eveve.com/form1-0-0/embed.js"></script>
+<script src="https://form-1-0-2.hosting.eveve.co.nz/embed-iframe.js"></script>
 ```
 
 The embed script scans for:
@@ -95,6 +168,66 @@ window.EveveWidget.init(el);
 // Re-scan page for new widgets:
 window.EveveWidget.initAll();
 ```
+
+---
+
+## 6 · Analytics Integration (GA4 / GTM)
+
+The widget emits a booking success event with a structured payload:
+
+Payload fields:
+- `est`, `date`, `time`, `guests`, `area`, `currency`
+
+Choose the snippet based on your embed method.
+
+### A) Script Embed (auto analytics)
+
+When you use our embed scripts (`embed-iframe.js` or `embed-inline.js`), booking events are automatically pushed to:
+- GTM via `dataLayer.push({ event: 'eveve_booking_success', ... })`
+- GA4 via `gtag('event', 'eveve_booking_success', ...)` (if `gtag` is present)
+
+No extra code is required for standard tracking.
+
+Optional: If you also want to run custom code, listen for the bubbled DOM event `eveve-booking-success`:
+
+```html
+<script>
+  document.addEventListener('eveve-booking-success', function (e) {
+    const p = e.detail || {};
+    console.log('Booking success', p);
+    // Your custom logic here
+  });
+</script>
+```
+
+Tip: Attach the listener to a specific container if you only want to scope to one widget.
+
+### B) Direct Iframe Embed
+
+The app posts messages to the parent window. Listen for `message` events with `type: 'booking-event'`:
+
+```html
+<script>
+  const iframe = document.getElementById('eveve-booking-iframe');
+  window.addEventListener('message', function (e) {
+    if (!e || !e.data || typeof e.data !== 'object') return;
+    if (e.source !== iframe.contentWindow) return;
+    if (e.data.type === 'booking-event' && e.data.eventName === 'booking-success') {
+      const p = e.data.detail || {};
+      // GA4
+      window.gtag && gtag('event', 'eveve_booking_success', p);
+      // GTM
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ event: 'eveve_booking_success', ...p });
+    }
+  });
+</script>
+```
+
+Notes:
+- GA/GTM tags must be present on the host page (outside the iframe).
+- For iframe embeds, the message listener above is required for analytics.
+- Scripted embeds (`embed-inline.js` or `embed-iframe.js`) automatically push standard booking events to GTM/GA4; no extra code needed.
 
 ---
 
@@ -131,20 +264,22 @@ Full step-by-step samples live under `public/embed-examples/`.
 
 | Symptom | Likely Cause | Fix |
 |---------|--------------|-----|
-| Widget doesn’t appear | Missing script tag or wrong path | Ensure script `src` is `https://booking.eveve.com/form1-0-0/embed.js`. |
+| Widget doesn’t appear | Missing script tag or wrong path | Ensure script `src` is `https://form-1-0-2.hosting.eveve.co.nz/embed-inline.js` (inline) or `.../embed-iframe.js` (iframe). |
 | “Error Loading Booking Widget” | Invalid `data-restaurant` ID | Verify your Eveve ID. |
 | Unstyled widget | Theme CSS failed to load | Check `data-theme` exists or supply `data-theme-css`. |
-| Payment error not visible | Cached old script | Hard-refresh or bust cache to load latest embed.js. |
+| Payment error not visible | Cached old script | Hard-refresh or bust cache to load latest `embed-iframe.js`. |
+| CORS error on assets | Cross-origin requests blocked | Ensure your asset host sends `Access-Control-Allow-Origin: *` on `/assets/*`. Inline loader uses `crossorigin="anonymous"`. |
+| Console warning: "Permissions-Policy: payment is not allowed" (iframe) | Host page’s Permissions-Policy blocks Payment Request API | Use the scripted iframe embed (`embed-iframe.js`) which sets `allow="payment *"` and `allowpaymentrequest` automatically, or add those attributes to your manual `<iframe>`. If your site sets a restrictive `Permissions-Policy` response header, include `payment=(self "https://form-1-0-2.hosting.eveve.co.nz")`. |
 
 ---
 
 ## 9 · FAQ  
 
 **Q:** Do I need to host any files?  
-**A:** **No.** Everything lives on `book.eveve.com`. Just one script tag.
+**A:** **No.** Everything lives on `form-1-0-2.hosting.eveve.co.nz`. Just one script tag.
 
 **Q:** Can I self-host?  
-**A:** Optional. Copy `/form1-0-0/` to your own server and change the script `src`.  
+**A:** Optional. You may self-host the built app and reference your own `embed-iframe.js`.  
 Most users prefer the fully-hosted setup.
 
 **Q:** Is the widget responsive?  
@@ -159,7 +294,7 @@ Most users prefer the fully-hosted setup.
 
 | Version | Date | Notes |
 |---------|------|-------|
-| 1.0.0   | 2025-09-18 | Initial public release. Fully hosted, zero-install, multiple widgets, full error display. |
+| 1.0.2   | 2025-09-28 | Switch to root-hosted domain and `embed-iframe.js`; smooth iframe auto-resize; booking analytics events. |
 
 ---
 
