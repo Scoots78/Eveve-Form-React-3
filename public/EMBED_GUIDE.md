@@ -28,17 +28,18 @@ The embed script automatically:
 
 ---
 
-## 2 · Quick Start (Basic Embed)  
+## 2 · Quick Start (Preferred: Inline Embed)  
 
 ```html
-<!-- 1. Widget container -->
+<!-- 1. Widget container (on your page) -->
 <div id="eveve-booking"
-     data-restaurant="123"          <!-- ⭐ required -->
-     data-theme="brand-roboto">     <!-- optional -->
+     data-restaurant="YOUR_EST_UID"  <!-- ⭐ required -->
+     data-theme="light"               <!-- optional -->
+     data-lang="en">                  <!-- optional -->
 </div>
 
 <!-- 2. ONE script tag – load once per page, ideally before </body> -->
-<script src="https://form-1-0-2.hosting.eveve.co.nz/embed-iframe.js"></script>
+<script src="https://form-1-0-2.hosting.eveve.co.nz/embed-inline.js"></script>
 ```
 
 That’s it – the widget appears inside the div.  
@@ -46,9 +47,9 @@ Zero install. Zero assets hosted on your side.
 
 ---
 
-## 2b · Alternative: Iframe Embed (direct)
+## 2b · Alternative: Iframe Embed (fallback)
 
-If you prefer to embed a direct iframe (legacy/dev-style), use this pattern:
+Use this when your site CSS conflicts with the widget. The iframe isolates styles.
 
 ```html
 <!-- Direct iframe embed -->
@@ -241,7 +242,7 @@ Full step-by-step samples live under `public/embed-examples/`.
 
 | Symptom | Likely Cause | Fix |
 |---------|--------------|-----|
-| Widget doesn’t appear | Missing script tag or wrong path | Ensure script `src` is `https://form-1-0-2.hosting.eveve.co.nz/embed-iframe.js`. |
+| Widget doesn’t appear | Missing script tag or wrong path | Ensure script `src` is `https://form-1-0-2.hosting.eveve.co.nz/embed-inline.js` (inline) or `.../embed-iframe.js` (iframe). |
 | “Error Loading Booking Widget” | Invalid `data-restaurant` ID | Verify your Eveve ID. |
 | Unstyled widget | Theme CSS failed to load | Check `data-theme` exists or supply `data-theme-css`. |
 | Payment error not visible | Cached old script | Hard-refresh or bust cache to load latest `embed-iframe.js`. |
