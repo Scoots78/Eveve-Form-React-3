@@ -48,15 +48,12 @@ const AddonSelection = ({
 
 
   const getAddonPriceString = (addon) => {
-    if (typeof addon.price !== 'number' || addon.price < 0) return ''; // No price or invalid price
+    // Hide price display when zero or invalid
+    if (typeof addon.price !== 'number' || addon.price <= 0) return '';
 
     const displaySymbol = currencySymbol || '$';
     const priceInDollars = (addon.price / 100).toFixed(2);
     let priceString = `${displaySymbol}${priceInDollars}`;
-
-    if (addon.price === 0 && !(addon.per === "Guest")) { // For free items not per guest, just show free or no price string
-        return languageStrings?.free || "Free"; // Or return "" if you don't want to show "Free"
-    }
 
     if (addon.per === 'Guest') {
       priceString += ` ${languageStrings?.perPerson || 'per Person'}`;
@@ -92,7 +89,7 @@ const AddonSelection = ({
             />
             <div className="flex-grow">
               <span className="addon-name font-medium text-base-content">{addon.name}</span>
-              {addon.price >= 0 && <span className="addon-price text-sm text-base-content/70 ml-2">({getAddonPriceString(addon)})</span>}
+              {(() => { const ps = getAddonPriceString(addon); return ps ? (<span className="addon-price text-sm text-base-content/70 ml-2">({ps})</span>) : null; })()}
               {addon.desc && <p className="text-xs text-base-content/60 mt-1">{addon.desc}</p>}
             </div>
           </label>
@@ -124,7 +121,7 @@ const AddonSelection = ({
                   />
                   <div className="flex-grow">
                     <span className="addon-name font-medium text-base-content">{addon.name}</span>
-                    {addon.price >= 0 && <span className="addon-price text-sm text-base-content/70 ml-2">({getAddonPriceString(addon)})</span>}
+                    {(() => { const ps = getAddonPriceString(addon); return ps ? (<span className="addon-price text-sm text-base-content/70 ml-2">({ps})</span>) : null; })()}
                     {addon.desc && <p className="text-xs text-base-content/60 mt-1">{addon.desc}</p>}
                   </div>
                 </label>
@@ -151,7 +148,7 @@ const AddonSelection = ({
             <div key={addon.uid} className="addon-item usage2-item p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-base-300 transition-colors">
               <div className="addon-info mb-2 sm:mb-0 sm:mr-4 flex-grow">
                 <span className="addon-name font-medium text-base-content">{addon.name}</span>
-                {addon.price >= 0 && <span className="addon-price text-sm text-base-content/70 ml-2">({getAddonPriceString(addon)})</span>}
+                {(() => { const ps = getAddonPriceString(addon); return ps ? (<span className="addon-price text-sm text-base-content/70 ml-2">({ps})</span>) : null; })()}
                 {addon.desc && <p className="text-xs text-base-content/60 mt-1">{addon.desc}</p>}
               </div>
               <div className="addon-quantity-selector flex items-center space-x-2">
@@ -215,7 +212,7 @@ const AddonSelection = ({
                 />
                 <div className="flex-grow">
                   <span className="addon-name font-medium text-base-content">{addon.name}</span>
-                  {addon.price >= 0 && <span className="addon-price text-sm text-base-content/70 ml-2">({getAddonPriceString(addon)})</span>}
+                {(() => { const ps = getAddonPriceString(addon); return ps ? (<span className="addon-price text-sm text-base-content/70 ml-2">({ps})</span>) : null; })()}
                   {addon.desc && <p className="text-xs text-base-content/60 mt-1">{addon.desc}</p>}
                 </div>
               </label>
@@ -283,7 +280,7 @@ const AddonSelection = ({
                     />
                     <div className="flex-grow">
                       <span className="addon-name font-medium text-base-content">{addon.name}</span>
-                      {addon.price >= 0 && <span className="addon-price text-sm text-base-content/70 ml-2">({getAddonPriceString(addon)})</span>}
+                      {(() => { const ps = getAddonPriceString(addon); return ps ? (<span className="addon-price text-sm text-base-content/70 ml-2">({ps})</span>) : null; })()}
                       {addon.desc && <p className="text-xs text-base-content/60 mt-1">{addon.desc}</p>}
                     </div>
                   </label>
@@ -294,7 +291,7 @@ const AddonSelection = ({
         );
         break;
 
-      case 2: // Quantity selectors for Menus
+      case 2: // Quantity selectors for Menus (Each Guest any Menu)
         const currentTotalMenuUsage2Quantity = selectedAddons.menus.reduce((sum, menu) => sum + (menu.quantity || 0), 0);
         const canIncrementAnyMenuUsage2 = numericGuestCount === 0 || currentTotalMenuUsage2Quantity < numericGuestCount;
 
@@ -325,7 +322,7 @@ const AddonSelection = ({
                 <div key={addon.uid} className={`addon-item usage2-item p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-base-300 transition-colors ${effectivePlusDisabled && currentQuantity === 0 ? 'opacity-60 cursor-not-allowed' : ''}`}>
                   <div className="addon-info mb-2 sm:mb-0 sm:mr-4 flex-grow">
                     <span className="addon-name font-medium text-base-content">{addon.name}</span>
-                    {addon.price >= 0 && <span className="addon-price text-sm text-base-content/70 ml-2">({getAddonPriceString(addon)})</span>}
+                    {(() => { const ps = getAddonPriceString(addon); return ps ? (<span className="addon-price text-sm text-base-content/70 ml-2">({ps})</span>) : null; })()}
                     {addon.desc && <p className="text-xs text-base-content/60 mt-1">{addon.desc}</p>}
                   </div>
                   <div className="addon-quantity-selector flex items-center space-x-2">
@@ -363,11 +360,88 @@ const AddonSelection = ({
           </div>
         );
         break;
+      case 4: // Quantity selectors for Menus (Some guests same menu)
+        const currentTotalMenuUsage4Quantity = selectedAddons.menus.reduce((sum, menu) => sum + (menu.quantity || 0), 0);
+        const canIncrementAnyMenuUsage4 = numericGuestCount === 0 || currentTotalMenuUsage4Quantity < numericGuestCount;
 
-      case 3: // Checkboxes for Menus
-        const maxSelections = selectedShiftTime?.maxMenuTypes > 0 ? selectedShiftTime.maxMenuTypes : numericGuestCount > 0 ? numericGuestCount : (finalMenuAddons.length > 0 ? 1 : 0) ;
+        menuContent = (
+          <div className="space-y-3">
+            {finalMenuAddons.map(addon => {
+              const selectedMenu = selectedAddons.menus.find(m => m.uid === addon.uid);
+              const currentQuantity = selectedMenu ? selectedMenu.quantity : 0;
+
+              let effectivePlusDisabled = false;
+              // Rule 1: Sum of quantities <= guestCount (no equality requirement)
+              if (numericGuestCount > 0 && currentTotalMenuUsage4Quantity >= numericGuestCount) {
+                effectivePlusDisabled = true;
+              }
+
+              // Rule 2: Number of distinct menu types <= maxMenuTypesAllowed
+              const maxMenuTypesAllowed = selectedShiftTime?.maxMenuTypes;
+              if (!effectivePlusDisabled && maxMenuTypesAllowed > 0 && currentQuantity === 0) { // Only when selecting a NEW distinct menu
+                const distinctSelectedMenuTypesCount = new Set(selectedAddons.menus.filter(m => m.quantity > 0).map(m => m.uid)).size;
+                if (distinctSelectedMenuTypesCount >= maxMenuTypesAllowed) {
+                  effectivePlusDisabled = true;
+                }
+              }
+
+              return (
+                <div key={addon.uid} className={`addon-item usage4-item p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-base-300 transition-colors ${effectivePlusDisabled && currentQuantity === 0 ? 'opacity-60 cursor-not-allowed' : ''}`}>
+                  <div className="addon-info mb-2 sm:mb-0 sm:mr-4 flex-grow">
+                    <span className="addon-name font-medium text-base-content">{addon.name}</span>
+                    {(() => { const ps = getAddonPriceString(addon); return ps ? (<span className="addon-price text-sm text-base-content/70 ml-2">({ps})</span>) : null; })()}
+                    {addon.desc && <p className="text-xs text-base-content/60 mt-1">{addon.desc}</p>}
+                  </div>
+                  <div className="addon-quantity-selector flex items-center space-x-2">
+                    <button
+                      type="button"
+                      onClick={() => commonMenuChangeHandler(addon, currentQuantity - 1, 'quantity')}
+                      disabled={currentQuantity === 0}
+                      className="qty-btn minus-btn px-3 py-1 bg-base-200 text-base-content rounded-md hover:bg-base-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="text"
+                      className="qty-input w-12 text-center border-base-300 rounded-md shadow-sm focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
+                      value={currentQuantity}
+                      readOnly
+                    />
+                    <button
+                      type="button"
+                      onClick={() => commonMenuChangeHandler(addon, currentQuantity + 1, 'quantity')}
+                      disabled={effectivePlusDisabled}
+                      className="qty-btn plus-btn px-3 py-1 bg-base-200 text-base-content rounded-md hover:bg-base-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+            {finalMenuAddons.length > 0 && (
+              <p className="text-xs text-base-content/60 mt-1">
+                {(() => {
+                  if (languageStrings?.menuUsage4TotalQuantityNote && numericGuestCount > 0) {
+                    return String(languageStrings.menuUsage4TotalQuantityNote).replace('{guestCount}', numericGuestCount);
+                  }
+                  return numericGuestCount > 0
+                    ? `Optional menus: you may select up to ${numericGuestCount} total menu(s).`
+                    : `Optional menus: select any quantity.`;
+                })()} ({currentTotalMenuUsage4Quantity}{numericGuestCount > 0 ? `/${numericGuestCount}` : ''} total selected)
+              </p>
+            )}
+          </div>
+        );
+        break;
+
+      case 3: // Checkboxes for Menus (Optional; cap = min(maxMenuTypes>0 ? maxMenuTypes : ∞, guests>0 ? guests : ∞))
+        const baseMaxTypes = selectedShiftTime?.maxMenuTypes || 0; // 0 means unlimited
+        const hasMaxTypesCap = baseMaxTypes > 0;
+        const guestCap = numericGuestCount > 0 ? numericGuestCount : Infinity;
+        const effectiveMaxSelections = hasMaxTypesCap ? Math.min(baseMaxTypes, guestCap) : guestCap;
         const currentSelectionsCount = selectedAddons.menus.length;
-        const canSelectMoreMenus = currentSelectionsCount < maxSelections;
+        const canSelectMoreMenus = currentSelectionsCount < effectiveMaxSelections;
 
         menuContent = (
           <div className="space-y-2">
@@ -388,18 +462,21 @@ const AddonSelection = ({
                     />
                      <div className="flex-grow">
                       <span className="addon-name font-medium text-base-content">{addon.name}</span>
-                      {addon.price >= 0 && <span className="addon-price text-sm text-base-content/70 ml-2">({getAddonPriceString(addon)})</span>}
+                    {(() => { const ps = getAddonPriceString(addon); return ps ? (<span className="addon-price text-sm text-base-content/70 ml-2">({ps})</span>) : null; })()}
                       {addon.desc && <p className="text-xs text-base-content/60 mt-1">{addon.desc}</p>}
                     </div>
                   </label>
                 </div>
               );
             })}
-            {maxSelections > 0 && maxSelections < Infinity && (
-              <p className="text-xs text-base-content/60 mt-1">
-                {languageStrings?.maxMenuSelectionNote || `Select up to ${maxSelections} menu(s).`} ({currentSelectionsCount}/{maxSelections} selected)
-              </p>
-            )}
+            <p className="text-xs text-base-content/60 mt-1">
+              {hasMaxTypesCap
+                ? (languageStrings?.menuUsage3NoteWithCap
+                    ? String(languageStrings.menuUsage3NoteWithCap).replace('{maxMenuTypes}', baseMaxTypes)
+                    : `Optional menus: you can select up to ${baseMaxTypes} menu type(s) or your guest count, whichever is smaller.`)
+                : (languageStrings?.menuUsage3NoteGuestsOnly || `Optional menus: no menu-type limit; selections are restricted by your guest count.`)
+              }
+            </p>
           </div>
         );
         break;
@@ -502,7 +579,7 @@ const AddonSelection = ({
               <div key={addon.uid} className="addon-item option-item p-3 border rounded-md flex flex-col sm:flex-row justify-between items-start sm:items-center hover:bg-base-300 transition-colors">
                 <div className="addon-info mb-2 sm:mb-0 sm:mr-4 flex-grow">
                   <span className="addon-name font-medium text-base-content">{addon.name}</span>
-                  {addon.price >= 0 && <span className="addon-price text-sm text-base-content/70 ml-2">({getAddonPriceString(addon)})</span>}
+                      {(() => { const ps = getAddonPriceString(addon); return ps ? (<span className="addon-price text-sm text-base-content/70 ml-2">({ps})</span>) : null; })()}
                   {addon.desc && <p className="text-xs text-base-content/60 mt-1">{addon.desc}</p>}
                 </div>
                 <div className="addon-quantity-selector flex items-center space-x-2">

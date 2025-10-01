@@ -27,7 +27,12 @@ A frontend booking widget built with **React**, **Tailwind CSS**, and **Vite**, 
 - [x] **Real-time Availability:** Fetches and displays available booking slots (shifts and specific times) from the Eveve API (`/web/day-avail`) based on selected date and guest count.
 - [x] **Addon Selection System:**
     - Displays available "Menus" (e.g., Set Menu A, A La Carte) and "Options" (e.g., Wine Pairing, Extra Bread) associated with a selected time slot, parsed from the availability response.
-    - Supports different selection modes for Menus based on `usage` policy (e.g., `usage: 1` for radio-button style single selection, `usage: 2` for quantity selection per menu up to guest count and `maxMenuTypes`, `usage: 3` for checkbox style multiple selection up to guest count or `maxMenuTypes`).
+    - Supports different selection modes for Menus based on `usage` policy:
+        - `0` – No menu selection required/hidden.
+        - `1` – All guests same menu (single selection via radio). Submitting sends `uid:guestCount`.
+        - `2` – Each guest any menu (quantity selectors). Total quantity must equal guest count. Submitting sends `uid:qty` for each selected menu.
+        - `3` – Optional menus (checkboxes). Zero or more menus may be selected up to `maxMenuTypes`.
+        - `4` – Some guests same menu (quantity selectors). Total quantity is optional and can be between 1 and guest count (inclusive). Submitting sends `uid:qty` for each selected menu.
     - Handles quantity selection for Options, respecting their individual `min`/`max` values, the total guest count, and the quantity of any parent Menu they are attached to.
 - [x] **Selected Addons Summary:** Shows a real-time summary of chosen addons and their quantities.
 - [x] **Debounced API Calls:** Efficiently fetches availability by debouncing requests during date/guest input changes using a custom `useDebounce` hook.
@@ -149,3 +154,36 @@ Ensure your antivirus or firewall is not blocking local file creation or auto-de
 ## 📄 License
 
 MIT License – for development and educational use only at this stage.
+
+---
+
+## Addon Usage Policies (Menus): Detailed Behavior
+
+The availability (`/web/day-avail`) provides a `usage` value per shift/time that controls how Menu-type addons behave. The widget implements these rules:
+
+- Usage 0 – No Menu selection
+  - UI: Menu section shows a note that no menu is required.
+  - Validation: No menu requirements are applied.
+
+- Usage 1 – All guests same menu
+  - UI: Radio buttons (choose exactly one menu).
+  - Validation: Exactly one menu must be selected; quantity inferred as guest count.
+  - API format: `uid:guestCount`.
+
+- Usage 2 – Each guest any menu
+  - UI: Plus/minus quantity selectors per menu.
+  - Validation: Sum of all selected quantities must equal guest count; `maxMenuTypes` enforced when present.
+  - API format: `uid:qty` for each selected menu.
+
+- Usage 3 – Optional menus (bug fix)
+  - UI: Checkboxes; select up to `maxMenuTypes` if present.
+  - Validation: Menu selection is optional. Zero selections are allowed; only the upper bound (`maxMenuTypes`) is enforced.
+  - API format: `uid` (no quantity) per selected menu.
+
+- Usage 4 – Some guests same menu (new)
+  - UI: Plus/minus quantity selectors per menu (same UI as usage 2).
+  - Validation: Selection is optional. Sum of all selected quantities must be ≤ guest count. It does NOT need to equal guest count; `maxMenuTypes` enforced when present. Guests=0 is also allowed with zero selection.
+  - Pricing/Cost: Treated as quantity-based like usage 2 for per-guest priced items.
+  - API format: `uid:qty` for each selected menu.
+
+Options (non-Menu addons) respect their own `min`/`max`, the guest count, and the selected quantity of their parent Menu (if any).

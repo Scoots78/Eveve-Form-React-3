@@ -47,7 +47,21 @@ export default function ReservationForm() {
   const configLoadedRef = useRef(false);
 
   const urlParams = new URLSearchParams(window.location.search);
-  const est = urlParams.get("est"); // Removed fallback to "testnza"
+  // Read est from URL first; fallback to inline embed globals/attributes
+  let est = urlParams.get("est");
+  if (!est && typeof window !== 'undefined') {
+    const embedCfg = window.__EVEVE_EMBED || {};
+    est = embedCfg.est || embedCfg.restaurant || est;
+    if (!est && window.__EVEVE_INLINE_ROOT_ID) {
+      const rootEl = document.getElementById(window.__EVEVE_INLINE_ROOT_ID);
+      if (rootEl) {
+        const cont = rootEl.closest('[data-restaurant],[data-est]');
+        if (cont) {
+          est = cont.getAttribute('data-restaurant') || cont.getAttribute('data-est') || est;
+        }
+      }
+    }
+  }
   // Toggle developer debug features with ?debug=true in the URL
   const debugMode = urlParams.get("debug") === "true";
 
@@ -404,6 +418,12 @@ export default function ReservationForm() {
       setAvailabilityData(null);
       setApiError(null);
       setShowDateTimePicker(true); // Show pickers when date changes
+      // Reset addons and areas; if the same time remains valid on the new date,
+      // an effect below will repopulate the correct addons/areas for that time.
+      setSelectedAddons({ menus: [], options: {} });
+      setAvailableAreas([]);
+      setSelectedArea(null);
+      setSelectedAreaName(null);
     }
   };
 
@@ -487,7 +507,7 @@ export default function ReservationForm() {
     }
   }, [est, appConfig]);
 
-  const [debouncedFetchAvailability, clearDebouncedFetchAvailability] = useDebounce(fetchAvailability, 800);
+  const [debouncedFetchAvailability, clearDebouncedFetchAvailability] = useDebounce(fetchAvailability, 1500);
 
   useEffect(() => {
     const numericGuests = parseInt(guests, 10);
@@ -507,6 +527,70 @@ export default function ReservationForm() {
       clearDebouncedFetchAvailability();
     };
   }, [selectedDate, guests, debouncedFetchAvailability, clearDebouncedFetchAvailability]);
+
+  // Sync selected time's addons/areas when availabilityData updates for a new date
+  // This ensures the Addons section refreshes immediately after changing date
+  // if the previously selected time is still valid on the new day.
+  useEffect(() => {
+    if (!availabilityData || !selectedShiftTime?.selectedTime) return;
+    if (!Array.isArray(availabilityData.shifts) || availabilityData.shifts.length === 0) return;
+
+    const selectedTime = selectedShiftTime.selectedTime;
+
+    // Resolve the corresponding shift on the new availability
+    let resolvedShiftIndex = -1;
+    if (selectedShiftTime.uid !== undefined) {
+      resolvedShiftIndex = availabilityData.shifts.findIndex((s) => s.uid === selectedShiftTime.uid);
+    }
+    if (resolvedShiftIndex === -1 && typeof selectedShiftTime.originalIndexInAvailabilityData === 'number') {
+      const idx = selectedShiftTime.originalIndexInAvailabilityData;
+      if (idx >= 0 && idx < availabilityData.shifts.length) {
+        resolvedShiftIndex = idx;
+      }
+    }
+    if (resolvedShiftIndex === -1) {
+      resolvedShiftIndex = availabilityData.shifts.findIndex((s) =>
+        (s.times || []).some((t) => (typeof t === 'object' ? t.time : t) === selectedTime)
+      );
+    }
+
+    // If no matching shift/time on the new day, clear context and exit
+    if (resolvedShiftIndex === -1) {
+      setCurrentShiftAddons([]);
+      setCurrentShiftUsagePolicy(null);
+      setAvailableAreas([]);
+      return;
+    }
+
+    const newShift = availabilityData.shifts[resolvedShiftIndex];
+    const timeObj = (newShift.times || []).find((t) => (typeof t === 'object' ? t.time : t) === selectedTime);
+
+    // Derive addons and usage policy prioritising time-level overrides
+    const rawAddons = (typeof timeObj === 'object' && timeObj?.addons) ? timeObj.addons : (newShift?.addons || []);
+    const processedAddons = (rawAddons || []).map((addon, index) => ({ ...addon, originalIndexInShift: index }));
+    setCurrentShiftAddons(processedAddons);
+
+    const usagePolicy = (typeof timeObj === 'object' && timeObj?.usage !== undefined) ? timeObj.usage : newShift?.usage;
+    setCurrentShiftUsagePolicy(usagePolicy === undefined ? null : Number(usagePolicy));
+
+    // Update available areas for this time
+    const allAreas = availabilityData?.areas || [];
+    const filteredAreas = allAreas.filter((area) => Array.isArray(area.times) && area.times.includes(selectedTime));
+    setAvailableAreas(filteredAreas);
+
+    // Ensure the correct shift is expanded
+    setExpandedShiftIdentifier(newShift.uid || resolvedShiftIndex);
+
+    // Update selectedShiftTime with refreshed context for the new day
+    setSelectedShiftTime((prev) => ({
+      ...(prev || {}),
+      ...newShift,
+      selectedTime,
+      addons: rawAddons || [],
+      usage: usagePolicy,
+      originalIndexInAvailabilityData: resolvedShiftIndex,
+    }));
+  }, [availabilityData, selectedShiftTime?.selectedTime]);
 
   const handleTimeSelection = (shift, timeObject, shiftIndexInAvailabilityData) => {
     // Assuming timeObject could be just the decimal time, or an object containing the time
@@ -669,6 +753,51 @@ export default function ReservationForm() {
               return prev; // Revert to previous state
             }
           } else { // Checkbox is unchecked
+            if (menuIndex > -1) {
+              newSelected.menus.splice(menuIndex, 1);
+            }
+          }
+        } else if (menuUsagePolicy === 4) { // Quantity selectors for Menus (Some guests same menu)
+          const newProposedQuantity = parseInt(value, 10);
+          const oldQuantity = prev.menus.find(m => m.uid === addonData.uid)?.quantity || 0;
+
+          if (newProposedQuantity > oldQuantity) { // Incrementing
+            const numericGuests = parseInt(guests, 10) || 0;
+
+            // Sum of quantities must not exceed guest count
+            if (numericGuests > 0) {
+              const currentTotalMenuUsage4Quantity = prev.menus.reduce((sum, menu) => {
+                if (menu.uid === addonData.uid) return sum; // Exclude current item's old quantity
+                return sum + (menu.quantity || 0);
+              }, 0);
+              if (currentTotalMenuUsage4Quantity + newProposedQuantity > numericGuests) {
+                console.warn(`Usage 4 Menu (Sum Limit): Cannot increment ${addonData.name}. Total quantity ${currentTotalMenuUsage4Quantity + newProposedQuantity} would exceed guest count ${numericGuests}.`);
+                return prev;
+              }
+            }
+
+            // maxMenuTypes constraint (only when adding new distinct type)
+            if (oldQuantity === 0 && newProposedQuantity > 0) {
+              const maxMenuTypesAllowed = selectedShiftTime?.maxMenuTypes;
+              if (maxMenuTypesAllowed > 0) {
+                const distinctSelectedMenuTypesCount = new Set(prev.menus.filter(m => m.quantity > 0).map(m => m.uid)).size;
+                if (distinctSelectedMenuTypesCount >= maxMenuTypesAllowed) {
+                  console.warn(`Usage 4 Menu (Max Types): Cannot select new menu type ${addonData.name}. Max ${maxMenuTypesAllowed} distinct menu types already selected.`);
+                  return prev;
+                }
+              }
+            }
+          }
+
+          // Proceed with update
+          if (newProposedQuantity > 0) {
+            if (menuIndex > -1) {
+              newSelected.menus[menuIndex].quantity = newProposedQuantity;
+              newSelected.menus[menuIndex].usagePolicy = menuUsagePolicy;
+            } else {
+              newSelected.menus.push({ ...addonData, quantity: newProposedQuantity, usagePolicy: menuUsagePolicy });
+            }
+          } else {
             if (menuIndex > -1) {
               newSelected.menus.splice(menuIndex, 1);
             }
@@ -854,8 +983,12 @@ export default function ReservationForm() {
       const updateResult = await updateHold(holdToken, enhancedCustomerData);
       console.log("Update Result:", updateResult);
 
-      // /web/update is the final confirmation call — mark success immediately
-      setBookingState(prev => ({ ...prev, bookingSuccess: true }));
+      // Mark success only when appropriate:
+      // - Non-card flow: modal calls once (no skipSuccess flag)
+      // - Card flow: pre-payment passes skipSuccess=true; post-payment update omits it
+      if (!customerData?.skipSuccess) {
+        setBookingState(prev => ({ ...prev, bookingSuccess: true }));
+      }
     } catch (err) {
       console.error("Error during booking process:", err);
       setBookingState(prev => ({ 
@@ -866,6 +999,32 @@ export default function ReservationForm() {
       setBookingState(prev => ({ ...prev, isUpdating: false }));
     }
   };
+
+  // Forward booking success to parent (for analytics) when embedded in iframe
+  useEffect(() => {
+    if (bookingState.bookingSuccess) {
+      try {
+        const detail = {
+          est,
+          date: bookingData?.formattedDate || bookingData?.date,
+          time: bookingData?.time || selectedShiftTime?.selectedTime,
+          guests: parseInt(guests, 10) || bookingData?.covers,
+          area: selectedAreaName || bookingData?.area,
+          currency: appConfig?.currency || 'USD'
+        };
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: 'booking-event', eventName: 'booking-success', detail }, '*');
+        }
+        // Also emit a DOM CustomEvent inside the iframe for same-origin dev tools
+        try {
+          const ce = new CustomEvent('booking-success', { detail, bubbles: true });
+          document.dispatchEvent(ce);
+        } catch (_) {}
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [bookingState.bookingSuccess]);
 
   const handleBookingModalClose = () => {
     // If booking was successful, we might want to reset the form
@@ -969,26 +1128,34 @@ export default function ReservationForm() {
             return { isValid: false, reasonCode: 'SELECT_MENU_POLICY_2_GUESTS_0' };
         }
       }
-    } else if (currentShiftUsagePolicy === 3) { // Checkbox Menu
+    } else if (currentShiftUsagePolicy === 3) { // Checkbox Menu (Optional)
       if (effectiveMenuAddons.length > 0) {
         const selectedMenuCount = selectedAddons.menus.length;
-        // Assuming if policy 3 and menus are available, at least one must be selected if minMenuTypes/maxMenuTypes implies a selection is needed.
-        // Or if shift itself has a property like 'minRequiredMenusPolicy3'
-        // For now, let's assume a general "must select at least one if available and policy 3 implies selection"
-        // A more robust check might involve selectedShiftTime?.minMenuTypes for policy 3.
-        // If no specific min, but menus are there, it's often implied one should be picked.
-        // This is a bit ambiguous without explicit minRequired for policy 3.
-        // Let's assume for now: if effectiveMenuAddons exist, and it's policy 3, at least one must be chosen.
-        if (selectedMenuCount === 0) { // This could be refined with a specific config for min selections on policy 3.
-          console.log("Validation Fail: Policy 3 - At least one menu selection might be required.");
-          return { isValid: false, reasonCode: 'SELECT_MENU_POLICY_3' };
-        }
-        const maxSelections = selectedShiftTime?.maxMenuTypes > 0 ? selectedShiftTime.maxMenuTypes : (numericGuestCount > 0 ? numericGuestCount : (effectiveMenuAddons.length > 0 ? 1: 0));
-         if (maxSelections > 0 && selectedMenuCount > maxSelections) {
-            console.log(`Validation Fail: Policy 3 - Selected menu count (${selectedMenuCount}) exceeds maximum allowed (${maxSelections}).`);
-            return { isValid: false, reasonCode: 'MAX_MENU_TYPES_EXCEEDED_POLICY_3' };
+        // Optional: zero selections are allowed; enforce upper bound = min(maxMenuTypes>0 ? maxMenuTypes : ∞, guests>0 ? guests : ∞)
+        const baseMaxTypes = selectedShiftTime?.maxMenuTypes || 0; // 0 = unlimited
+        const guestCap = numericGuestCount > 0 ? numericGuestCount : Infinity;
+        const effectiveMax = baseMaxTypes > 0 ? Math.min(baseMaxTypes, guestCap) : guestCap;
+        if (Number.isFinite(effectiveMax) && selectedMenuCount > effectiveMax) {
+          console.log(`Validation Fail: Policy 3 - Selected menu count (${selectedMenuCount}) exceeds effective maximum allowed (${effectiveMax}).`);
+          return { isValid: false, reasonCode: 'MAX_MENU_TYPES_EXCEEDED_POLICY_3' };
         }
       }
+    } else if (currentShiftUsagePolicy === 4) { // Quantity Menu (Some guests same menu)
+      if (effectiveMenuAddons.length > 0 && numericGuestCount > 0) {
+        const totalMenuQuantity = selectedAddons.menus.reduce((sum, menu) => sum + (menu.quantity || 0), 0);
+        // Optional lower bound: allow zero; only enforce upper bound by guest count
+        if (totalMenuQuantity > numericGuestCount) {
+          console.log(`Validation Fail: Policy 4 - Total menu quantity (${totalMenuQuantity}) must not exceed guest count (${numericGuestCount}).`);
+          return { isValid: false, reasonCode: 'TOTAL_MENU_QUANTITY_EXCEEDS_GUESTS_POLICY_4' };
+        }
+        if (selectedShiftTime?.maxMenuTypes > 0) {
+          const distinctSelectedMenuTypes = new Set(selectedAddons.menus.filter(m => m.quantity > 0).map(m => m.uid)).size;
+          if (distinctSelectedMenuTypes > selectedShiftTime.maxMenuTypes) {
+            console.log(`Validation Fail: Policy 4 - Exceeded max menu types (${selectedShiftTime.maxMenuTypes}).`);
+            return { isValid: false, reasonCode: 'MAX_MENU_TYPES_EXCEEDED_POLICY_4' };
+          }
+        }
+      } // when guest count is 0: also optional, no lower bound
     }
     // Usage Policy 0 needs no specific menu validation here for proceeding.
 
@@ -1223,9 +1390,10 @@ export default function ReservationForm() {
               </div>
               {/* The availabilityData.message can still be relevant here */}
               {availabilityData.message && (
-                <p className="text-sm p-3 bg-warning/10 border border-warning text-warning rounded-md mt-2">
-                  {availabilityData.message}
-                </p>
+                <div
+                  className="text-sm p-3 bg-warning/10 border border-warning text-warning rounded-md mt-2 prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: availabilityData.message }}
+                />
               )}
             </div>
           )}
@@ -1296,9 +1464,10 @@ export default function ReservationForm() {
                           />
                         )}
                         {shift.message && (
-                          <p className="text-xs mt-2 p-2 bg-info/10 border border-primary text-primary rounded">
-                            {shift.message}
-                          </p>
+                          <div
+                            className="text-xs mt-2 p-2 bg-info/10 border border-primary text-primary rounded prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{ __html: shift.message }}
+                          />
                         )}
                         {shift.times && shift.times.length > 0 ? (
                           <div className="mt-3">

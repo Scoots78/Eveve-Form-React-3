@@ -60,6 +60,7 @@ export default function BookingDetailsModal({
     email: "",
     phone: "",
     notes: "",
+    xtra: "",
     optin: true, // Pre-ticked by default
     allergy: {
       has: false,
@@ -71,10 +72,52 @@ export default function BookingDetailsModal({
   const [validationErrors, setValidationErrors] = useState({});
   const [formTouched, setFormTouched] = useState(false);
   
+  /* ------------------------------------------------------------------
+     Eveve "ots" Booking & Customer Options
+     ------------------------------------------------------------------
+     • type 0 ⇒ booking-scope  (passed as   bookopt)
+     • type 1 ⇒ customer-scope (passed as  guestopt)
+     ------------------------------------------------------------------ */
+  // Map raw holdData.ots entries [type, uid, optionType, description]
+  const bookingOptions = useMemo(() => {
+    if (!holdData?.ots) return [];
+    return holdData.ots
+      .filter(arr => Array.isArray(arr) && arr[0] === 0)
+      .map(arr => ({
+        scope: 'booking',
+        uid: String(arr[1]),
+        optionType: arr[2],
+        description: arr[3]
+      }));
+  }, [holdData]);
+
+  const customerOptions = useMemo(() => {
+    if (!holdData?.ots) return [];
+    return holdData.ots
+      .filter(arr => Array.isArray(arr) && arr[0] === 1)
+      .map(arr => ({
+        scope: 'customer',
+        uid: String(arr[1]),
+        optionType: arr[2],
+        description: arr[3]
+      }));
+  }, [holdData]);
+
+  // Selected UID arrays – store as strings
+  const [selectedBookOpts, setSelectedBookOpts] = useState([]);
+  const [selectedGuestOpts, setSelectedGuestOpts] = useState([]);
+
+  // Vacate message acknowledgement (must-tick when vacMsg present)
+  const [vacateAccepted, setVacateAccepted] = useState(false);
+
   // Stripe payment state
   const [cardState, setCardState] = useState({
     complete: false,
     error: null,
+    // Distinguish between inline element validation errors (e.g. invalid card number)
+    // and payment-processing errors (e.g. card declined). Inline errors should clear
+    // as soon as the user corrects the input.
+    errorSource: null, // 'element' | 'payment' | null
     empty: true,
     brand: null
   });
@@ -96,6 +139,7 @@ export default function BookingDetailsModal({
     fetchStripeKeys,
     fetchDepositInfo,
     completePaymentFlow,
+    attachPaymentMethod,
     reset: resetStripePayment
   } = useStripePayment();
 
@@ -247,6 +291,7 @@ export default function BookingDetailsModal({
         email: "",
         phone: "",
         notes: "",
+        xtra: "",
         optin: true,
         allergy: {
           has: false,
@@ -268,7 +313,10 @@ export default function BookingDetailsModal({
        */
       setCardState(prev => ({
         complete: false,
-        error: prev.error,   // Preserve previously-captured payment error
+        // Preserve previously-captured PAYMENT error; element errors will be
+        // cleared on next onChange event from CardElement
+        error: prev.error,
+        errorSource: prev.errorSource,
         empty: true,
         brand: null
       }));
@@ -285,8 +333,28 @@ export default function BookingDetailsModal({
         clearTimeout(paymentTimeoutRef.current);
         paymentTimeoutRef.current = null;
       }
+
+      // Initialize selected options with 'Must tick' defaults
+      const defaultSelectedBook = bookingOptions
+        .filter(o => o.optionType === 'Must tick')
+        .map(o => o.uid);
+      const defaultSelectedGuest = customerOptions
+        .filter(o => o.optionType === 'Must tick')
+        .map(o => o.uid);
+      setSelectedBookOpts(defaultSelectedBook);
+      setSelectedGuestOpts(defaultSelectedGuest);
+      // Reset vacate acknowledgement each time modal opens
+      setVacateAccepted(false);
     }
-  }, [isOpen, holdData, effectiveHoldData, resetStripePayment, STEPS.PERSONAL_DETAILS]);
+  }, [
+    isOpen,
+    holdData,
+    effectiveHoldData,
+    resetStripePayment,
+    STEPS.PERSONAL_DETAILS,
+    bookingOptions,
+    customerOptions
+  ]);
 
   /* ------------------------------------------------------------------
      DEBUG: Track cardState changes to verify error lifecycle
@@ -387,6 +455,27 @@ export default function BookingDetailsModal({
       setFormTouched(true);
     }
   };
+
+  /* ------------------------------------------------------------------
+     Helper functions for Booking & Customer Option selection
+     ------------------------------------------------------------------ */
+  function setBookOpt(uid, isSelected) {
+    setSelectedBookOpts(prev => {
+      const s = new Set(prev);
+      if (isSelected) s.add(String(uid));
+      else s.delete(String(uid));
+      return Array.from(s);
+    });
+  }
+
+  function setGuestOpt(uid, isSelected) {
+    setSelectedGuestOpts(prev => {
+      const s = new Set(prev);
+      if (isSelected) s.add(String(uid));
+      else s.delete(String(uid));
+      return Array.from(s);
+    });
+  }
   
   // Handle card element change
   const handleCardChange = (event) => {
@@ -413,7 +502,15 @@ export default function BookingDetailsModal({
      */
     setCardState(prev => ({
       complete: event.complete,
-      error: event.error ? event.error.message : prev.error, // Preserve existing payment errors
+      // If Stripe reports an inline validation error, display it and mark source
+      // as 'element'. If Stripe reports no error, clear any previous 'element'
+      // error but preserve a 'payment' error from a previous failed attempt.
+      error: event.error
+        ? event.error.message
+        : (prev.errorSource === 'element' ? null : prev.error),
+      errorSource: event.error
+        ? 'element'
+        : (prev.errorSource === 'element' ? null : prev.errorSource),
       empty: event.empty,
       brand: event.brand,
       stripe: event.stripe,
@@ -447,6 +544,14 @@ export default function BookingDetailsModal({
     
     if (!customerData.phone.trim()) {
       errors.phone = appConfig?.lng?.requiredFieldError || "This field is required";
+    }
+
+    // Vacate acknowledgement required when vacMsg present
+    if (holdData?.vacMsg && !vacateAccepted) {
+      errors.vacate = appConfig?.lng?.vacateRequiredError ||
+        (holdData?.until
+          ? `Please confirm you will vacate the table by ${holdData.until}`
+          : "Please confirm you agree to the vacate conditions");
     }
     
     setValidationErrors(errors);
@@ -621,15 +726,12 @@ export default function BookingDetailsModal({
       if (validateForm()) {
         try {
           logWithTimestamp('Submitting non-card booking');
-          onSubmit(effectiveHoldData.uid, customerData);
-          
-          // Set local success state in case parent doesn't update
-          setTimeout(() => {
-            if (!success) {
-              logWithTimestamp('Setting local success state for non-card booking');
-              setLocalSuccess(true);
-            }
-          }, 3000);
+          await onSubmit(effectiveHoldData.uid, {
+            ...customerData,
+            bookopt: selectedBookOpts,
+            guestopt: selectedGuestOpts
+          });
+          // Do not auto-complete locally; rely on parent success signal
         } catch (err) {
           console.error(`${new Date().toISOString()} [BookingDetailsModal] Error processing booking:`, err);
         }
@@ -640,9 +742,30 @@ export default function BookingDetailsModal({
       return;
     }
     
-    // For card bookings, process payment first
+    // For card bookings, ensure UPDATE succeeds BEFORE any Stripe processing
     if (validateForm()) {
       try {
+        // 0) HARD STOP: Update booking first. If this fails, DO NOT process card.
+        logWithTimestamp('Updating booking details before any Stripe processing (hard stop on error)');
+        try {
+          await onSubmit(effectiveHoldData.uid, {
+            ...customerData,
+            bookopt: selectedBookOpts,
+            guestopt: selectedGuestOpts,
+            // Signal to parent not to mark success yet (card flow pre-payment)
+            skipSuccess: true
+          });
+        } catch (updateErr) {
+          logWithTimestamp('Pre-payment update failed. Aborting Stripe processing.', { error: updateErr.message });
+          setCardState(prev => ({
+            ...prev,
+            error: updateErr.message || 'Failed to update booking before payment',
+            errorSource: 'payment'
+          }));
+          console.timeEnd(timerLabel);
+          return; // HARD STOP
+        }
+
         logWithTimestamp('Processing payment for card-required booking', {
           step: 'start',
           uid: effectiveHoldData.uid,
@@ -650,7 +773,7 @@ export default function BookingDetailsModal({
           hasStripe: !!cardState.stripe,
           hasElements: !!cardState.elements
         });
-        
+
         setPaymentProcessing(true);
         paymentStartTimeRef.current = Date.now();
         
@@ -785,6 +908,8 @@ export default function BookingDetailsModal({
         // Add payment information to customer data for the booking update
         const updatedCustomerData = {
           ...customerData,
+          bookopt: selectedBookOpts,
+          guestopt: selectedGuestOpts,
           paymentMethodId: paymentResult.paymentMethodId,
           paymentAmount: paymentResult.amount,
           paymentCurrency: paymentResult.currency,
@@ -792,22 +917,45 @@ export default function BookingDetailsModal({
           isNoShow: paymentResult.isNoShow
         };
         
-        logWithTimestamp('Payment successful, updating booking with payment info', {
+        logWithTimestamp('Payment successful, updating booking with payment info (calling /web/update FIRST)', {
           paymentMethodId: paymentResult.paymentMethodId ? 
             `${paymentResult.paymentMethodId.substring(0, 8)}...` : null,
           amount: paymentResult.amount,
           isDeposit: paymentResult.isDeposit,
-          step: 'before-onSubmit'
+          step: 'before-onSubmit (update)'
         });
         
-        // Payment successful, now update booking
+        // Payment successful, now update booking (UPDATE → then RESTORE+PM-ID)
         try {
-          onSubmit(effectiveHoldData.uid, updatedCustomerData);
-          
-          logWithTimestamp('Booking update submitted', {
-            step: 'after-onSubmit'
+          await onSubmit(effectiveHoldData.uid, updatedCustomerData);
+          logWithTimestamp('Booking update completed, proceeding to attach payment method (restore → pm-id)', {
+            step: 'after-update-before-attach'
           });
-          
+
+          // Attach payment method AFTER successful update to satisfy ordering
+          const attachResult = await attachPaymentMethod({
+            est: bookingData.est || effectiveHoldData.est,
+            uid: effectiveHoldData.uid,
+            created: effectiveHoldData.created,
+            paymentMethodId: paymentResult.paymentMethodId,
+            total: paymentResult.amount
+          });
+
+          logWithTimestamp('Attach payment method result', {
+            success: attachResult.success,
+            message: attachResult.message || null
+          });
+          // If attach failed, show error and do NOT mark success
+          if (!attachResult.success) {
+            setPaymentProcessing(false);
+            setCardState(prev => ({
+              ...prev,
+              error: attachResult.error || 'Failed to attach payment to booking',
+              errorSource: 'payment'
+            }));
+            return;
+          }
+
           // Set up a safety timeout to ensure we complete even if parent doesn't signal success
           paymentTimeoutRef.current = setTimeout(() => {
             logWithTimestamp('Safety timeout triggered - forcing completion');
@@ -823,15 +971,9 @@ export default function BookingDetailsModal({
             stack: submitError.stack
           });
           
-          // Even if onSubmit fails, the payment was successful, so we should still complete
-          // The booking might have been updated on the server despite the error
-          setTimeout(() => {
-            logWithTimestamp('Forcing completion despite onSubmit error');
-            setPaymentProcessing(false);
-            setCurrentStep(STEPS.COMPLETE);
-            setLocalSuccess(true);
-          }, 5000);
-          
+          // Even if update or attach fails, the Stripe payment may have succeeded.
+          // Preserve error in UI; do not auto-complete success.
+          setPaymentProcessing(false);
           throw submitError;
         }
       } catch (err) {
@@ -854,7 +996,8 @@ export default function BookingDetailsModal({
           console.log('🚨 [DEBUG] Setting cardState.error – prev state:', prev);
           const newState = {
             ...prev,
-            error: err.message || "Failed to process payment"
+            error: err.message || "Failed to process payment",
+            errorSource: 'payment'
           };
           console.log('🚨 [DEBUG] Setting cardState.error – new state:', newState);
           return newState;
@@ -878,6 +1021,9 @@ export default function BookingDetailsModal({
     
     logWithTimestamp('Creating Stripe provider with key:', 
       stripePublicKey ? `${stripePublicKey.substring(0, 8)}...` : 'none');
+    
+    // Detect whether the provided key is a live key (starts with 'pk_live_')
+    const isLiveStripeKey = stripePublicKey?.startsWith('pk_live_');
     
     return (
       <StripeProvider 
@@ -903,7 +1049,7 @@ export default function BookingDetailsModal({
         <StripeCardElement
           onChange={handleCardChange}
           disabled={paymentProcessing}
-          showTestCards={true}
+          showTestCards={!isLiveStripeKey}
           label={appConfig?.lng?.cardDetailsLabel || "Card Details"}
         />
       </StripeProvider>
@@ -1362,7 +1508,7 @@ export default function BookingDetailsModal({
             leaveFrom="opacity-100 scale-100"
             leaveTo="opacity-0 scale-95"
           >
-            <div className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl">
+            <div className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl eveve-modal">
               {/* Loading overlay */}
               {(isLoading || paymentProcessing || isInitializingStripe) && (
                 <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
@@ -1518,7 +1664,11 @@ export default function BookingDetailsModal({
                           <div className="w-8 h-0.5 mx-2 bg-gray-300"></div>
                           <div className={`flex items-center ${currentStep === STEPS.PAYMENT ? 'text-purple-600 font-medium' : 'text-gray-500'}`}>
                             <span className={`flex items-center justify-center w-6 h-6 rounded-full mr-2 ${currentStep === STEPS.PAYMENT ? 'bg-purple-100 text-purple-600' : 'bg-gray-200 text-gray-600'}`}>2</span>
-                            <span>Payment</span>
+                            <span>
+                              {isNoShowProtection
+                                ? (appConfig?.lng?.creditCardRegistrationStepTitle || "Credit Card Registration")
+                                : (appConfig?.lng?.paymentStepTitle || "Payment")}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -1622,6 +1772,155 @@ export default function BookingDetailsModal({
                           </div>
                         </div>
                         
+                        {/* Booking Options (from holdData.ots type 0) */}
+                        {bookingOptions.length > 0 && (
+                          <div className="mb-6">
+                            <h4 className="font-medium text-gray-700 mb-2">{appConfig?.lng?.bookingOptionsTitle || 'Booking Options'}</h4>
+                            <div className="space-y-2">
+                              {bookingOptions.map(opt => (
+                                <div key={opt.uid} className="flex items-center justify-between">
+                                  <div className="flex-1 mr-4 text-sm text-gray-800">{opt.description}</div>
+                                  {opt.optionType === 'Yes/No' ? (
+                                    <div className="flex items-center gap-4">
+                                      <label className="inline-flex items-center text-sm">
+                                        <input
+                                          type="radio"
+                                          name={`bookopt-${opt.uid}`}
+                                          className="radio radio-primary"
+                                          checked={selectedBookOpts.includes(opt.uid)}
+                                          onChange={() => setBookOpt(opt.uid, true)}
+                                          disabled={timerExpired}
+                                        />{' '}
+                                        <span className="ml-1">Yes</span>
+                                      </label>
+                                      <label className="inline-flex items-center text-sm">
+                                        <input
+                                          type="radio"
+                                          name={`bookopt-${opt.uid}`}
+                                          className="radio radio-primary"
+                                          checked={!selectedBookOpts.includes(opt.uid)}
+                                          onChange={() => setBookOpt(opt.uid, false)}
+                                          disabled={timerExpired}
+                                        />{' '}
+                                        <span className="ml-1">No</span>
+                                      </label>
+                                    </div>
+                                  ) : (
+                                    <label className="inline-flex items-center text-sm">
+                                      <input
+                                        type="checkbox"
+                                        className="checkbox checkbox-primary"
+                                        checked={selectedBookOpts.includes(opt.uid)}
+                                        onChange={e => setBookOpt(opt.uid, e.target.checked)}
+                                        disabled={timerExpired}
+                                      />
+                                      <span className="ml-2">
+                                        {opt.optionType === 'Must tick' && (
+                                          <span className="px-2 py-0.5 text-xs rounded bg-red-100 text-red-700 mr-2">
+                                            Required
+                                          </span>
+                                        )}
+                                        {appConfig?.lng?.tickToAccept || ''}
+                                      </span>
+                                    </label>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Customer Options (from holdData.ots type 1) */}
+                        {customerOptions.length > 0 && (
+                          <div className="mb-6">
+                            <h4 className="font-medium text-gray-700 mb-2">{appConfig?.lng?.customerOptionsTitle || 'Customer Options'}</h4>
+                            <div className="space-y-2">
+                              {customerOptions.map(opt => (
+                                <div key={opt.uid} className="flex items-center justify-between">
+                                  <div className="flex-1 mr-4 text-sm text-gray-800">{opt.description}</div>
+                                  {opt.optionType === 'Yes/No' ? (
+                                    <div className="flex items-center gap-4">
+                                      <label className="inline-flex items-center text-sm">
+                                        <input
+                                          type="radio"
+                                          name={`guestopt-${opt.uid}`}
+                                          className="radio radio-primary"
+                                          checked={selectedGuestOpts.includes(opt.uid)}
+                                          onChange={() => setGuestOpt(opt.uid, true)}
+                                          disabled={timerExpired}
+                                        />{' '}
+                                        <span className="ml-1">Yes</span>
+                                      </label>
+                                      <label className="inline-flex items-center text-sm">
+                                        <input
+                                          type="radio"
+                                          name={`guestopt-${opt.uid}`}
+                                          className="radio radio-primary"
+                                          checked={!selectedGuestOpts.includes(opt.uid)}
+                                          onChange={() => setGuestOpt(opt.uid, false)}
+                                          disabled={timerExpired}
+                                        />{' '}
+                                        <span className="ml-1">No</span>
+                                      </label>
+                                    </div>
+                                  ) : (
+                                    <label className="inline-flex items-center text-sm">
+                                      <input
+                                        type="checkbox"
+                                        className="checkbox checkbox-primary"
+                                        checked={selectedGuestOpts.includes(opt.uid)}
+                                        onChange={e => setGuestOpt(opt.uid, e.target.checked)}
+                                        disabled={timerExpired}
+                                      />
+                                      <span className="ml-2">
+                                        {opt.optionType === 'Must tick' && (
+                                          <span className="px-2 py-0.5 text-xs rounded bg-red-100 text-red-700 mr-2">
+                                            Required
+                                          </span>
+                                        )}
+                                        {appConfig?.lng?.tickToAccept || ''}
+                                      </span>
+                                    </label>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Vacate message acknowledgment (Must tick) */}
+                        {holdData?.vacMsg && (
+                          <div className="mb-6">
+                            <h4 className="font-medium text-gray-700 mb-2">
+                              {appConfig?.lng?.vacateTitle || 'Vacate Policy'}
+                            </h4>
+                            <div className="mb-2 p-3 bg-amber-50 border border-amber-200 rounded text-amber-900 text-sm">
+                              {holdData.vacMsg}
+                            </div>
+                            <label className="inline-flex items-center text-sm">
+                              <input
+                                type="checkbox"
+                                className="checkbox checkbox-primary"
+                                checked={vacateAccepted}
+                                onChange={(e) => setVacateAccepted(e.target.checked)}
+                                disabled={timerExpired}
+                              />
+                              <span className="ml-2">
+                                <span className="px-2 py-0.5 text-xs rounded bg-red-100 text-red-700 mr-2">
+                                  Required
+                                </span>
+                                {appConfig?.lng?.vacateAgreeLabel ||
+                                  (holdData?.until
+                                    ? `I agree to vacate the table by ${holdData.until}`
+                                    : 'I agree to the vacate conditions')}
+                              </span>
+                            </label>
+                            {validationErrors.vacate && (
+                              <p className="mt-1 text-sm text-red-600">{validationErrors.vacate}</p>
+                            )}
+                          </div>
+                        )}
+
                         {/* Allergies section */}
                         <div className="mb-6">
                           <h4 className="font-medium text-gray-700 mb-2">
@@ -1714,6 +2013,23 @@ export default function BookingDetailsModal({
                             Special requests are not guaranteed and are subject to availability.
                           </p>
                         </div>
+
+                        {/* Extra notes (dynamic label from /web/form → xtraNotes) */}
+                        {appConfig?.xtraNotes && String(appConfig.xtraNotes).trim().length > 0 && (
+                          <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              {appConfig.xtraNotes}
+                            </label>
+                            <input
+                              type="text"
+                              name="xtra"
+                              value={customerData.xtra}
+                              onChange={handleInputChange}
+                              className="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500 border-gray-300"
+                              disabled={timerExpired}
+                            />
+                          </div>
+                        )}
                         
                         {/* Opt-in for marketing */}
                         <div className="mb-6">
@@ -1750,7 +2066,9 @@ export default function BookingDetailsModal({
                               className="px-4 py-2 bg-primary text-primary-content rounded-md hover:bg-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
                               disabled={isLoading || isInitializingStripe || timerExpired}
                             >
-                              {appConfig?.lng?.continueToPaymentButton || "Continue to Payment"}
+                              {isNoShowProtection
+                                ? (appConfig?.lng?.registerCardButton || "Register Credit Card")
+                                : (appConfig?.lng?.continueToPaymentButton || "Continue to Payment")}
                             </button>
                           ) : (
                             <button
@@ -1805,7 +2123,9 @@ export default function BookingDetailsModal({
                               });
                             }}
                           >
-                            {appConfig?.lng?.bookingConfirmWithPaymentButton || "Complete Payment & Book"}
+                            {isNoShowProtection
+                              ? (appConfig?.lng?.bookingConfirmWithCardRegistrationButton || "Complete Credit Card Registration and Book")
+                              : (appConfig?.lng?.bookingConfirmWithPaymentButton || "Complete Payment & Book")}
                           </button>
                         </div>
                       </form>

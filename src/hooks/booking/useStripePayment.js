@@ -247,11 +247,16 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
     
     try {
       // Validate booking exists first (optional but recommended)
-      await eveveApi.restore({
-        est: params.est,
-        uid: params.uid,
-        type: 0
-      });
+      // Use UID (upper-case) to match other Eveve endpoints; continue even if this fails
+      try {
+        await eveveApi.restore({
+          est: params.est,
+          UID: params.uid,
+          type: 0
+        });
+      } catch (restoreErr) {
+        console.warn('⚠️ restore preflight failed, proceeding to pm-id anyway:', restoreErr?.message);
+      }
       
       // Call pm-id to attach the payment method to the booking
       const pmIdParams = {
@@ -294,7 +299,9 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
   }, []);
 
   /**
-   * Complete the full payment flow (fetch keys, process payment, attach payment method)
+   * Complete the payment intent (keys + deposit info + Stripe confirm).
+   * NOTE: This function NO LONGER calls pm-id. Call attachPaymentMethod()
+   * AFTER your /web/update succeeds to achieve the order: update → restore → pm-id.
    * 
    * @param {Object} params - All parameters needed for the payment flow
    * @param {string} params.est - Establishment code
@@ -305,17 +312,10 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
    * @param {string} params.email - Customer email
    * @param {Object} params.cardElement - Stripe CardElement instance
    * @param {Object} [params.preCalculatedDeposit=null] - Optional pre-calculated
-   *        deposit info (when shift.charge = 2).  If provided the hook will skip
-   *        the Eveve `deposit-get` call and use this object instead.  Expected
-   *        shape: { isDeposit:boolean, isNoShow:boolean, amount:number,
-   *        currency:string }
-   * @param {boolean} [params.isEventWithPaidAddons=false] - Flag indicating
-   *        this booking is an Event that includes PAID addons/deposits which
-   *        Eveve may not support in the current configuration.  If true and
-   *        the intent type is not `payment_intent`, the flow will throw a
-   *        configuration error.  Normal bookings (false) will be allowed to
-   *        proceed with only a warning.
-   * @returns {Promise<Object>} - Result of the payment flow
+   *        deposit info (when shift.charge = 2). Expected shape: { isDeposit,
+   *        isNoShow, amount, currency }
+   * @param {boolean} [params.isEventWithPaidAddons=false] - See previous docs
+   * @returns {Promise<Object>} - Result of the payment confirmation only
    */
   const completePaymentFlow = useCallback(async (params) => {
     try {
@@ -407,7 +407,7 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
         }
       }
       
-      // Step 3: Process payment
+      // Step 3: Process payment (confirm setup/payment intent with Stripe)
       const paymentResult = await processPayment({
         cardElement: params.cardElement,
         billingDetails: {
@@ -421,21 +421,9 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
         return paymentResult;
       }
       
-      // Step 4: Attach payment method
-      const attachResult = await attachPaymentMethod({
-        est: params.est,
-        uid: params.uid,
-        created: params.created,
-        paymentMethodId: paymentResult.paymentMethodId,
-        total: depositInfo.amount
-      });
-      
-      if (!attachResult.success) {
-        console.error('❌ Payment method attachment failed:', attachResult.error);
-        return attachResult;
-      }
-      
-      // Return comprehensive result
+      // Return result WITHOUT attaching PM. Caller should:
+      // 1) call /web/update
+      // 2) then call attachPaymentMethod({ est, uid, created, paymentMethodId, total })
       return {
         success: true,
         paymentMethodId: paymentResult.paymentMethodId,
@@ -444,8 +432,7 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
         amount: depositInfo.amount,
         currency: depositInfo.currency,
         status: paymentResult.status,
-        intentType: paymentResult.intentType,
-        message: attachResult.message || depositInfo.message
+        intentType: paymentResult.intentType
       };
     } catch (err) {
       console.error('❌ Payment flow failed:', err.message);
@@ -457,7 +444,7 @@ export function useStripePayment(baseUrl = 'https://uk6.eveve.com') {
         errorDetails: err.stack
       };
     }
-  }, [fetchStripeKeys, fetchDepositInfo, processPayment, attachPaymentMethod, stripeKeys]);
+  }, [fetchStripeKeys, fetchDepositInfo, processPayment, stripeKeys]);
 
   /**
    * Reset all state

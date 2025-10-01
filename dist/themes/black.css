@@ -1,0 +1,134 @@
+/* Brand Roboto Theme - Dark Blue with White Text */
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&display=swap');
+
+/* Scope to the widget container with the black theme */
+#eveve-widget[data-theme="black"] {
+  /* Core palette (HSL components) */
+  --p: 0 0% 10%;    /* primary: dark blue */
+  --s: 0 0% 20%;    /* secondary: slightly lighter blue */
+  --a: 0 0% 30%;    /* accent: even lighter blue */
+  --n: 0 0% 80%;    /* neutral */
+
+  --b1: 0 0% 0%;   /* base-100: dark blue background */
+  --b2: 0 0% 40%;   /* base-200: slightly lighter surface */
+  --b3: 0 0% 60%;   /* base-300: lighter blue for hover states */
+  /* Fallback for DaisyUI's bg-base-300 utilities */
+  --fallback-b3: #5e5e5e; /* lighter blue used for accordion hover */
+  --bc: 0 0% 100%;     /* base-content: white text */
+
+  --in: 207 90% 54%;   /* info: bright blue */
+  --su: 142 71% 45%;   /* success: green */
+  --wa: 38 92% 50%;    /* warning: amber */
+  --er: 0 84% 60%;     /* error: red */
+
+  /* HEX shortcuts for simpler usage */
+  --p-color: #ffffff;  /* primary brand color */
+  --b2c: #000000;      /* base background */
+
+  /* primary-content (text) should be dark blue on white buttons */
+  --pc: 208 23% 22%;
+
+  /* Shapes / typography */
+  --rounded-box: 0.5rem;
+  --rounded-btn: 0.25rem;
+  --font-sans: 'Oswald', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+
+  /* Apply font family to the entire widget */
+  font-family: var(--font-sans);
+  color: hsl(var(--bc));
+  background-color: hsl(var(--b1));
+}
+
+/* Button overrides for white background with dark blue text */
+#eveve-widget[data-theme="black"] .btn-primary,
+#eveve-widget[data-theme="black"] .bg-primary,
+#eveve-widget[data-theme="black"] button.bg-primary {
+  background-color: white !important;
+  color: #2C3A46 !important;
+  border: 1px solid #2C3A46 !important;
+}
+
+#eveve-widget[data-theme="black"] .btn-primary:hover,
+#eveve-widget[data-theme="black"] .bg-primary:hover,
+#eveve-widget[data-theme="black"] button.bg-primary:hover {
+  background-color: #f8f9fa !important;
+  box-shadow: 0 0 0 1px #2C3A46;
+}
+
+#eveve-widget[data-theme="black"] .btn-primary:focus,
+#eveve-widget[data-theme="black"] .bg-primary:focus,
+#eveve-widget[data-theme="black"] button.bg-primary:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(44, 58, 70, 0.3);
+}
+
+/* ------------------------------------------------------------------
+   Accessibility: keep text readable on disabled/active primary buttons
+-------------------------------------------------------------------*/
+
+#eveve-widget[data-theme="black"] button.bg-primary:disabled,
+#eveve-widget[data-theme="black"] .btn-primary:disabled {
+  opacity: 1 !important;            /* retain full contrast */
+}
+
+/* Ensure nested Tailwind text-primary-content utilities stay dark blue
+   when the button background is white */
+#eveve-widget[data-theme="black"] .bg-primary .text-primary-content {
+  color: #2C3A46 !important;
+}
+#eveve-widget[data-theme="black"] .bg-primary .text-primary-content\/70 {
+  color: rgba(44, 58, 70, 0.7) !important;
+}
+
+/* Calendar day styling */
+#eveve-widget[data-theme="black"] .react-calendar-custom .react-calendar__tile:enabled:hover abbr,
+#eveve-widget[data-theme="black"] .react-calendar-custom .react-calendar__tile:enabled:focus abbr,
+#eveve-widget[data-theme="black"] .react-calendar-custom .react-calendar__tile--active abbr {
+  background-color: white !important;
+  color: #2C3A46 !important;
+  border: 1px solid #2C3A46 !important;
+}
+
+/* Ensure text inputs have white background with dark borders */
+#eveve-widget[data-theme="black"] input,
+#eveve-widget[data-theme="black"] select,
+#eveve-widget[data-theme="black"] textarea {
+  background-color: white;
+  border-color: rgba(44, 58, 70, 0.5);
+  color: #2C3A46;
+}
+
+/* Ensure headings and other text are white */
+#eveve-widget[data-theme="black"] h1,
+#eveve-widget[data-theme="black"] h2,
+#eveve-widget[data-theme="black"] h3,
+#eveve-widget[data-theme="black"] h4,
+#eveve-widget[data-theme="black"] h5,
+#eveve-widget[data-theme="black"] h6,
+#eveve-widget[data-theme="black"] p {
+  color: hsl(var(--bc));
+}
+
+/* ------------------------------------------------------------------
+   Custom overrides for selected time buttons and accordion hovers
+-------------------------------------------------------------------*/
+
+#eveve-widget[data-theme="black"] {
+  /* Theme-specific tokens so projects can tweak in one place */
+  --selected-time-bg: #22C55E;   /* customizable green */
+  --selected-time-text: #ffffff;
+  --selected-time-border: #1FAA53;
+  --accordion-hover: #363636;    /* slightly lighter than base-200 */
+}
+
+#eveve-widget[data-theme="black"] .time-btn[data-selected="true"] {
+  background-color: var(--selected-time-bg) !important;
+  color: var(--selected-time-text) !important;
+  border: 1px solid var(--selected-time-border) !important;
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--selected-time-bg) 30%, transparent);
+}
+
+#eveve-widget[data-theme="black"] .accordion-toggle:hover {
+  background-color: var(--accordion-hover) !important;
+  border-color: var(--accordion-hover) !important;
+}

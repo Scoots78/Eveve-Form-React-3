@@ -151,7 +151,7 @@ export function calculateTotalAddonCost(
   debugMode = false
 ) {
   let total = 0;
-  const isUsage2 = selectedShiftTime?.usage === 2;
+  const isUsageQuantity = selectedShiftTime?.usage === 2 || selectedShiftTime?.usage === 4;
   
   // --- Menus ---
   (selectedAddons.menus || []).forEach((menu) => {
@@ -162,7 +162,7 @@ export function calculateTotalAddonCost(
       if (menu.per === "Guest") {
         // For usage=2 (quantity-based menus), don't multiply by guestCount
         // because the user has already selected the appropriate quantity
-        if (isUsage2) {
+        if (isUsageQuantity) {
           menuCost = menu.price * qty;
         } else {
           menuCost = menu.price * guestCount * qty;
@@ -185,7 +185,7 @@ export function calculateTotalAddonCost(
           
           if (addon.per === "Guest") {
             // For options, check if parent shift has usage=2
-            if (isUsage2) {
+            if (isUsageQuantity) {
               optionCost = addon.price * qty;
             } else {
               optionCost = addon.price * guestCount * qty;

@@ -56,6 +56,9 @@
   "invalidMenuUsage": "Invalid menu configuration.",
   "menuUsage2TotalQuantityNote": "Total quantity of all selected menus cannot exceed guest count.",
   "maxMenuSelectionNote": "Select up to {maxSelections} menu(s).",
+  "menuUsage3NoteWithCap": "Optional menus: you can select up to {maxMenuTypes} menu type(s) or your guest count, whichever is smaller.",
+  "menuUsage3NoteGuestsOnly": "Optional menus: These menu(s)/addon are optional.",
+  "menuUsage4TotalQuantityNote": "Optional menus: you may select up to {guestCount} total menu(s).",
   "optionsTitle": "Optional Add-ons",
   "selectMenuForOptions": "Please select a menu to see available options.",
   "noOptionsAvailable": "No optional add-ons currently available.",
@@ -119,5 +122,13 @@
   "requiredFieldError": "This field is required",
   "emailFormatError": "Please enter a valid email address",
   "phoneFormatError": "Please enter a valid phone number",
-  "eventName": "Event name"
+  "eventName": "Event name",
+  "tickToAccept": "",
+  "customerOptionsTitle": "Customer Options",
+  "vacateAgreeLabel": "You must agree to vacate the table by the end of your booking time.",
+  "vacateTitle": "Your table time is restricted",
+  "vacateRequiredError": "You must tick the box agree to vacate by the time specified",
+  "creditCardRegistrationStepTitle": "Credit Card Registration",
+  "registerCardButton": "Register Credit Credit Card",
+  "bookingConfirmWithCardRegistrationButton": "Register and Book"
 }
