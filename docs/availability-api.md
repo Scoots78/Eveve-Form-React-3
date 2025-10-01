@@ -90,6 +90,75 @@ Code references:
    - Accepts `time` and/or `event` to influence month view.
    - Always returns month-of-`date` (1st-of-month anchor), irrespective of which day within the month is provided.
 
+### Month-availability response variants (examples)
+
+Variant A — legacy matrix with per-day tuples (regular/event/hours/sessions/message):
+
+```json
+{
+  "est": "TestNZB",
+  "estFull": "Test Blue Breeze Inn",
+  "noStandby": [],
+  "from": "2025-10-01",
+  "times": [
+    [
+      [12.00,12.25,12.50,12.75,13.00,13.25,13.50,13.75,14.00,14.25,14.50,14.75,15.00,15.25,15.50,15.75,16.00,17.00,17.25,17.50,17.75,18.00,18.25,18.50,18.75,19.00,19.25,19.50,19.75,20.00,20.25,20.50,20.75,21.00,21.25,21.50,21.75,22.00],
+      [18.00,18.25,18.50,18.75,19.00,20.75,21.00,21.25,21.50,21.75,22.00],
+      [[12.00,16.00],[12.00,16.00],[17.00,22.00],[17.00,22.00]],
+      [0,1,2,3],
+      ""
+    ],
+    [[],[],[[],[],[],[]],[],"We are closed today for the Public Holiday"]
+  ]
+}
+```
+
+Interpretation:
+- For each day in the month, `times[day]` is an array tuple of length 5:
+  1. regularTimes[] (decimal times)
+  2. eventTimes[] (decimal times) — if any
+  3. hoursRanges[] (e.g., service windows)
+  4. sessionIndexes[]
+  5. message string (may be empty)
+- A “closed” day typically presents empty arrays for regular/event times and may include a closure message.
+
+Variant B — filtered by a requested time (and optionally event):
+
+```json
+{
+  "est": "TestNZB",
+  "full": "Test Blue Breeze Inn",
+  "first": "2025-10-01",
+  "avail": [1,1,2,1,1,5,1,1,1,1,1,1,5,1,1,1,1,1,1,5,1,1,1,1,1,1,5,1,1,1,1],
+  "events": [
+    {"uid":1000, "showCal":true, "avail":[0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},
+    {"uid":1001, "showCal":true, "avail":[0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]}
+  ]
+}
+```
+
+Notes:
+- Query: `/web/month-avail?est=...&covers=...&date=YYYY-MM-01&time=DECIMAL[&event=UID]`.
+- `avail[]` is a per-day code for regular availability (not event times). Event-specific arrays are under `events[].avail`.
+- If `event` is supplied, `events` can still include multiple entries; the client should target the requested UID.
+
+### Avail codes (per-day values)
+
+Corrected per vendor:
+- 0 = No service available (no service running that day)
+- 1 = Mid available (only meaningful when a `time` filter is provided; proximity around the requested time)
+- 2 = Narrow times available (close to the requested time)
+- 3 = Wide times available (further window around the requested time)
+- 4 = No times available during the shift (shift exists but has zero bookable times)
+- 5 = Closed (venue is closed)
+
+Widget treatment guidance:
+- If month view is not using `time` (current behavior):
+  - Disable days with codes 0 (no service), 4 (no times in shift), and 5 (closed) as not bookable.
+  - Other codes (1–3) remain enabled and indicate varying proximity when/if `time` is later used.
+- If month view includes a `time` filter in the future:
+  - Treat 2/3 as available; 1 as marginal; 0/4/5 as not bookable.
+
 ## Widget Behavior — Target Specification
 
 This is how we will treat availability after adapting to the new responses:
@@ -97,7 +166,9 @@ This is how we will treat availability after adapting to the new responses:
 1) Month view (calendar disabled dates)
    - Base request: `GET /web/month-avail?est={est}&covers={C}&date={YYYY-MM-01}`.
    - When the user is viewing an Event context (e.g., an Event shift is in focus or an event is preselected), include `event={eventUid}`. If a specific tentative time is in context (e.g., from `eventsB.avail`), include `time={decimal}` to refine availability.
-   - Parsing should not assume `times[dayIndex][0]` array shape. We will update the parser to respect the returned structure (closed vs open) and event/time filters when present.
+   - Parsing rules:
+     - If response has `times` (matrix): a day is “closed” when both regular and event arrays are empty (and/or message indicates closure). Do not assume fixed tuple shapes beyond positions listed above.
+     - If response has `avail` (codes): a day is “closed” when code is 5. Other codes are actionable (not disabled) and inform UI hints.
 
 2) Day view (shift grid)
    - Default request unchanged: `GET /web/day-avail?est={est}&covers={n}&date={YYYY-MM-DD}`.
@@ -105,7 +176,8 @@ This is how we will treat availability after adapting to the new responses:
      - If an Event is active for the selected date (present in `eventsB` for that day window), show Event shift with `eventsB.avail` times.
      - If the event suppresses regular service, hide conflicting non-Event shifts/times for that date.
      - If the event does not suppress, merge: show event times and regular shifts; avoid duplicates.
-   - Stop requiring intersection-with-regular for Event times. Prefer explicit `eventsB.avail` as the source of truth for Event timing.
+   - Stop requiring intersection-with-regular for Event times. Prefer explicit `eventsB.avail` (from `/web/form`) or day-level event times when present.
+   - Remember: month-level `avail` applies to regular sessions; event-specific daily markers reside under `events[].avail`.
 
 3) Hold/Update
    - Continue forwarding `event={uid}` to `/web/hold` when booking an event time.
