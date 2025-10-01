@@ -144,17 +144,20 @@ Notes:
 
 ### Avail codes (per-day values)
 
-From the API semantics provided:
-- 0 = Not available
-- 1 = Narrow window (near requested time)
-- 2 = OK (Available)
-- 3 = Wide (Available, window further from requested)
-- 4 = Available at another time or session (applies to event context)
-- 5 = Closed
+Corrected per vendor:
+- 0 = No service available (no service running that day)
+- 1 = Mid available (only meaningful when a `time` filter is provided; proximity around the requested time)
+- 2 = Narrow times available (close to the requested time)
+- 3 = Wide times available (further window around the requested time)
+- 4 = No times available during the shift (shift exists but has zero bookable times)
+- 5 = Closed (venue is closed)
 
 Widget treatment guidance:
-- Calendar “disabled” dates should reflect true closures (code 5). Codes 0–4 indicate some logic relative to `time`/session and should generally remain selectable to let day-level fetching resolve specifics.
-  - Exception: if product decides to grey out 0 (no availability at requested time) without disabling, we can style differently while still allowing click.
+- If month view is not using `time` (current behavior):
+  - Disable days with codes 0 (no service), 4 (no times in shift), and 5 (closed) as not bookable.
+  - Other codes (1–3) remain enabled and indicate varying proximity when/if `time` is later used.
+- If month view includes a `time` filter in the future:
+  - Treat 2/3 as available; 1 as marginal; 0/4/5 as not bookable.
 
 ## Widget Behavior — Target Specification
 
