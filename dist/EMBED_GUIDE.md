@@ -57,6 +57,7 @@ handles smooth auto-resize, pushes analytics to GTM/GA4, and enables payment per
 </div>
 
 <script src="https://form-1-0-2.hosting.eveve.co.nz/embed-iframe.js"></script>
+
 ```
 
 Notes:
@@ -66,9 +67,11 @@ Notes:
 
 ---
 
+
 ## 2c · Alternative: Iframe Embed (direct, advanced)
 
-If you prefer to embed a direct iframe (legacy/dev-style), use this pattern:
+
+Use this when your site CSS conflicts with the widget. The iframe isolates styles.
 
 ```html
 <!-- Direct iframe embed -->

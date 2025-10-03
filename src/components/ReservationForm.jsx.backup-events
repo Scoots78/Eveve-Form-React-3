@@ -36,9 +36,6 @@ import {
 } from "../utils/monthAvailability";
 // Import calculateTotalAddonCost from chargeDetection.js
 import { calculateTotalAddonCost } from "../utils/chargeDetection";
-// Import EventCarousel component and date utilities
-import EventCarousel from "./EventCarousel";
-import { generateDateRange } from "../utils/dateConversion";
 
 /*  normalizeHold is now executed inside useHoldBooking.
     No additional normalization required in this component. */
@@ -382,26 +379,6 @@ export default function ReservationForm() {
       ),
     [monthClosedDates]
   );
-
-  /* ------------------------------------------------------------------
-     Derive flat array of all event dates for calendar highlighting
-  ------------------------------------------------------------------ */
-  const eventDates = useMemo(() => {
-    if (!appConfig?.eventsB || !Array.isArray(appConfig.eventsB)) {
-      return [];
-    }
-    
-    // Filter events with showCal: true and generate their date ranges
-    const allEventDates = [];
-    appConfig.eventsB.forEach(event => {
-      if (event.showCal === true && event.from && event.to) {
-        const dates = generateDateRange(event.from, event.to);
-        allEventDates.push(...dates);
-      }
-    });
-    
-    return allEventDates;
-  }, [appConfig?.eventsB]);
 
   /* ------------------------------------------------------------------
      Derive a flat, de-duplicated list of times that are actually
@@ -1340,17 +1317,6 @@ export default function ReservationForm() {
         {appConfig?.lng?.makeBookingAtTitlePrefix || "Make a Booking at "}{appConfig.estFull}
       </h1>
 
-      {/* Event Carousel Section */}
-      {appConfig?.eventsB && appConfig.eventsB.length > 0 && (
-        <EventCarousel
-          events={appConfig.eventsB}
-          onDateSelect={handleEventDateSelect}
-          languageStrings={appConfig?.lng || {}}
-          timeFormat={appConfig?.timeFormat}
-          dateFormat={appConfig?.dateFormat}
-        />
-      )}
-
       {showDateTimePicker && (
         <div className="flex flex-col items-center gap-6">
           {/* Calendar – full width */}
@@ -1366,7 +1332,6 @@ export default function ReservationForm() {
                 dateFormat={appConfig?.dateFormat} // Pass dateFormat from config
                 disablePast={true} // Pass disablePast from config
                 disabledDates={disabledDates}
-                  eventDates={eventDates}
                 onMonthChange={handleMonthChange}
               />
             </div>
@@ -1408,7 +1373,8 @@ export default function ReservationForm() {
       )}
 
       {availabilityData && !isLoading && !apiError && (
-        <div className="availability-section mt-6 space-y-5">
+        <div className="mt-6 space-y-5">
+          {/* This div will only render if date/covers are selected and pickers are hidden */}
           {!showDateTimePicker && (
             <div
               className={`p-4 bg-base-200 rounded-lg shadow cursor-pointer hover:bg-base-300`}
