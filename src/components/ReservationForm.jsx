@@ -450,6 +450,27 @@ export default function ReservationForm() {
     }
   };
 
+  const handleEventDateSelect = (date, event) => {
+    // Set the selected date from the event carousel
+    setSelectedDate(date);
+    // Clear previous results and errors when date changes from event selection
+    setAvailabilityData(null);
+    setApiError(null);
+    setShowDateTimePicker(true); // Show pickers when date changes
+    // Reset addons and areas
+    setSelectedAddons({ menus: [], options: {} });
+    setAvailableAreas([]);
+    setSelectedArea(null);
+    setSelectedAreaName(null);
+    
+    // Log event information for debugging
+    console.log('Event date selected:', {
+      date: format(date, 'yyyy-MM-dd'),
+      event: event.name,
+      eventUid: event.uid
+    });
+  };
+
   const handleGuestsChange = (newGuestValue) => {
     setGuests(newGuestValue);
     // Clear previous results and errors when guests change, useEffect will trigger new fetch or clear
