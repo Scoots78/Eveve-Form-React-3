@@ -1482,9 +1482,9 @@ export default function ReservationForm() {
                                   // First, filter out negative times (blocked times)
                                   if (timeValue < 0) return false;
                                   
-                                  // If this is an Event shift, filter by available times from non-Event shifts
+                                  // If this is an Event shift, show all times returned by the API
                                   if (shift.type === "Event") {
-                                    return availableTimesForEvents.includes(timeValue);
+                                    return true; // Display all times for Event shifts
                                   }
                                   
                                   // For non-Event shifts, just return true (keep all positive times)
