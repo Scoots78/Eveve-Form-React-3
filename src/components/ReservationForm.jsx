@@ -383,25 +383,20 @@ export default function ReservationForm() {
     [monthClosedDates]
   );
 
+  // State to track which event's actual availability is being shown on calendar
+  const [currentEventAvailability, setCurrentEventAvailability] = useState({
+    eventUid: null,
+    availableDates: []
+  });
+
   /* ------------------------------------------------------------------
-     Derive flat array of all event dates for calendar highlighting
+     Derive flat array of actual event availability dates for calendar highlighting
+     Only shows dates when a specific event's availability has been fetched
   ------------------------------------------------------------------ */
   const eventDates = useMemo(() => {
-    if (!appConfig?.eventsB || !Array.isArray(appConfig.eventsB)) {
-      return [];
-    }
-    
-    // Filter events with showCal: true and generate their date ranges
-    const allEventDates = [];
-    appConfig.eventsB.forEach(event => {
-      if (event.showCal === true && event.from && event.to) {
-        const dates = generateDateRange(event.from, event.to);
-        allEventDates.push(...dates);
-      }
-    });
-    
-    return allEventDates;
-  }, [appConfig?.eventsB]);
+    // Only show actual available dates when an event's availability has been fetched
+    return currentEventAvailability.availableDates || [];
+  }, [currentEventAvailability.availableDates]);
 
   /* ------------------------------------------------------------------
      Derive a flat, de-duplicated list of times that are actually
@@ -468,6 +463,19 @@ export default function ReservationForm() {
       date: format(date, 'yyyy-MM-dd'),
       event: event.name,
       eventUid: event.uid
+    });
+  };
+
+  // Callback to handle when event availability is fetched and should be shown on calendar
+  const handleEventAvailabilityUpdate = (eventUid, availableDates) => {
+    setCurrentEventAvailability({
+      eventUid: eventUid,
+      availableDates: availableDates || []
+    });
+    
+    console.log('Event availability updated on calendar:', {
+      eventUid,
+      datesCount: availableDates?.length || 0
     });
   };
 
@@ -1447,6 +1455,7 @@ export default function ReservationForm() {
             <EventCarousel
               events={appConfig.eventsB}
               onDateSelect={handleEventDateSelect}
+              onAvailabilityUpdate={handleEventAvailabilityUpdate}
               languageStrings={appConfig?.lng || {}}
               timeFormat={appConfig?.timeFormat}
               dateFormat={appConfig?.dateFormat}

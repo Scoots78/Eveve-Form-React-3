@@ -17,6 +17,7 @@ import {
  * @param {Object} props
  * @param {Array} props.events - Array of event objects from eventsB config
  * @param {Function} props.onDateSelect - Callback when a date is clicked (date, event)
+ * @param {Function} props.onAvailabilityUpdate - Callback when event availability is fetched (eventUid, availableDates)
  * @param {Object} props.languageStrings - Language strings from appConfig.lng
  * @param {string} props.timeFormat - Time format preference
  * @param {string} props.dateFormat - Date format preference
@@ -27,6 +28,7 @@ import {
 export default function EventCarousel({ 
   events = [], 
   onDateSelect, 
+  onAvailabilityUpdate,
   languageStrings = {},
   timeFormat = 'h:mm a',
   dateFormat = 'MMM d, yyyy',
@@ -114,6 +116,7 @@ export default function EventCarousel({
                   key={event.uid || index}
                   event={event}
                   onDateClick={handleDateClick}
+                  onAvailabilityUpdate={onAvailabilityUpdate}
                   languageStrings={languageStrings}
                   timeFormat={timeFormat}
                   dateFormat={dateFormat}
@@ -137,7 +140,7 @@ export default function EventCarousel({
  * EventCard Component
  * Displays a single event card with all its details
  */
-function EventCard({ event, onDateClick, languageStrings, timeFormat, dateFormat, est, baseApiUrl, currentMonth }) {
+function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, timeFormat, dateFormat, est, baseApiUrl, currentMonth }) {
   const [isDateListExpanded, setIsDateListExpanded] = useState(false);
   const [availabilityFetched, setAvailabilityFetched] = useState(false);
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
@@ -206,6 +209,12 @@ function EventCard({ event, onDateClick, languageStrings, timeFormat, dateFormat
       setAvailableDates(eventAvailableDates);
       setAvailabilityFetched(true);
       setIsDateListExpanded(true); // Auto-expand to show results
+      
+      // Update calendar with actual available dates for this event
+      // This will replace any previously shown event availability on the calendar
+      if (onAvailabilityUpdate) {
+        onAvailabilityUpdate(event.uid, eventAvailableDates);
+      }
       
       console.log(`Fetched ${eventAvailableDates.length} available dates for event ${event.uid}`);
       
