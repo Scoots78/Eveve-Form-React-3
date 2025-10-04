@@ -203,8 +203,8 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
       let targetYear, targetMonth, monthDate;
       
       if (event.from) {
-        // Parse event start date to determine target month
-        const eventStartDate = new Date(event.from);
+        // Convert epoch days to JavaScript Date (event.from is days since Jan 1, 1970)
+        const eventStartDate = new Date(event.from * 24 * 60 * 60 * 1000);
         const currentDate = new Date();
         
         // Check if event starts in current month
