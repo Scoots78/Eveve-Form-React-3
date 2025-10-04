@@ -1401,20 +1401,6 @@ export default function ReservationForm() {
         </div>
       )}
 
-      {/* Event Carousel Section - appears after guest selector */}
-      {selectedDate && guests && appConfig?.eventsB && appConfig.eventsB.length > 0 && (
-        <EventCarousel
-          events={appConfig.eventsB}
-          onDateSelect={handleEventDateSelect}
-          languageStrings={appConfig?.lng || {}}
-          timeFormat={appConfig?.timeFormat}
-          dateFormat={appConfig?.dateFormat}
-          est={est}
-          baseApiUrl={baseApiUrl}
-          currentMonth={selectedDate || new Date()}
-        />
-      )}
-
       {isLoading && ( // This is for availability loading
         <div className="flex justify-center items-center py-6">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -1454,6 +1440,20 @@ export default function ReservationForm() {
                 />
               )}
             </div>
+          )}
+
+          {/* Event Carousel Section - appears after date/guest summary in availability view */}
+          {selectedDate && guests && appConfig?.eventsB && appConfig.eventsB.length > 0 && (
+            <EventCarousel
+              events={appConfig.eventsB}
+              onDateSelect={handleEventDateSelect}
+              languageStrings={appConfig?.lng || {}}
+              timeFormat={appConfig?.timeFormat}
+              dateFormat={appConfig?.dateFormat}
+              est={est}
+              baseApiUrl={baseApiUrl}
+              currentMonth={selectedDate || new Date()}
+            />
           )}
 
           {availabilityData.shifts && availabilityData.shifts.length > 0 ? (
