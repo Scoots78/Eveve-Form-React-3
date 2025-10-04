@@ -608,7 +608,7 @@ export default function ReservationForm() {
     } finally {
       setIsLoading(false);
     }
-  }, [est, appConfig]);
+  }, [est, appConfig, selectedEvent]);
 
   const [debouncedFetchAvailability, clearDebouncedFetchAvailability] = useDebounce(fetchAvailability, 1500);
 
