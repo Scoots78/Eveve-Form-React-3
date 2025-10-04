@@ -143,6 +143,36 @@ function EventCard({ event, onDateClick, languageStrings, timeFormat, dateFormat
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
   const [availableDates, setAvailableDates] = useState([]);
   const [availabilityError, setAvailabilityError] = useState(null);
+  const [isDescriptionPopupOpen, setIsDescriptionPopupOpen] = useState(false);
+
+  // Function to strip HTML tags and get plain text length
+  const getPlainTextLength = (htmlString) => {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlString;
+    return tempDiv.textContent || tempDiv.innerText || '';
+  };
+
+  // Function to check if description needs truncation
+  const needsTruncation = (desc) => {
+    if (!desc) return false;
+    const plainText = getPlainTextLength(desc);
+    return plainText.length > 60;
+  };
+
+  // Function to truncate description
+  const getTruncatedDescription = (desc) => {
+    if (!desc) return '';
+    const plainText = getPlainTextLength(desc);
+    if (plainText.length <= 60) return desc;
+    
+    // Find a safe truncation point by looking for the last space within 60 chars
+    const truncateAt = plainText.substring(0, 60).lastIndexOf(' ');
+    const cutPoint = truncateAt > 0 ? truncateAt : 60;
+    
+    // For HTML descriptions, we need to be more careful to avoid breaking tags
+    // For now, we'll use the plain text approach and let the user see full HTML in popup
+    return plainText.substring(0, cutPoint) + '...';
+  };
 
   // Function to fetch actual availability for this event
   const handleShowAvailableDates = async () => {
@@ -210,10 +240,22 @@ function EventCard({ event, onDateClick, languageStrings, timeFormat, dateFormat
 
       {/* Event Description */}
       {event.desc && (
-        <div 
-          className="p-4 text-sm text-base-content prose prose-sm max-w-none border-b border-base-300"
-          dangerouslySetInnerHTML={{ __html: event.desc }}
-        />
+        <div className="p-4 text-sm text-base-content prose prose-sm max-w-none border-b border-base-300">
+          {needsTruncation(event.desc) ? (
+            <div>
+              <span>{getTruncatedDescription(event.desc)}</span>
+              <button
+                type="button"
+                onClick={() => setIsDescriptionPopupOpen(true)}
+                className="ml-1 text-primary hover:text-primary-focus underline cursor-pointer"
+              >
+                {languageStrings.readMore || 'read more'}
+              </button>
+            </div>
+          ) : (
+            <div dangerouslySetInnerHTML={{ __html: event.desc }} />
+          )}
+        </div>
       )}
 
       {/* Available Dates Section */}
@@ -302,6 +344,36 @@ function EventCard({ event, onDateClick, languageStrings, timeFormat, dateFormat
           </>
         )}
       </div>
+
+      {/* Description Popup Modal */}
+      {isDescriptionPopupOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setIsDescriptionPopupOpen(false)}>
+          <div className="bg-base-100 rounded-lg shadow-lg max-w-md w-full mx-4 max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="flex justify-between items-center p-4 border-b border-base-300">
+              <h5 className="text-lg font-bold text-primary">{event.name}</h5>
+              <button
+                type="button"
+                onClick={() => setIsDescriptionPopupOpen(false)}
+                className="text-base-content/60 hover:text-base-content focus:outline-none"
+                aria-label="Close description popup"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            {/* Modal Content */}
+            <div className="p-4 overflow-y-auto max-h-[60vh]">
+              <div 
+                className="text-sm text-base-content prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: event.desc }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
