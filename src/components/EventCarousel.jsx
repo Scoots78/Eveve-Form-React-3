@@ -199,12 +199,41 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
     setAvailabilityError(null);
     
     try {
-      // Get the first day of the current month
-      const year = currentMonth.getFullYear();
-      const month = currentMonth.getMonth() + 1; // 1-based month
-      const monthDate = `${year}-${String(month).padStart(2, '0')}-01`;
+      // Determine which month to check based on event start date
+      let targetYear, targetMonth, monthDate;
       
-      // Fetch month availability for this event
+      if (event.from) {
+        // Parse event start date to determine target month
+        const eventStartDate = new Date(event.from);
+        const currentDate = new Date();
+        
+        // Check if event starts in current month
+        const isCurrentMonth = (
+          eventStartDate.getFullYear() === currentDate.getFullYear() &&
+          eventStartDate.getMonth() === currentDate.getMonth()
+        );
+        
+        if (isCurrentMonth) {
+          // Event is in current month - use current month for availability check
+          targetYear = currentDate.getFullYear();
+          targetMonth = currentDate.getMonth() + 1; // 1-based month
+          console.log(`🗓️ Event ${event.name} is in current month (${targetYear}-${String(targetMonth).padStart(2, '0')})`);
+        } else {
+          // Event is in future month - use event's start month for availability check
+          targetYear = eventStartDate.getFullYear();
+          targetMonth = eventStartDate.getMonth() + 1; // 1-based month
+          console.log(`🗓️ Event ${event.name} is in future month (${targetYear}-${String(targetMonth).padStart(2, '0')}), checking that month instead`);
+        }
+      } else {
+        // Fallback to current month if no event start date
+        targetYear = currentMonth.getFullYear();
+        targetMonth = currentMonth.getMonth() + 1;
+        console.log(`⚠️ Event ${event.name} has no start date, using current month (${targetYear}-${String(targetMonth).padStart(2, '0')})`);
+      }
+      
+      monthDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`;
+      
+      // Fetch month availability for this event using the appropriate month
       const monthAvailResponse = await fetchEventMonthAvailability(
         est, 
         event, 
@@ -212,12 +241,12 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
         monthDate
       );
       
-      // Parse available dates from response
+      // Parse available dates from response using the target month
       const eventAvailableDates = parseEventAvailableDates(
         monthAvailResponse, 
         event.uid, 
-        year, 
-        month
+        targetYear, 
+        targetMonth
       );
       
       setAvailableDates(eventAvailableDates);
@@ -334,7 +363,7 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
 
             {availableDates.length === 0 && !availabilityError && (
               <div className="mb-2 p-2 text-xs text-base-content/60 bg-base-200 rounded">
-                {languageStrings.noAvailableDates || 'No available dates found for this event in the current month.'}
+                {languageStrings.noAvailableDates || 'No available dates found for this event.'}
               </div>
             )}
 
