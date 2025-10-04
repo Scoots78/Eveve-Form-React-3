@@ -1,4 +1,4 @@
-// src/components/EventCarousel.jsx
+﻿// src/components/EventCarousel.jsx
 import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { generateDateRange } from '../utils/dateConversion';
@@ -20,19 +20,13 @@ import {
  * @param {Object} props.languageStrings - Language strings from appConfig.lng
  * @param {string} props.timeFormat - Time format preference
  * @param {string} props.dateFormat - Date format preference
- * @param {string} props.est - Restaurant UID for API calls
- * @param {string} props.baseApiUrl - Base API URL for month-avail calls
- * @param {Date} props.currentMonth - Current month being viewed for availability
  */
 export default function EventCarousel({ 
   events = [], 
   onDateSelect, 
   languageStrings = {},
   timeFormat = 'h:mm a',
-  dateFormat = 'MMM d, yyyy',
-  est,
-  baseApiUrl,
-  currentMonth = new Date()
+  dateFormat = 'MMM d, yyyy'
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -117,15 +111,12 @@ export default function EventCarousel({
                   languageStrings={languageStrings}
                   timeFormat={timeFormat}
                   dateFormat={dateFormat}
-                  est={est}
-                  baseApiUrl={baseApiUrl}
-                  currentMonth={currentMonth}
                 />
               ))}
             </div>
           </div>
           <p className="text-xs text-base-content/60 mt-2 italic text-center">
-            {languageStrings.eventCarouselHint || 'Click "Show Available Dates" to see actual availability, then click on a date to book this event'}
+            {languageStrings.eventCarouselHint || 'Click on a date to book this event'}
           </p>
         </div>
       )}
@@ -218,89 +209,48 @@ function EventCard({ event, onDateClick, languageStrings, timeFormat, dateFormat
 
       {/* Available Dates Section */}
       <div className="p-4">
-        {!availabilityFetched ? (
-          /* Show Available Dates Button */
-          <button
-            type="button"
-            className="w-full flex justify-center items-center gap-2 p-3 bg-primary text-primary-content rounded-md hover:bg-primary-focus transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={handleShowAvailableDates}
-            disabled={isLoadingAvailability || !est || !baseApiUrl}
+        <button
+          type="button"
+          className="w-full flex justify-between items-center mb-2 text-sm font-semibold text-base-content hover:text-primary transition-colors"
+          onClick={() => setIsDateListExpanded(!isDateListExpanded)}
+        >
+          <span>
+            {languageStrings.availableDates || 'Available Dates'} ({event.dateCount})
+          </span>
+          <svg 
+            className={`w-4 h-4 transform transition-transform ${isDateListExpanded ? 'rotate-180' : 'rotate-0'}`}
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
           >
-            {isLoadingAvailability ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary-content"></div>
-                <span>{languageStrings.loadingAvailability || 'Loading availability...'}</span>
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span>{languageStrings.showAvailableDates || 'Show Available Dates'}</span>
-              </>
-            )}
-          </button>
-        ) : (
-          /* Show Fetched Available Dates */
-          <>
-            <button
-              type="button"
-              className="w-full flex justify-between items-center mb-2 text-sm font-semibold text-base-content hover:text-primary transition-colors"
-              onClick={() => setIsDateListExpanded(!isDateListExpanded)}
-            >
-              <span>
-                {languageStrings.availableDates || 'Available Dates'} ({availableDates.length})
-              </span>
-              <svg 
-                className={`w-4 h-4 transform transition-transform ${isDateListExpanded ? 'rotate-180' : 'rotate-0'}`}
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {/* Date Chips */}
+        <div className={`flex flex-wrap gap-2 ${isDateListExpanded ? '' : 'max-h-20 overflow-hidden'}`}>
+          {event.dates.map((date, idx) => {
+            const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => !isPast && onDateClick(date, event)}
+                disabled={isPast}
+                className={`
+                  px-3 py-1.5 text-xs font-medium rounded-md transition-all
+                  ${isPast 
+                    ? 'bg-base-300 text-base-content/40 cursor-not-allowed' 
+                    : 'bg-primary text-primary-content hover:bg-primary-focus hover:scale-105 cursor-pointer shadow-sm hover:shadow-md'
+                  }
+                `}
+                title={isPast ? languageStrings.pastDate || 'Date has passed' : `${languageStrings.clickToBook || 'Click to book'}: ${format(date, dateFormat)}`}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {availabilityError && (
-              <div className="mb-2 p-2 text-xs text-error bg-error/10 border border-error rounded">
-                {availabilityError}
-              </div>
-            )}
-
-            {availableDates.length === 0 && !availabilityError && (
-              <div className="mb-2 p-2 text-xs text-base-content/60 bg-base-200 rounded">
-                {languageStrings.noAvailableDates || 'No available dates found for this event in the current month.'}
-              </div>
-            )}
-
-            {/* Available Date Chips */}
-            {availableDates.length > 0 && (
-              <div className={`flex flex-wrap gap-2 ${isDateListExpanded ? '' : 'max-h-20 overflow-hidden'}`}>
-                {availableDates.map((date, idx) => {
-                  const isPast = date < new Date(new Date().setHours(0, 0, 0, 0));
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => !isPast && onDateClick(date, event)}
-                      disabled={isPast}
-                      className={`
-                        px-3 py-1.5 text-xs font-medium rounded-md transition-all
-                        ${isPast 
-                          ? 'bg-base-300 text-base-content/40 cursor-not-allowed' 
-                          : 'bg-success text-success-content hover:bg-success-focus hover:scale-105 cursor-pointer shadow-sm hover:shadow-md'
-                        }
-                      `}
-                      title={isPast ? languageStrings.pastDate || 'Date has passed' : `${languageStrings.clickToBook || 'Click to book'}: ${format(date, dateFormat)}`}
-                    >
-                      {format(date, 'MMM d')}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        )}
+                {format(date, 'MMM d')}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

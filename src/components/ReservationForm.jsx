@@ -1369,6 +1369,9 @@ export default function ReservationForm() {
           languageStrings={appConfig?.lng || {}}
           timeFormat={appConfig?.timeFormat}
           dateFormat={appConfig?.dateFormat}
+          est={est}
+          baseApiUrl={baseApiUrl}
+          currentMonth={selectedDate || new Date()}
         />
       )}
 
