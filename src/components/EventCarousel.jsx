@@ -184,6 +184,15 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
   const [viewedYear, setViewedYear] = useState(null);
   const [availabilityError, setAvailabilityError] = useState(null);
 
+  // Check if debug mode is enabled via URL parameter
+  const isDebugMode = useMemo(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('debug') === 'true';
+    }
+    return false;
+  }, []);
+
   // Check if event spans multiple months
   const eventSpansMultipleMonths = useMemo(() => {
     if (!event.from || !event.to) return false;
@@ -414,8 +423,8 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
             <div dangerouslySetInnerHTML={{ __html: event.desc }} />
           )}
           
-          {/* Date Conversion Confirmation Section */}
-          {(event.from || event.to) && (
+          {/* Date Conversion Confirmation Section (Debug Mode Only) */}
+          {isDebugMode && (event.from || event.to) && (
             <div className="mt-3 p-2 bg-base-200 rounded text-xs text-base-content/70 border-l-2 border-primary/30">
               <strong className="text-primary">📅 Date Conversion Confirmation:</strong>
               <div className="mt-1 space-y-1">
