@@ -389,6 +389,12 @@ export default function ReservationForm() {
     availableDates: []
   });
 
+  // State to track selected event for special handling
+  const [selectedEvent, setSelectedEvent] = useState(null);
+
+  // State to control EventCarousel expanded state
+  const [isEventCarouselExpanded, setIsEventCarouselExpanded] = useState(true);
+
   /* ------------------------------------------------------------------
      Derive flat array of actual event availability dates for calendar highlighting
      Only shows dates when a specific event's availability has been fetched
@@ -458,6 +464,12 @@ export default function ReservationForm() {
     setSelectedArea(null);
     setSelectedAreaName(null);
     
+    // Track the selected event for special handling 
+    setSelectedEvent(event);
+    
+    // Close the EventCarousel after event date selection
+    setIsEventCarouselExpanded(false);
+    
     // Log event information for debugging
     console.log('Event date selected:', {
       date: format(date, 'yyyy-MM-dd'),
@@ -521,16 +533,31 @@ export default function ReservationForm() {
         setShowDateTimePicker(false); // Hide pickers if shifts are available
 
         let defaultIdentifier = null;
-        const dinnerShiftIndex = data.shifts.findIndex(shift => shift.type === "Dinner");
-
-        if (dinnerShiftIndex !== -1) {
-          const dinnerShift = data.shifts[dinnerShiftIndex];
-          defaultIdentifier = dinnerShift.uid || dinnerShiftIndex;
-        } else {
-          // If no "Dinner" shift, expand the first shift (index 0)
-          // Prefer its UID if available, otherwise use its index (0)
-          const firstShift = data.shifts[0];
-          defaultIdentifier = firstShift.uid || 0;
+        
+        // Priority 1: If an event was selected, prioritize the event's shift
+        if (selectedEvent && selectedEvent.uid) {
+          const eventShiftIndex = data.shifts.findIndex(shift => 
+            shift.type === "Event" && shift.uid === selectedEvent.uid
+          );
+          if (eventShiftIndex !== -1) {
+            const eventShift = data.shifts[eventShiftIndex];
+            defaultIdentifier = eventShift.uid || eventShiftIndex;
+            console.log(`🎯 Event shift prioritized for ${selectedEvent.name} (${selectedEvent.uid})`);
+          }
+        }
+        
+        // Priority 2: If no event shift found, use Dinner as default
+        if (defaultIdentifier === null) {
+          const dinnerShiftIndex = data.shifts.findIndex(shift => shift.type === "Dinner");
+          if (dinnerShiftIndex !== -1) {
+            const dinnerShift = data.shifts[dinnerShiftIndex];
+            defaultIdentifier = dinnerShift.uid || dinnerShiftIndex;
+          } else {
+            // If no "Dinner" shift, expand the first shift (index 0)
+            // Prefer its UID if available, otherwise use its index (0)
+            const firstShift = data.shifts[0];
+            defaultIdentifier = firstShift.uid || 0;
+          }
         }
         setExpandedShiftIdentifier(defaultIdentifier);
         if (defaultIdentifier === null && data.shifts.length > 0) {
@@ -1413,7 +1440,10 @@ export default function ReservationForm() {
         <div className="flex justify-center items-center py-6">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
           <p className="ml-3 text-primary">
-            {appConfig?.lng?.loading || 'Loading availability...'}
+            {selectedEvent ? 
+              `Loading availability for ${selectedEvent.name} for ${selectedDate ? format(selectedDate, appConfig?.dateFormat || 'MMM d, yyyy') : 'selected date'}...` 
+              : (appConfig?.lng?.loading || 'Loading availability...')
+            }
           </p>
         </div>
       )}
@@ -1456,6 +1486,8 @@ export default function ReservationForm() {
               events={appConfig.eventsB}
               onDateSelect={handleEventDateSelect}
               onAvailabilityUpdate={handleEventAvailabilityUpdate}
+              isExpanded={isEventCarouselExpanded}
+              onExpandedChange={setIsEventCarouselExpanded}
               languageStrings={appConfig?.lng || {}}
               timeFormat={appConfig?.timeFormat}
               dateFormat={appConfig?.dateFormat}

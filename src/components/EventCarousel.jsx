@@ -18,6 +18,8 @@ import {
  * @param {Array} props.events - Array of event objects from eventsB config
  * @param {Function} props.onDateSelect - Callback when a date is clicked (date, event)
  * @param {Function} props.onAvailabilityUpdate - Callback when event availability is fetched (eventUid, availableDates)
+ * @param {boolean} props.isExpanded - Controls whether carousel is expanded (external control)
+ * @param {Function} props.onExpandedChange - Callback when expansion state should change
  * @param {Object} props.languageStrings - Language strings from appConfig.lng
  * @param {string} props.timeFormat - Time format preference
  * @param {string} props.dateFormat - Date format preference
@@ -29,6 +31,8 @@ export default function EventCarousel({
   events = [], 
   onDateSelect, 
   onAvailabilityUpdate,
+  isExpanded = true,
+  onExpandedChange,
   languageStrings = {},
   timeFormat = 'h:mm a',
   dateFormat = 'MMM d, yyyy',
@@ -36,7 +40,17 @@ export default function EventCarousel({
   baseApiUrl,
   currentMonth = new Date()
 }) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  // Use external isExpanded control if onExpandedChange is provided, otherwise use internal state
+  const [internalExpanded, setInternalExpanded] = useState(true);
+  const effectiveExpanded = onExpandedChange ? isExpanded : internalExpanded;
+  
+  const handleToggleExpanded = () => {
+    if (onExpandedChange) {
+      onExpandedChange(!isExpanded);
+    } else {
+      setInternalExpanded(!internalExpanded);
+    }
+  };
 
   // Filter events to only show those with showCal: true
   const visibleEvents = useMemo(() => {
@@ -71,7 +85,7 @@ export default function EventCarousel({
       <button
         type="button"
         className="w-full p-4 flex justify-between items-center bg-primary/10 hover:bg-primary/20 focus:outline-none transition-colors"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={handleToggleExpanded}
       >
         <div className="flex items-center gap-2">
           <svg 
@@ -94,7 +108,7 @@ export default function EventCarousel({
             {processedEvents.length}
           </span>
         </div>
-        <span className={`transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : 'rotate-0'}`}>
+        <span className={`transform transition-transform duration-200 ${effectiveExpanded ? 'rotate-180' : 'rotate-0'}`}>
           <svg 
             className="w-5 h-5 text-primary" 
             fill="none" 
@@ -107,7 +121,7 @@ export default function EventCarousel({
       </button>
 
       {/* Carousel Content */}
-      {isExpanded && (
+      {effectiveExpanded && (
         <div className="p-4 bg-base-100">
           <div className="overflow-x-auto pb-2">
             <div className="flex gap-4 min-w-max">
