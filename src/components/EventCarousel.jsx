@@ -197,8 +197,8 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
   const eventSpansMultipleMonths = useMemo(() => {
     if (!event.from || !event.to) return false;
     
-    const startDate = new Date(1900, 0, event.from);
-    const endDate = new Date(1900, 0, event.to);
+    const startDate = excelSerialToDate(event.from);
+    const endDate = excelSerialToDate(event.to);
     
     return (
       startDate.getFullYear() !== endDate.getFullYear() ||
@@ -289,12 +289,14 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
   const handleShowAvailableDates = async () => {
     if (!est || !baseApiUrl || availabilityFetched) return;
     
-    // Determine which month to check based on event start date
-    let targetYear, targetMonth;
+    setAvailabilityFetched(true);
+    
+    // Determine which month to start checking based on event start date
+    let startYear, startMonth;
     
     if (event.from) {
-      // Convert Excel epoch days to JavaScript Date
-      const eventStartDate = new Date(1900, 0, event.from);
+      // Convert Excel serial number to JavaScript Date using our conversion function
+      const eventStartDate = excelSerialToDate(event.from);
       const currentDate = new Date();
       
       // Check if event starts in current month
@@ -304,25 +306,121 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
       );
       
       if (isCurrentMonth) {
-        // Event is in current month - use current month for availability check
-        targetYear = currentDate.getFullYear();
-        targetMonth = currentDate.getMonth() + 1; // 1-based month
-        console.log(`🗓️ Event ${event.name} is in current month (${targetYear}-${String(targetMonth).padStart(2, '0')})`);
+        // Event is in current month - start checking from current month
+        startYear = currentDate.getFullYear();
+        startMonth = currentDate.getMonth() + 1; // 1-based month
+        console.log(`🗓️ Event ${event.name} is in current month, starting search from (${startYear}-${String(startMonth).padStart(2, '0')})`);
       } else {
-        // Event is in future month - use event's start month for availability check
-        targetYear = eventStartDate.getFullYear();
-        targetMonth = eventStartDate.getMonth() + 1; // 1-based month
-        console.log(`🗓️ Event ${event.name} is in future month (${targetYear}-${String(targetMonth).padStart(2, '0')}), checking that month instead`);
+        // Event is in future month - start checking from event's start month
+        startYear = eventStartDate.getFullYear();
+        startMonth = eventStartDate.getMonth() + 1; // 1-based month
+        console.log(`🗓️ Event ${event.name} is in future month, starting search from (${startYear}-${String(startMonth).padStart(2, '0')})`);
       }
     } else {
       // Fallback to current month if no event start date
-      targetYear = currentMonth.getFullYear();
-      targetMonth = currentMonth.getMonth() + 1;
-      console.log(`⚠️ Event ${event.name} has no start date, using current month (${targetYear}-${String(targetMonth).padStart(2, '0')})`);
+      startYear = currentMonth.getFullYear();
+      startMonth = currentMonth.getMonth() + 1;
+      console.log(`⚠️ Event ${event.name} has no start date, starting search from current month (${startYear}-${String(startMonth).padStart(2, '0')})`);
     }
     
-    setAvailabilityFetched(true);
-    await fetchAvailabilityForMonth(targetYear, targetMonth);
+    // Smart month progression: keep checking months until we find availability or reach event end
+    await findAvailabilityInMonthRange(startYear, startMonth);
+  };
+  
+  // Function to search for availability across multiple months if needed
+  const findAvailabilityInMonthRange = async (startYear, startMonth) => {
+    const eventEndDate = event.to ? excelSerialToDate(event.to) : null;
+    const maxEndYear = eventEndDate ? eventEndDate.getFullYear() : startYear;
+    const maxEndMonth = eventEndDate ? eventEndDate.getMonth() + 1 : startMonth; // 1-based month
+    
+    let currentSearchYear = startYear;
+    let currentSearchMonth = startMonth;
+    let foundAvailability = false;
+    let attemptCount = 0;
+    const maxAttempts = 12; // Safety limit to prevent infinite loops
+    
+    while (!foundAvailability && attemptCount < maxAttempts) {
+      attemptCount++;
+      
+      // Check if we've gone beyond the event end date
+      if (eventEndDate) {
+        const searchDate = new Date(currentSearchYear, currentSearchMonth - 1, 1);
+        const endDate = new Date(maxEndYear, maxEndMonth - 1, 1);
+        
+        if (searchDate > endDate) {
+          console.log(`🗓️ Reached event end date (${maxEndYear}-${String(maxEndMonth).padStart(2, '0')}), stopping search`);
+          break;
+        }
+      }
+      
+      console.log(`🔍 Checking availability for ${event.name} in ${currentSearchYear}-${String(currentSearchMonth).padStart(2, '0')} (attempt ${attemptCount})`);
+      
+      // Fetch availability for current month
+      setIsLoadingAvailability(true);
+      setAvailabilityError(null);
+      
+      try {
+        const monthDate = `${currentSearchYear}-${String(currentSearchMonth).padStart(2, '0')}-01`;
+        
+        const monthAvailResponse = await fetchEventMonthAvailability(
+          est, 
+          event, 
+          baseApiUrl, 
+          monthDate
+        );
+        
+        const eventAvailableDates = parseEventAvailableDates(
+          monthAvailResponse, 
+          event.uid, 
+          currentSearchYear, 
+          currentSearchMonth
+        );
+        
+        if (eventAvailableDates.length > 0) {
+          // Found availability!
+          foundAvailability = true;
+          setAvailableDates(eventAvailableDates);
+          setViewedYear(currentSearchYear);
+          setViewedMonth(currentSearchMonth);
+          setIsDateListExpanded(true);
+          
+          if (onAvailabilityUpdate) {
+            onAvailabilityUpdate(event.uid, eventAvailableDates);
+          }
+          
+          console.log(`✅ Found ${eventAvailableDates.length} available dates for event ${event.uid} in ${currentSearchYear}-${String(currentSearchMonth).padStart(2, '0')}`);
+        } else {
+          console.log(`❌ No availability found in ${currentSearchYear}-${String(currentSearchMonth).padStart(2, '0')}, checking next month`);
+          
+          // Move to next month
+          currentSearchMonth++;
+          if (currentSearchMonth > 12) {
+            currentSearchMonth = 1;
+            currentSearchYear++;
+          }
+        }
+        
+      } catch (error) {
+        console.error(`Error fetching availability for ${currentSearchYear}-${String(currentSearchMonth).padStart(2, '0')}:`, error);
+        setAvailabilityError(error.message);
+        break;
+      }
+    }
+    
+    // If we didn't find any availability after searching
+    if (!foundAvailability) {
+      setAvailableDates([]);
+      setViewedYear(startYear);
+      setViewedMonth(startMonth);
+      
+      if (onAvailabilityUpdate) {
+        onAvailabilityUpdate(event.uid, []);
+      }
+      
+      console.log(`⚠️ No availability found for event ${event.uid} after checking ${attemptCount} month(s)`);
+    }
+    
+    setIsLoadingAvailability(false);
   };
 
   // Month navigation functions
