@@ -1361,20 +1361,6 @@ export default function ReservationForm() {
         {appConfig?.lng?.makeBookingAtTitlePrefix || "Make a Booking at "}{appConfig.estFull}
       </h1>
 
-      {/* Event Carousel Section */}
-      {appConfig?.eventsB && appConfig.eventsB.length > 0 && (
-        <EventCarousel
-          events={appConfig.eventsB}
-          onDateSelect={handleEventDateSelect}
-          languageStrings={appConfig?.lng || {}}
-          timeFormat={appConfig?.timeFormat}
-          dateFormat={appConfig?.dateFormat}
-          est={est}
-          baseApiUrl={baseApiUrl}
-          currentMonth={selectedDate || new Date()}
-        />
-      )}
-
       {showDateTimePicker && (
         <div className="flex flex-col items-center gap-6">
           {/* Calendar – full width */}
@@ -1413,6 +1399,20 @@ export default function ReservationForm() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Event Carousel Section - appears after guest selector */}
+      {selectedDate && guests && appConfig?.eventsB && appConfig.eventsB.length > 0 && (
+        <EventCarousel
+          events={appConfig.eventsB}
+          onDateSelect={handleEventDateSelect}
+          languageStrings={appConfig?.lng || {}}
+          timeFormat={appConfig?.timeFormat}
+          dateFormat={appConfig?.dateFormat}
+          est={est}
+          baseApiUrl={baseApiUrl}
+          currentMonth={selectedDate || new Date()}
+        />
       )}
 
       {isLoading && ( // This is for availability loading
