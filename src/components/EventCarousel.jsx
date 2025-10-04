@@ -1,7 +1,7 @@
 // src/components/EventCarousel.jsx
 import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { generateDateRange } from '../utils/dateConversion';
+import { generateDateRange, excelSerialToDate } from '../utils/dateConversion';
 import { formatDecimalTime } from '../utils/time';
 import { 
   fetchEventMonthAvailability, 
@@ -412,6 +412,25 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
             </div>
           ) : (
             <div dangerouslySetInnerHTML={{ __html: event.desc }} />
+          )}
+          
+          {/* Date Conversion Confirmation Section */}
+          {(event.from || event.to) && (
+            <div className="mt-3 p-2 bg-base-200 rounded text-xs text-base-content/70 border-l-2 border-primary/30">
+              <strong className="text-primary">📅 Date Conversion Confirmation:</strong>
+              <div className="mt-1 space-y-1">
+                {event.from && (
+                  <div>
+                    <strong>Start:</strong> {event.from} → {excelSerialToDate(event.from).toLocaleDateString('en-GB')} ({excelSerialToDate(event.from).toDateString()})
+                  </div>
+                )}
+                {event.to && (
+                  <div>
+                    <strong>End:</strong> {event.to} → {excelSerialToDate(event.to).toLocaleDateString('en-GB')} ({excelSerialToDate(event.to).toDateString()})
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
       )}
