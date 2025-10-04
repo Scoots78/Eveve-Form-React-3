@@ -71,39 +71,6 @@ export default function EventCarousel({
     }
   };
 
-  // Update active index based on scroll position
-  React.useEffect(() => {
-    const handleScroll = () => {
-      if (!carouselRef.current) return;
-      
-      const container = carouselRef.current.parentElement;
-      const containerRect = container.getBoundingClientRect();
-      const containerCenter = containerRect.left + containerRect.width / 2;
-      
-      let closestIndex = 0;
-      let minDistance = Infinity;
-      
-      Array.from(carouselRef.current.children).forEach((child, index) => {
-        const childRect = child.getBoundingClientRect();
-        const childCenter = childRect.left + childRect.width / 2;
-        const distance = Math.abs(childCenter - containerCenter);
-        
-        if (distance < minDistance) {
-          minDistance = distance;
-          closestIndex = index;
-        }
-      });
-      
-      setActiveEventIndex(closestIndex);
-    };
-
-    const scrollContainer = carouselRef.current?.parentElement;
-    if (scrollContainer) {
-      scrollContainer.addEventListener('scroll', handleScroll);
-      return () => scrollContainer.removeEventListener('scroll', handleScroll);
-    }
-  }, [processedEvents.length]);
-
   // Filter events to only show those with showCal: true
   const visibleEvents = useMemo(() => {
     return events.filter(event => event.showCal === true);
@@ -139,6 +106,39 @@ export default function EventCarousel({
 
     return sortedEvents;
   }, [visibleEvents]);
+
+  // Update active index based on scroll position (after processedEvents is defined)
+  React.useEffect(() => {
+    const handleScroll = () => {
+      if (!carouselRef.current) return;
+      
+      const container = carouselRef.current.parentElement;
+      const containerRect = container.getBoundingClientRect();
+      const containerCenter = containerRect.left + containerRect.width / 2;
+      
+      let closestIndex = 0;
+      let minDistance = Infinity;
+      
+      Array.from(carouselRef.current.children).forEach((child, index) => {
+        const childRect = child.getBoundingClientRect();
+        const childCenter = childRect.left + childRect.width / 2;
+        const distance = Math.abs(childCenter - containerCenter);
+        
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestIndex = index;
+        }
+      });
+      
+      setActiveEventIndex(closestIndex);
+    };
+
+    const scrollContainer = carouselRef.current?.parentElement;
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', handleScroll);
+      return () => scrollContainer.removeEventListener('scroll', handleScroll);
+    }
+  }, [processedEvents.length]);
 
   if (processedEvents.length === 0) {
     return null; // Don't render anything if no events to show
