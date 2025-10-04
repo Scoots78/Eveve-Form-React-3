@@ -702,6 +702,13 @@ export default function ReservationForm() {
     console.log("Selected Time Object:", timeObject);
     console.log("Original index of shift in availability data:", shiftIndexInAvailabilityData);
 
+    // Auto-collapse EventCarousel when user clicks on time buttons
+    // This indicates they're committed to booking regular availability vs events
+    if (isEventCarouselExpanded) {
+      setIsEventCarouselExpanded(false);
+      console.log('🎪 Auto-collapsed EventCarousel: User clicked time button');
+    }
+
     // --------------------------------------------------------------
     // Capture event ID for event bookings
     // --------------------------------------------------------------
@@ -1538,6 +1545,14 @@ export default function ReservationForm() {
                       onClick={() => {
                         const newIdentifier = isExpanded ? null : currentShiftIdentifier;
                         setExpandedShiftIdentifier(newIdentifier);
+                        
+                        // Auto-collapse EventCarousel when user clicks on Available Shifts accordion
+                        // This indicates they're moving away from event browsing to regular availability
+                        if (isEventCarouselExpanded) {
+                          setIsEventCarouselExpanded(false);
+                          console.log('🎪 Auto-collapsed EventCarousel: User clicked Available Shifts accordion');
+                        }
+                        
                         // If collapsing a shift that had a time selected, clear selectedShiftTime and addons
                         if (isExpanded && isSelectedShift) {
                           setSelectedShiftTime(null);
