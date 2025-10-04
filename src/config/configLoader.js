@@ -78,7 +78,7 @@ export async function loadAppConfig(estId) {
     }
 
     // Helper function to extract variables. Only run if configScriptContent was found.
-    // Handles strings, arrays, objects, numbers, booleans.
+    // Handles strings, arrays, objects, numbers, booleans with improved error handling.
     const extractVar = (varName, scriptContent) => {
       const regex = new RegExp(`(?:const|var|let)\\s+${varName}\\s*=\\s*([^;]+)(?:;|$)`, "m");
       const match = scriptContent.match(regex);
@@ -88,16 +88,55 @@ export async function loadAppConfig(estId) {
         if (value.endsWith(',')) {
           value = value.substring(0, value.length -1);
         }
+
+        // Handle simple string values first (most common case)
+        if ((value.startsWith("'") && value.endsWith("'")) || (value.startsWith('"') && value.endsWith('"'))) {
+          return value.slice(1, -1);
+        }
+
+        // Handle numbers and booleans
+        if (/^-?\d+(\.\d+)?$/.test(value)) {
+          return parseFloat(value);
+        }
+        if (value === 'true') return true;
+        if (value === 'false') return false;
+        if (value === 'null') return null;
+        if (value === 'undefined') return undefined;
+
         try {
+          // For complex objects/arrays, use more careful parsing
           if ((value.startsWith('{') && value.endsWith('}')) || (value.startsWith('[') && value.endsWith(']'))) {
-            // Special handling for complex objects like 'lng' was here, but 'lng' is now local.
-            // For other objects/arrays, we proceed with Function constructor.
+            // Try JSON.parse first for safer parsing
+            try {
+              return JSON.parse(value);
+            } catch (jsonError) {
+              // If JSON.parse fails, try Function constructor as fallback
+              return new Function(`return ${value}`)();
+            }
           }
+          
+          // For other complex values, use Function constructor
           return new Function(`return ${value}`)();
         } catch (e) {
-          console.warn(`Could not parse value for ${varName}: ${value}. Error: ${e.message}. Falling back to string.`);
-          if (value.startsWith("'") && value.endsWith("'")) return value.slice(1, -1);
-          if (value.startsWith('"') && value.endsWith('"')) return value.slice(1, -1);
+          console.warn(`Could not parse value for ${varName}: ${value.substring(0, 100)}${value.length > 100 ? '...' : ''}. Error: ${e.message}. Falling back to string.`);
+          
+          // Better fallback handling for malformed strings
+          if (value.startsWith("'")) {
+            // Find the last single quote, handle cases where string might be malformed
+            const lastQuote = value.lastIndexOf("'");
+            if (lastQuote > 0) {
+              return value.substring(1, lastQuote);
+            }
+          }
+          if (value.startsWith('"')) {
+            // Find the last double quote, handle cases where string might be malformed
+            const lastQuote = value.lastIndexOf('"');
+            if (lastQuote > 0) {
+              return value.substring(1, lastQuote);
+            }
+          }
+          
+          // If all else fails, return the raw value as string
           return value;
         }
       }
