@@ -536,13 +536,37 @@ export default function ReservationForm() {
         
         // Priority 1: If an event was selected, prioritize the event's shift
         if (selectedEvent && selectedEvent.uid) {
-          const eventShiftIndex = data.shifts.findIndex(shift => 
-            shift.type === "Event" && shift.uid === selectedEvent.uid
-          );
+          const eventShiftIndex = data.shifts.findIndex(shift => {
+            // Method 1: Event shift type with matching UID
+            if (shift.type === "Event" && shift.uid === selectedEvent.uid) {
+              return true;
+            }
+            
+            // Method 2: Shift has an event field matching selected event UID
+            if (shift.event === selectedEvent.uid) {
+              return true;
+            }
+            
+            // Method 3: Check if any time in this shift has the event ID
+            if (shift.times && Array.isArray(shift.times)) {
+              return shift.times.some(timeObj => {
+                if (typeof timeObj === 'object' && timeObj.event === selectedEvent.uid) {
+                  return true;
+                }
+                return false;
+              });
+            }
+            
+            return false;
+          });
+          
           if (eventShiftIndex !== -1) {
             const eventShift = data.shifts[eventShiftIndex];
             defaultIdentifier = eventShift.uid || eventShiftIndex;
-            console.log(`🎯 Event shift prioritized for ${selectedEvent.name} (${selectedEvent.uid})`);
+            console.log(`🎯 Event shift prioritized for ${selectedEvent.name} (${selectedEvent.uid}) - Found at index ${eventShiftIndex}`);
+          } else {
+            console.log(`⚠️ No shift found for selected event ${selectedEvent.name} (${selectedEvent.uid})`);
+            console.log('Available shifts:', data.shifts.map(s => ({ type: s.type, uid: s.uid, event: s.event })));
           }
         }
         
