@@ -126,5 +126,8 @@
     "availableDates":  "Available Dates",
     "eventCarouselHint":  "Click on a date to book this event",
     "clickToBook":  "Click to book",
-    "pastDate":  "Date has passed"
+    "pastDate":  "Date has passed",
+    "readMore":  "Read more",
+    "showAvailableDates":  "Show available dates",
+    "noAvailableDates":  "No dates available"
 }
