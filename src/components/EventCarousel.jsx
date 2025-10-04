@@ -178,7 +178,24 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
   const [availabilityFetched, setAvailabilityFetched] = useState(false);
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
   const [availableDates, setAvailableDates] = useState([]);
+  
+  // Track the currently viewed month for this event (for multi-month navigation)
+  const [viewedMonth, setViewedMonth] = useState(null);
+  const [viewedYear, setViewedYear] = useState(null);
   const [availabilityError, setAvailabilityError] = useState(null);
+
+  // Check if event spans multiple months
+  const eventSpansMultipleMonths = useMemo(() => {
+    if (!event.from || !event.to) return false;
+    
+    const startDate = new Date(1900, 0, event.from);
+    const endDate = new Date(1900, 0, event.to);
+    
+    return (
+      startDate.getFullYear() !== endDate.getFullYear() ||
+      startDate.getMonth() !== endDate.getMonth()
+    );
+  }, [event.from, event.to]);
   const [isDescriptionPopupOpen, setIsDescriptionPopupOpen] = useState(false);
 
   // Function to strip HTML tags and get plain text length
@@ -210,51 +227,19 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
     return plainText.substring(0, cutPoint) + '...';
   };
 
-  // Function to fetch actual availability for this event
-  const handleShowAvailableDates = async () => {
-    if (!est || !baseApiUrl || availabilityFetched) return;
+  // Function to fetch availability for a specific month
+  const fetchAvailabilityForMonth = async (year, month) => {
+    if (!est || !baseApiUrl) return;
     
     setIsLoadingAvailability(true);
     setAvailabilityError(null);
     
     try {
-      // Determine which month to check based on event start date
-      let targetYear, targetMonth, monthDate;
+      const monthDate = `${year}-${String(month).padStart(2, '0')}-01`;
       
-      if (event.from) {
-        // Convert Excel epoch days to JavaScript Date
-        // Excel epoch: January 1, 1900 = day 1
-        // Note: Excel has a leap year bug for 1900, but for modern dates this works correctly
-        const eventStartDate = new Date(1900, 0, event.from);
-        const currentDate = new Date();
-        
-        // Check if event starts in current month
-        const isCurrentMonth = (
-          eventStartDate.getFullYear() === currentDate.getFullYear() &&
-          eventStartDate.getMonth() === currentDate.getMonth()
-        );
-        
-        if (isCurrentMonth) {
-          // Event is in current month - use current month for availability check
-          targetYear = currentDate.getFullYear();
-          targetMonth = currentDate.getMonth() + 1; // 1-based month
-          console.log(`🗓️ Event ${event.name} is in current month (${targetYear}-${String(targetMonth).padStart(2, '0')})`);
-        } else {
-          // Event is in future month - use event's start month for availability check
-          targetYear = eventStartDate.getFullYear();
-          targetMonth = eventStartDate.getMonth() + 1; // 1-based month
-          console.log(`🗓️ Event ${event.name} is in future month (${targetYear}-${String(targetMonth).padStart(2, '0')}), checking that month instead`);
-        }
-      } else {
-        // Fallback to current month if no event start date
-        targetYear = currentMonth.getFullYear();
-        targetMonth = currentMonth.getMonth() + 1;
-        console.log(`⚠️ Event ${event.name} has no start date, using current month (${targetYear}-${String(targetMonth).padStart(2, '0')})`);
-      }
+      console.log(`🗓️ Fetching availability for ${event.name} in ${year}-${String(month).padStart(2, '0')}`);
       
-      monthDate = `${targetYear}-${String(targetMonth).padStart(2, '0')}-01`;
-      
-      // Fetch month availability for this event using the appropriate month
+      // Fetch month availability for this event using the specified month
       const monthAvailResponse = await fetchEventMonthAvailability(
         est, 
         event, 
@@ -266,12 +251,13 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
       const eventAvailableDates = parseEventAvailableDates(
         monthAvailResponse, 
         event.uid, 
-        targetYear, 
-        targetMonth
+        year, 
+        month
       );
       
       setAvailableDates(eventAvailableDates);
-      setAvailabilityFetched(true);
+      setViewedYear(year);
+      setViewedMonth(month);
       setIsDateListExpanded(true); // Auto-expand to show results
       
       // Update calendar with actual available dates for this event
@@ -280,7 +266,7 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
         onAvailabilityUpdate(event.uid, eventAvailableDates);
       }
       
-      console.log(`Fetched ${eventAvailableDates.length} available dates for event ${event.uid}`);
+      console.log(`Fetched ${eventAvailableDates.length} available dates for event ${event.uid} in ${year}-${String(month).padStart(2, '0')}`);
       
     } catch (error) {
       console.error('Error fetching event availability:', error);
@@ -288,6 +274,105 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
     } finally {
       setIsLoadingAvailability(false);
     }
+  };
+
+  // Function to fetch actual availability for this event (initial load)
+  const handleShowAvailableDates = async () => {
+    if (!est || !baseApiUrl || availabilityFetched) return;
+    
+    // Determine which month to check based on event start date
+    let targetYear, targetMonth;
+    
+    if (event.from) {
+      // Convert Excel epoch days to JavaScript Date
+      const eventStartDate = new Date(1900, 0, event.from);
+      const currentDate = new Date();
+      
+      // Check if event starts in current month
+      const isCurrentMonth = (
+        eventStartDate.getFullYear() === currentDate.getFullYear() &&
+        eventStartDate.getMonth() === currentDate.getMonth()
+      );
+      
+      if (isCurrentMonth) {
+        // Event is in current month - use current month for availability check
+        targetYear = currentDate.getFullYear();
+        targetMonth = currentDate.getMonth() + 1; // 1-based month
+        console.log(`🗓️ Event ${event.name} is in current month (${targetYear}-${String(targetMonth).padStart(2, '0')})`);
+      } else {
+        // Event is in future month - use event's start month for availability check
+        targetYear = eventStartDate.getFullYear();
+        targetMonth = eventStartDate.getMonth() + 1; // 1-based month
+        console.log(`🗓️ Event ${event.name} is in future month (${targetYear}-${String(targetMonth).padStart(2, '0')}), checking that month instead`);
+      }
+    } else {
+      // Fallback to current month if no event start date
+      targetYear = currentMonth.getFullYear();
+      targetMonth = currentMonth.getMonth() + 1;
+      console.log(`⚠️ Event ${event.name} has no start date, using current month (${targetYear}-${String(targetMonth).padStart(2, '0')})`);
+    }
+    
+    setAvailabilityFetched(true);
+    await fetchAvailabilityForMonth(targetYear, targetMonth);
+  };
+
+  // Month navigation functions
+  const handlePreviousMonth = async () => {
+    if (!viewedYear || !viewedMonth) return;
+    
+    let newMonth = viewedMonth - 1;
+    let newYear = viewedYear;
+    
+    if (newMonth < 1) {
+      newMonth = 12;
+      newYear = newYear - 1;
+    }
+    
+    await fetchAvailabilityForMonth(newYear, newMonth);
+  };
+
+  const handleNextMonth = async () => {
+    if (!viewedYear || !viewedMonth) return;
+    
+    let newMonth = viewedMonth + 1;
+    let newYear = viewedYear;
+    
+    if (newMonth > 12) {
+      newMonth = 1;
+      newYear = newYear + 1;
+    }
+    
+    await fetchAvailabilityForMonth(newYear, newMonth);
+  };
+
+  // Helper functions for navigation visibility
+  const canShowPreviousMonth = () => {
+    if (!viewedYear || !viewedMonth || !event.from) return false;
+    
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1; // 1-based
+    
+    const eventStartDate = new Date(1900, 0, event.from);
+    const eventStartYear = eventStartDate.getFullYear();
+    const eventStartMonth = eventStartDate.getMonth() + 1; // 1-based
+    
+    // Don't show previous if we're in current month OR event start month
+    const isCurrentMonth = (viewedYear === currentYear && viewedMonth === currentMonth);
+    const isEventStartMonth = (viewedYear === eventStartYear && viewedMonth === eventStartMonth);
+    
+    return !isCurrentMonth && !isEventStartMonth;
+  };
+
+  const canShowNextMonth = () => {
+    if (!viewedYear || !viewedMonth || !event.to) return false;
+    
+    const eventEndDate = new Date(1900, 0, event.to);
+    const eventEndYear = eventEndDate.getFullYear();
+    const eventEndMonth = eventEndDate.getMonth() + 1; // 1-based
+    
+    // Don't show next if we're already at event end month
+    return !(viewedYear === eventEndYear && viewedMonth === eventEndMonth);
   };
 
   return (
@@ -358,6 +443,39 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
         ) : (
           /* Show Fetched Available Dates */
           <>
+            {/* Month Navigation Header (only show if event spans multiple months) */}
+            {eventSpansMultipleMonths && viewedYear && viewedMonth && (
+              <div className="flex items-center justify-between mb-2 bg-base-200 rounded p-2">
+                <button
+                  type="button"
+                  onClick={handlePreviousMonth}
+                  disabled={!canShowPreviousMonth() || isLoadingAvailability}
+                  className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-base-content hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Previous
+                </button>
+                
+                <span className="text-sm font-semibold text-base-content">
+                  {new Date(viewedYear, viewedMonth - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </span>
+                
+                <button
+                  type="button"
+                  onClick={handleNextMonth}
+                  disabled={!canShowNextMonth() || isLoadingAvailability}
+                  className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-base-content hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
             <button
               type="button"
               className="w-full flex justify-between items-center mb-2 text-sm font-semibold text-base-content hover:text-primary transition-colors"
@@ -365,6 +483,11 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
             >
               <span>
                 {languageStrings.availableDates || 'Available Dates'} ({availableDates.length})
+                {viewedYear && viewedMonth && !eventSpansMultipleMonths && (
+                  <span className="ml-2 text-xs font-normal text-base-content/60">
+                    ({new Date(viewedYear, viewedMonth - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })})
+                  </span>
+                )}
               </span>
               <svg 
                 className={`w-4 h-4 transform transition-transform ${isDateListExpanded ? 'rotate-180' : 'rotate-0'}`}
