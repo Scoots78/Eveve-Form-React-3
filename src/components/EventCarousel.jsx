@@ -44,6 +44,10 @@ export default function EventCarousel({
   const [internalExpanded, setInternalExpanded] = useState(true);
   const effectiveExpanded = onExpandedChange ? isExpanded : internalExpanded;
   
+  // Carousel navigation state
+  const [activeEventIndex, setActiveEventIndex] = useState(0);
+  const carouselRef = React.useRef(null);
+  
   const handleToggleExpanded = () => {
     if (onExpandedChange) {
       onExpandedChange(!isExpanded);
@@ -51,6 +55,54 @@ export default function EventCarousel({
       setInternalExpanded(!internalExpanded);
     }
   };
+
+  // Carousel navigation functions
+  const scrollToEvent = (index) => {
+    if (carouselRef.current) {
+      const eventCards = carouselRef.current.children;
+      if (eventCards[index]) {
+        eventCards[index].scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'center'
+        });
+        setActiveEventIndex(index);
+      }
+    }
+  };
+
+  // Update active index based on scroll position
+  React.useEffect(() => {
+    const handleScroll = () => {
+      if (!carouselRef.current) return;
+      
+      const container = carouselRef.current.parentElement;
+      const containerRect = container.getBoundingClientRect();
+      const containerCenter = containerRect.left + containerRect.width / 2;
+      
+      let closestIndex = 0;
+      let minDistance = Infinity;
+      
+      Array.from(carouselRef.current.children).forEach((child, index) => {
+        const childRect = child.getBoundingClientRect();
+        const childCenter = childRect.left + childRect.width / 2;
+        const distance = Math.abs(childCenter - containerCenter);
+        
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestIndex = index;
+        }
+      });
+      
+      setActiveEventIndex(closestIndex);
+    };
+
+    const scrollContainer = carouselRef.current?.parentElement;
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', handleScroll);
+      return () => scrollContainer.removeEventListener('scroll', handleScroll);
+    }
+  }, [processedEvents.length]);
 
   // Filter events to only show those with showCal: true
   const visibleEvents = useMemo(() => {
@@ -143,7 +195,7 @@ export default function EventCarousel({
       {effectiveExpanded && (
         <div className="p-4 bg-base-100">
           <div className="overflow-x-auto pb-2">
-            <div className="flex gap-4 min-w-max">
+            <div ref={carouselRef} className="flex gap-4 min-w-max">
               {processedEvents.map((event, index) => (
                 <EventCard
                   key={event.uid || index}
@@ -160,6 +212,32 @@ export default function EventCarousel({
               ))}
             </div>
           </div>
+          
+          {/* Carousel Indicators */}
+          {processedEvents.length > 1 && (
+            <div className="flex justify-center items-center gap-2 mt-4 mb-2">
+              {processedEvents.map((_, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => scrollToEvent(index)}
+                  className={`
+                    w-2 h-2 rounded-full transition-all duration-300 hover:scale-125 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-1
+                    ${index === activeEventIndex 
+                      ? 'bg-primary w-6 h-2' 
+                      : 'bg-base-300 hover:bg-primary/60'
+                    }
+                  `}
+                  aria-label={`Go to event ${index + 1}: ${processedEvents[index].name}`}
+                  title={`${processedEvents[index].name}`}
+                />
+              ))}
+              <span className="ml-2 text-xs text-base-content/60 font-medium">
+                {activeEventIndex + 1} / {processedEvents.length}
+              </span>
+            </div>
+          )}
+          
           <p className="text-xs text-base-content/60 mt-2 italic text-center">
             {languageStrings.eventCarouselHint || 'Click "Show Available Dates" to see actual availability, then click on a date to book this event'}
           </p>
