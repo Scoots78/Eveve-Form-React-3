@@ -236,7 +236,7 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
     return plainText.substring(0, cutPoint) + '...';
   };
 
-  // Function to fetch availability for a specific month
+  // Function to fetch availability for a specific month (used by navigation buttons)
   const fetchAvailabilityForMonth = async (year, month) => {
     if (!est || !baseApiUrl) return;
     
@@ -339,6 +339,8 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
     let attemptCount = 0;
     const maxAttempts = 12; // Safety limit to prevent infinite loops
     
+    console.log(`🔍 Smart search: Event ${event.name} runs from ${startYear}-${String(startMonth).padStart(2, '0')} to ${maxEndYear}-${String(maxEndMonth).padStart(2, '0')}`);
+    
     while (!foundAvailability && attemptCount < maxAttempts) {
       attemptCount++;
       
@@ -348,7 +350,7 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
         const endDate = new Date(maxEndYear, maxEndMonth - 1, 1);
         
         if (searchDate > endDate) {
-          console.log(`🗓️ Reached event end date (${maxEndYear}-${String(maxEndMonth).padStart(2, '0')}), stopping search`);
+          console.log(`🛑 Reached event end date (${maxEndYear}-${String(maxEndMonth).padStart(2, '0')}), stopping search`);
           break;
         }
       }
@@ -401,7 +403,7 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
         }
         
       } catch (error) {
-        console.error(`Error fetching availability for ${currentSearchYear}-${String(currentSearchMonth).padStart(2, '0')}:`, error);
+        console.error(`💥 Error fetching availability for ${currentSearchYear}-${String(currentSearchMonth).padStart(2, '0')}:`, error);
         setAvailabilityError(error.message);
         break;
       }
