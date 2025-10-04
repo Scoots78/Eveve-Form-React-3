@@ -57,9 +57,9 @@ export default function EventCarousel({
     return events.filter(event => event.showCal === true);
   }, [events]);
 
-  // Process events to include date arrays
+  // Process events to include date arrays and sort by first available date (newest first)
   const processedEvents = useMemo(() => {
-    return visibleEvents.map(event => {
+    const processedEventsWithDates = visibleEvents.map(event => {
       const dates = generateDateRange(event.from, event.to);
       return {
         ...event,
@@ -67,6 +67,25 @@ export default function EventCarousel({
         dateCount: dates.length
       };
     });
+
+    // Sort by first available date (event.from) with newest (closest to today) first
+    const sortedEvents = processedEventsWithDates.sort((a, b) => {
+      // Convert Excel epoch days to JavaScript dates for comparison
+      const dateA = new Date(1900, 0, a.from);
+      const dateB = new Date(1900, 0, b.from);
+      
+      // Sort ascending (earliest dates first) - upcoming events appear first
+      return dateA.getTime() - dateB.getTime();
+    });
+
+    // Debug logging to verify sorting
+    console.log('📅 Events sorted by date:', sortedEvents.map(event => ({
+      name: event.name,
+      from: event.from,
+      convertedDate: new Date(1900, 0, event.from).toDateString()
+    })));
+
+    return sortedEvents;
   }, [visibleEvents]);
 
   if (processedEvents.length === 0) {
