@@ -203,8 +203,10 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
       let targetYear, targetMonth, monthDate;
       
       if (event.from) {
-        // Convert epoch days to JavaScript Date (event.from is days since Jan 1, 1970)
-        const eventStartDate = new Date(event.from * 24 * 60 * 60 * 1000);
+        // Convert Excel epoch days to JavaScript Date
+        // Excel epoch: January 1, 1900 = day 1
+        // Note: Excel has a leap year bug for 1900, but for modern dates this works correctly
+        const eventStartDate = new Date(1900, 0, event.from);
         const currentDate = new Date();
         
         // Check if event starts in current month
