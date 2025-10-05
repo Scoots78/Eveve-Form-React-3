@@ -1531,22 +1531,7 @@ export default function ReservationForm() {
           {availabilityData.shifts && availabilityData.shifts.length > 0 ? (
             <div className="space-y-4">
               <h4 className="text-xl font-semibold text-base-content">{appConfig?.lng?.availableShiftsTitle || "Available Shifts:"}</h4>
-              {availabilityData.shifts
-                .filter(shift => {
-                  // Always show Event type shifts
-                  if (shift.type === "Event") {
-                    return true;
-                  }
-                  
-                  // For non-Event shifts, only show if they match an entry in allShifts array
-                  if (appConfig?.allShifts && Array.isArray(appConfig.allShifts)) {
-                    return appConfig.allShifts.some(allowedShift => allowedShift.type === shift.type);
-                  }
-                  
-                  // If allShifts is not available, show all shifts (fallback behavior)
-                  return true;
-                })
-                .map((shift, index) => {
+              {availabilityData.shifts.map((shift, index) => {
                 const currentShiftIdentifier = shift.uid || index;
                 const isExpanded = expandedShiftIdentifier === currentShiftIdentifier;
                 // Determine if the currently selected time belongs to this shift
