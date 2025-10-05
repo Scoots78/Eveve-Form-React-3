@@ -1539,8 +1539,11 @@ export default function ReservationForm() {
                   }
                   
                   // For non-Event shifts, only show if they match an entry in allShifts array
+                  // Match by both name AND type for more precise filtering
                   if (appConfig?.allShifts && Array.isArray(appConfig.allShifts)) {
-                    return appConfig.allShifts.some(allowedShift => allowedShift.type === shift.type);
+                    return appConfig.allShifts.some(allowedShift => 
+                      allowedShift.type === shift.type && allowedShift.name === shift.name
+                    );
                   }
                   
                   // If allShifts is not available, show all shifts (fallback behavior)
