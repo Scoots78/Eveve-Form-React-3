@@ -257,6 +257,15 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
   const [availableDates, setAvailableDates] = useState([]);
   
+  // Loading progress state
+  const [searchProgress, setSearchProgress] = useState({
+    isSearching: false,
+    currentMonth: null,
+    currentYear: null,
+    eventName: null,
+    attemptNumber: 0
+  });
+  
   // Track the currently viewed month for this event (for multi-month navigation)
   const [viewedMonth, setViewedMonth] = useState(null);
   const [viewedYear, setViewedYear] = useState(null);
@@ -417,10 +426,28 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
     let attemptCount = 0;
     const maxAttempts = 12; // Safety limit to prevent infinite loops
     
+    // Initialize search progress
+    setSearchProgress({
+      isSearching: true,
+      currentMonth: currentSearchMonth,
+      currentYear: currentSearchYear,
+      eventName: event.name,
+      attemptNumber: 0
+    });
+    
     console.log(`🔍 Smart search: Event ${event.name} runs from ${startYear}-${String(startMonth).padStart(2, '0')} to ${maxEndYear}-${String(maxEndMonth).padStart(2, '0')}`);
     
     while (!foundAvailability && attemptCount < maxAttempts) {
       attemptCount++;
+      
+      // Update search progress
+      setSearchProgress({
+        isSearching: true,
+        currentMonth: currentSearchMonth,
+        currentYear: currentSearchYear,
+        eventName: event.name,
+        attemptNumber: attemptCount
+      });
       
       // Check if we've gone beyond the event end date
       if (eventEndDate) {
@@ -499,6 +526,15 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
       
       console.log(`⚠️ No availability found for event ${event.uid} after checking ${attemptCount} month(s)`);
     }
+    
+    // Clear search progress
+    setSearchProgress({
+      isSearching: false,
+      currentMonth: null,
+      currentYear: null,
+      eventName: null,
+      attemptNumber: 0
+    });
     
     setIsLoadingAvailability(false);
   };
@@ -623,7 +659,25 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
       )}
 
       {/* Available Dates Section */}
-      <div className="p-4">
+      <div className="p-4 relative">
+        {/* Loading Overlay for Search Progress */}
+        {searchProgress.isSearching && (
+          <div className="absolute inset-0 bg-base-100/90 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mb-3"></div>
+            <div className="text-center">
+              <div className="text-sm font-semibold text-primary mb-1">
+                Looking for availability for {searchProgress.eventName}
+              </div>
+              <div className="text-xs text-base-content/60">
+                in {new Date(searchProgress.currentYear, searchProgress.currentMonth - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                {searchProgress.attemptNumber > 1 && (
+                  <span className="ml-1">(attempt {searchProgress.attemptNumber})</span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        
         {!availabilityFetched ? (
           /* Show Available Dates Button */
           <button
