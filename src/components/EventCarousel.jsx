@@ -435,6 +435,14 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
       attemptNumber: 0
     });
     
+    console.log(`🔄 Search progress state set:`, {
+      isSearching: true,
+      currentMonth: currentSearchMonth,
+      currentYear: currentSearchYear,
+      eventName: event.name,
+      attemptNumber: 0
+    });
+    
     console.log(`🔍 Smart search: Event ${event.name} runs from ${startYear}-${String(startMonth).padStart(2, '0')} to ${maxEndYear}-${String(maxEndMonth).padStart(2, '0')}`);
     
     while (!foundAvailability && attemptCount < maxAttempts) {
@@ -677,6 +685,9 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
             </div>
           </div>
         )}
+        
+        {/* Debug overlay visibility */}
+        {console.log('🖥️ Overlay render check:', { isSearching: searchProgress.isSearching, eventName: searchProgress.eventName })}
         
         {!availabilityFetched ? (
           /* Show Available Dates Button */
