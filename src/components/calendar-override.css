@@ -291,4 +291,63 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}/* Event date styling - Add to the end of calendar-override.css */
+
+/* ================================================================== */
+/*  Event Date Highlighting                                           */
+/* ================================================================== */
+
+/* Event date tiles - add subtle highlight and icon indicator */
+.react-calendar-custom .react-calendar__tile.event-date {
+  position: relative;
+}
+
+/* Add star/event indicator to event dates */
+.react-calendar-custom .react-calendar__tile.event-date abbr::before {
+  content: "★";
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 0.6rem;
+  color: hsl(var(--s, 45 100% 51%)); /* secondary/success color */
+  opacity: 0.9;
+}
+
+/* Event date background highlight */
+.react-calendar-custom .react-calendar__tile.event-date:enabled abbr {
+  background: linear-gradient(135deg, 
+    hsl(var(--p, 220 90% 56%) / 0.08) 0%, 
+    hsl(var(--s, 45 100% 51%) / 0.12) 100%
+  );
+  border: 1px solid hsl(var(--s, 45 100% 51%) / 0.3);
+}
+
+/* Event date hover effect - enhance the gradient */
+.react-calendar-custom .react-calendar__tile.event-date:enabled:hover abbr,
+.react-calendar-custom .react-calendar__tile.event-date:enabled:focus abbr {
+  background: linear-gradient(135deg, 
+    hsl(var(--p, 220 90% 56%) / 0.25) 0%, 
+    hsl(var(--s, 45 100% 51%) / 0.30) 100%
+  ) !important;
+  border: 1px solid hsl(var(--s, 45 100% 51%) / 0.6) !important;
+  box-shadow: 0 0 0 2px hsl(var(--s, 45 100% 51%) / 0.15) !important;
+}
+
+/* Event date when selected (active) */
+.react-calendar-custom .react-calendar__tile.event-date.react-calendar__tile--active abbr {
+  background: linear-gradient(135deg, 
+    hsl(var(--p, 220 90% 56%)) 0%, 
+    hsl(var(--s, 45 100% 51%) / 0.9) 100%
+  );
+  border: 1px solid hsl(var(--s, 45 100% 51%));
+}
+
+/* Event date when selected and hovered */
+.react-calendar-custom .react-calendar__tile.event-date.react-calendar__tile--active:enabled:hover abbr,
+.react-calendar-custom .react-calendar__tile.event-date.react-calendar__tile--active:enabled:focus abbr {
+  background: linear-gradient(135deg, 
+    hsl(var(--p, 220 90% 56%) / 0.95) 0%, 
+    hsl(var(--s, 45 100% 51%) / 0.85) 100%
+  );
+  box-shadow: 0 0 0 2px hsl(var(--s, 45 100% 51%) / 0.25) !important;
 }

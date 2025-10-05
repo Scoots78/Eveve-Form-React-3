@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 // Override specific default styles (removes fixed width & border)
@@ -12,6 +12,7 @@ const ReactCalendarPicker = ({
   date,
   onChange,
   disabledDates = [],
+  eventDates = [], // NEW: Array of event dates to highlight
   onMonthChange,
   dateFormat,
   disablePast = true
@@ -19,7 +20,7 @@ const ReactCalendarPicker = ({
   // Track when component renders for debugging
   useEffect(() => {
     console.log(
-      `%c[ReactCalendar] render – disabledDates length: ${disabledDates.length}`,
+      `%c[ReactCalendar] render – disabledDates length: ${disabledDates.length}, eventDates length: ${eventDates.length}`,
       "color:teal;font-weight:bold"
     );
   });
@@ -31,6 +32,14 @@ const ReactCalendarPicker = ({
       "color:purple;font-weight:bold"
     );
   }, [disabledDates]);
+
+  // Track when eventDates changes
+  useEffect(() => {
+    console.log(
+      `%c[ReactCalendar] eventDates changed – new length: ${eventDates.length}`,
+      "color:orange;font-weight:bold"
+    );
+  }, [eventDates]);
 
   // Function to determine if a date should be disabled
   const tileDisabled = ({ date, view }) => {
@@ -50,6 +59,23 @@ const ReactCalendarPicker = ({
         date.getDate() === disabledDate.getDate()
       );
     });
+  };
+
+  // NEW: Function to add custom class names to tiles (for event highlighting)
+  const tileClassName = ({ date, view }) => {
+    // Only apply to month view
+    if (view !== 'month') return null;
+
+    // Check if this date is an event date
+    const isEvent = eventDates.some(eventDate => {
+      return (
+        date.getFullYear() === eventDate.getFullYear() &&
+        date.getMonth() === eventDate.getMonth() &&
+        date.getDate() === eventDate.getDate()
+      );
+    });
+
+    return isEvent ? 'event-date' : null;
   };
 
   // Handle month navigation
@@ -91,9 +117,9 @@ const ReactCalendarPicker = ({
     <>
       {/*
         Tailwind classes added:
-        • mx-auto            → centres the wrapper horizontally on mobile
-        • flex justify-center→ keeps the calendar centred within the wrapper
-        • md:block           → reverts to normal block layout from the md breakpoint up
+        – mx-auto            → centres the wrapper horizontally on mobile
+        – flex justify-center→ keeps the calendar centred within the wrapper
+        – md:block           → reverts to normal block layout from the md breakpoint up
       */}
       <div className="react-calendar-wrapper mx-auto flex justify-center md:block">
       <Calendar
@@ -101,6 +127,7 @@ const ReactCalendarPicker = ({
         onChange={handleDateChange}
         onActiveStartDateChange={handleActiveStartDateChange}
         tileDisabled={tileDisabled}
+        tileClassName={tileClassName} // NEW: Add custom classes for event dates
         minDetail="month"
         maxDetail="month"
         /* Remove year-jump navigation (<< and >>) */

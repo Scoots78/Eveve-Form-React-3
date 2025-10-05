@@ -36,9 +36,6 @@ import {
 } from "../utils/monthAvailability";
 // Import calculateTotalAddonCost from chargeDetection.js
 import { calculateTotalAddonCost } from "../utils/chargeDetection";
-// Import EventCarousel component and date utilities
-import EventCarousel from "./EventCarousel";
-import { generateDateRange } from "../utils/dateConversion";
 
 /*  normalizeHold is now executed inside useHoldBooking.
     No additional normalization required in this component. */
@@ -383,27 +380,6 @@ export default function ReservationForm() {
     [monthClosedDates]
   );
 
-  // State to track which event's actual availability is being shown on calendar
-  const [currentEventAvailability, setCurrentEventAvailability] = useState({
-    eventUid: null,
-    availableDates: []
-  });
-
-  // State to track selected event for special handling
-  const [selectedEvent, setSelectedEvent] = useState(null);
-
-  // State to control EventCarousel expanded state
-  const [isEventCarouselExpanded, setIsEventCarouselExpanded] = useState(true);
-
-  /* ------------------------------------------------------------------
-     Derive flat array of actual event availability dates for calendar highlighting
-     Only shows dates when a specific event's availability has been fetched
-  ------------------------------------------------------------------ */
-  const eventDates = useMemo(() => {
-    // Only show actual available dates when an event's availability has been fetched
-    return currentEventAvailability.availableDates || [];
-  }, [currentEventAvailability.availableDates]);
-
   /* ------------------------------------------------------------------
      Derive a flat, de-duplicated list of times that are actually
      available for Event bookings.  We memoise this so the calculation
@@ -451,46 +427,6 @@ export default function ReservationForm() {
     }
   };
 
-  const handleEventDateSelect = (date, event) => {
-    // Set the selected date from the event carousel
-    setSelectedDate(date);
-    // Clear previous results and errors when date changes from event selection
-    setAvailabilityData(null);
-    setApiError(null);
-    setShowDateTimePicker(true); // Show pickers when date changes
-    // Reset addons and areas
-    setSelectedAddons({ menus: [], options: {} });
-    setAvailableAreas([]);
-    setSelectedArea(null);
-    setSelectedAreaName(null);
-    
-    // Track the selected event for special handling 
-    setSelectedEvent(event);
-    
-    // Close the EventCarousel after event date selection
-    setIsEventCarouselExpanded(false);
-    
-    // Log event information for debugging
-    console.log('Event date selected:', {
-      date: format(date, 'yyyy-MM-dd'),
-      event: event.name,
-      eventUid: event.uid
-    });
-  };
-
-  // Callback to handle when event availability is fetched and should be shown on calendar
-  const handleEventAvailabilityUpdate = (eventUid, availableDates) => {
-    setCurrentEventAvailability({
-      eventUid: eventUid,
-      availableDates: availableDates || []
-    });
-    
-    console.log('Event availability updated on calendar:', {
-      eventUid,
-      datesCount: availableDates?.length || 0
-    });
-  };
-
   const handleGuestsChange = (newGuestValue) => {
     setGuests(newGuestValue);
     // Clear previous results and errors when guests change, useEffect will trigger new fetch or clear
@@ -533,55 +469,16 @@ export default function ReservationForm() {
         setShowDateTimePicker(false); // Hide pickers if shifts are available
 
         let defaultIdentifier = null;
-        
-        // Priority 1: If an event was selected, prioritize the event's shift
-        if (selectedEvent && selectedEvent.uid) {
-          const eventShiftIndex = data.shifts.findIndex(shift => {
-            // Method 1: Event shift type with matching UID
-            if (shift.type === "Event" && shift.uid === selectedEvent.uid) {
-              return true;
-            }
-            
-            // Method 2: Shift has an event field matching selected event UID
-            if (shift.event === selectedEvent.uid) {
-              return true;
-            }
-            
-            // Method 3: Check if any time in this shift has the event ID
-            if (shift.times && Array.isArray(shift.times)) {
-              return shift.times.some(timeObj => {
-                if (typeof timeObj === 'object' && timeObj.event === selectedEvent.uid) {
-                  return true;
-                }
-                return false;
-              });
-            }
-            
-            return false;
-          });
-          
-          if (eventShiftIndex !== -1) {
-            const eventShift = data.shifts[eventShiftIndex];
-            defaultIdentifier = eventShift.uid || eventShiftIndex;
-            console.log(`🎯 Event shift prioritized for ${selectedEvent.name} (${selectedEvent.uid}) - Found at index ${eventShiftIndex}`);
-          } else {
-            console.log(`⚠️ No shift found for selected event ${selectedEvent.name} (${selectedEvent.uid})`);
-            console.log('Available shifts:', data.shifts.map(s => ({ type: s.type, uid: s.uid, event: s.event })));
-          }
-        }
-        
-        // Priority 2: If no event shift found, use Dinner as default
-        if (defaultIdentifier === null) {
-          const dinnerShiftIndex = data.shifts.findIndex(shift => shift.type === "Dinner");
-          if (dinnerShiftIndex !== -1) {
-            const dinnerShift = data.shifts[dinnerShiftIndex];
-            defaultIdentifier = dinnerShift.uid || dinnerShiftIndex;
-          } else {
-            // If no "Dinner" shift, expand the first shift (index 0)
-            // Prefer its UID if available, otherwise use its index (0)
-            const firstShift = data.shifts[0];
-            defaultIdentifier = firstShift.uid || 0;
-          }
+        const dinnerShiftIndex = data.shifts.findIndex(shift => shift.type === "Dinner");
+
+        if (dinnerShiftIndex !== -1) {
+          const dinnerShift = data.shifts[dinnerShiftIndex];
+          defaultIdentifier = dinnerShift.uid || dinnerShiftIndex;
+        } else {
+          // If no "Dinner" shift, expand the first shift (index 0)
+          // Prefer its UID if available, otherwise use its index (0)
+          const firstShift = data.shifts[0];
+          defaultIdentifier = firstShift.uid || 0;
         }
         setExpandedShiftIdentifier(defaultIdentifier);
         if (defaultIdentifier === null && data.shifts.length > 0) {
@@ -608,7 +505,7 @@ export default function ReservationForm() {
     } finally {
       setIsLoading(false);
     }
-  }, [est, appConfig, selectedEvent]);
+  }, [est, appConfig]);
 
   const [debouncedFetchAvailability, clearDebouncedFetchAvailability] = useDebounce(fetchAvailability, 1500);
 
@@ -701,13 +598,6 @@ export default function ReservationForm() {
     console.log("Selected Shift (from availability data):", shift);
     console.log("Selected Time Object:", timeObject);
     console.log("Original index of shift in availability data:", shiftIndexInAvailabilityData);
-
-    // Auto-collapse EventCarousel when user clicks on time buttons
-    // This indicates they're committed to booking regular availability vs events
-    if (isEventCarouselExpanded) {
-      setIsEventCarouselExpanded(false);
-      console.log('🎪 Auto-collapsed EventCarousel: User clicked time button');
-    }
 
     // --------------------------------------------------------------
     // Capture event ID for event bookings
@@ -1442,7 +1332,6 @@ export default function ReservationForm() {
                 dateFormat={appConfig?.dateFormat} // Pass dateFormat from config
                 disablePast={true} // Pass disablePast from config
                 disabledDates={disabledDates}
-                  eventDates={eventDates}
                 onMonthChange={handleMonthChange}
               />
             </div>
@@ -1471,10 +1360,7 @@ export default function ReservationForm() {
         <div className="flex justify-center items-center py-6">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
           <p className="ml-3 text-primary">
-            {selectedEvent ? 
-              `Loading availability for ${selectedEvent.name} for ${selectedDate ? format(selectedDate, appConfig?.dateFormat || 'MMM d, yyyy') : 'selected date'}...` 
-              : (appConfig?.lng?.loading || 'Loading availability...')
-            }
+            {appConfig?.lng?.loading || 'Loading availability...'}
           </p>
         </div>
       )}
@@ -1487,7 +1373,8 @@ export default function ReservationForm() {
       )}
 
       {availabilityData && !isLoading && !apiError && (
-        <div className="availability-section mt-6 space-y-5">
+        <div className="mt-6 space-y-5">
+          {/* This div will only render if date/covers are selected and pickers are hidden */}
           {!showDateTimePicker && (
             <div
               className={`p-4 bg-base-200 rounded-lg shadow cursor-pointer hover:bg-base-300`}
@@ -1511,23 +1398,6 @@ export default function ReservationForm() {
             </div>
           )}
 
-          {/* Event Carousel Section - appears after date/guest summary in availability view */}
-          {selectedDate && guests && appConfig?.eventsB && appConfig.eventsB.length > 0 && (
-            <EventCarousel
-              events={appConfig.eventsB}
-              onDateSelect={handleEventDateSelect}
-              onAvailabilityUpdate={handleEventAvailabilityUpdate}
-              isExpanded={isEventCarouselExpanded}
-              onExpandedChange={setIsEventCarouselExpanded}
-              languageStrings={appConfig?.lng || {}}
-              timeFormat={appConfig?.timeFormat}
-              dateFormat={appConfig?.dateFormat}
-              est={est}
-              baseApiUrl={baseApiUrl}
-              currentMonth={selectedDate || new Date()}
-            />
-          )}
-
           {availabilityData.shifts && availabilityData.shifts.length > 0 ? (
             <div className="space-y-4">
               <h4 className="text-xl font-semibold text-base-content">{appConfig?.lng?.availableShiftsTitle || "Available Shifts:"}</h4>
@@ -1545,14 +1415,6 @@ export default function ReservationForm() {
                       onClick={() => {
                         const newIdentifier = isExpanded ? null : currentShiftIdentifier;
                         setExpandedShiftIdentifier(newIdentifier);
-                        
-                        // Auto-collapse EventCarousel when user clicks on Available Shifts accordion
-                        // This indicates they're moving away from event browsing to regular availability
-                        if (isEventCarouselExpanded) {
-                          setIsEventCarouselExpanded(false);
-                          console.log('🎪 Auto-collapsed EventCarousel: User clicked Available Shifts accordion');
-                        }
-                        
                         // If collapsing a shift that had a time selected, clear selectedShiftTime and addons
                         if (isExpanded && isSelectedShift) {
                           setSelectedShiftTime(null);
