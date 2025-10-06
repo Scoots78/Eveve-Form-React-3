@@ -192,9 +192,11 @@ const SelectedAddonsSummary = ({
               <li key={index}>{item}</li>
             ))}
           </ul>
-          <p className="mt-3 text-sm font-semibold text-primary">
-            {languageStrings?.totalAddonCostLabel || 'Total Addon Cost'}: {displaySymbol}{(totalAddonCost / 100).toFixed(2)}
-          </p>
+          {totalAddonCost > 0 && (
+            <p className="mt-3 text-sm font-semibold text-primary">
+              {languageStrings?.totalAddonCostLabel || 'Total Addon Cost'}: {displaySymbol}{(totalAddonCost / 100).toFixed(2)}
+            </p>
+          )}
         </>
       ) : (
         <p className="text-sm text-base-content/60 italic">
