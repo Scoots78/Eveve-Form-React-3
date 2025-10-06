@@ -1244,11 +1244,11 @@ export default function BookingDetailsModal({
           </div>
         )}
         {/* Display price only when a charge will actually be taken (deposit or other),
-            NOT when card == 1 (no-show protection) */}
+            NOT when card == 1 (no-show protection), AND only when price > 0 */}
         {effectiveHoldData && (
           /* show when: (no card required) OR (deposit-type card 2) OR (future card >2) */
           (!isCardRequired || effectiveHoldData.card === 2 || effectiveHoldData.card > 2)
-        ) && (
+        ) && getDepositAmountCents() > 0 && (
           <div className="mt-2 text-sm font-bold">
             <span>{appConfig?.lng?.bookingTotalPrice || 'Total Price'}:</span>{' '}
             ${(getDepositAmountCents() / 100).toFixed(2)}
