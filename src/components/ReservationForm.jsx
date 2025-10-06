@@ -1460,6 +1460,7 @@ export default function ReservationForm() {
                   maxGuests={appConfig?.partyMax || 10}
                   guestLabel={appConfig?.lng?.guest}
                   guestsLabel={appConfig?.lng?.guests || appConfig?.lng?.partySize}
+                  forLargerMessage={appConfig?.ForLarger}
                 />
               </div>
             </div>
