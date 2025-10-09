@@ -1461,6 +1461,7 @@ export default function ReservationForm() {
                   guestLabel={appConfig?.lng?.guest}
                   guestsLabel={appConfig?.lng?.guests || appConfig?.lng?.partySize}
                   forLargerMessage={appConfig?.ForLarger}
+                  onInputFocus={clearDebouncedFetchAvailability}
                 />
               </div>
             </div>

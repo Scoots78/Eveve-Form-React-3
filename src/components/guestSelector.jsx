@@ -7,7 +7,8 @@ export default function GuestSelector({
   maxGuests = 20,
   guestLabel = "Number of Guests", // Default label
   guestsLabel, // For placeholder, could be like "Select guests" or from config
-  forLargerMessage // Message to show for larger parties
+  forLargerMessage, // Message to show for larger parties
+  onInputFocus // Function to cancel pending debounced calls when input is focused
 }) {
   const currentGuests = typeof value === 'number' ? value : '';
   const effectiveMinGuests = Number(minGuests) || 1;
@@ -61,6 +62,9 @@ export default function GuestSelector({
 
   const placeholderText = guestsLabel || `Select ${guestLabel.toLowerCase()}`;
 
+  // Clean up the ForLarger message by removing \r\n and \n escape characters
+  const cleanForLargerMessage = forLargerMessage ? forLargerMessage.replace(/\\r\\n|\\n/g, '') : null;
+
   return (
     <div className="mb-4">
       <label htmlFor="guests-input" className="block font-medium mb-1">
@@ -83,6 +87,7 @@ export default function GuestSelector({
           name="guests"
           value={currentGuests}
           onChange={handleChange}
+          onFocus={onInputFocus}
           placeholder={placeholderText}
           className="w-20 text-center border border-base-300 rounded-md py-1 focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-50"
           // HTML min/max are for browser hints, JS logic enforces strict limits
@@ -100,10 +105,11 @@ export default function GuestSelector({
       </div>
       
       {/* Display ForLarger message when guest selector is visible and message is provided */}
-      {forLargerMessage && (
-        <div className="mt-3 text-sm text-base-content/70 text-center">
-          {forLargerMessage}
-        </div>
+      {cleanForLargerMessage && (
+        <div 
+          className="mt-3 text-sm text-base-content/70 text-center"
+          dangerouslySetInnerHTML={{ __html: cleanForLargerMessage }}
+        />
       )}
     </div>
   );
