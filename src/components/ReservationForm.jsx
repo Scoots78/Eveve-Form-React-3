@@ -393,7 +393,27 @@ export default function ReservationForm() {
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   // State to control EventCarousel expanded state
-  const [isEventCarouselExpanded, setIsEventCarouselExpanded] = useState(true);
+  // Initialize based on appConfig.showEventOnLoad with fallback to true (open by default)
+  const [isEventCarouselExpanded, setIsEventCarouselExpanded] = useState(() => {
+    // Check for showEventOnLoad configuration variable
+    if (typeof window !== 'undefined' && typeof window.showEventOnLoad !== 'undefined') {
+      // Use window.showEventOnLoad if available (direct script injection)
+      return window.showEventOnLoad === true || window.showEventOnLoad === 'true';
+    }
+    
+    // Default behavior: accordion open
+    return true;
+  });
+
+  // Update EventCarousel state when appConfig is loaded and showEventOnLoad is available
+  useEffect(() => {
+    if (appConfig && typeof appConfig.showEventOnLoad !== 'undefined') {
+      // Use the showEventOnLoad from remote config (parsed from web/form page)
+      const shouldShowExpanded = appConfig.showEventOnLoad === true || appConfig.showEventOnLoad === 'true';
+      setIsEventCarouselExpanded(shouldShowExpanded);
+      console.log(`EventCarousel initial state set from config: ${shouldShowExpanded} (appConfig.showEventOnLoad = ${appConfig.showEventOnLoad})`);
+    }
+  }, [appConfig]);
 
   /* ------------------------------------------------------------------
      Derive flat array of actual event availability dates for calendar highlighting

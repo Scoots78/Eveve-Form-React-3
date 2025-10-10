@@ -158,7 +158,7 @@ export async function loadAppConfig(estId) {
       "fullName", "invoiceRequired", "limited", "loading", "loyal", "noStandby",
       "portal", "monthFirst", "monthName", "shoulder", "sisterLoads", "sistersLoading",
       "sisterName", "sisterTimes", "telLink", "timesAvail", "onTheHour", "vacateMsg",
-      "viewPrivacy", "viewTerms"
+      "viewPrivacy", "viewTerms", "showEventOnLoad"
       // "lng" is removed from this list as it's now sourced locally.
     ];
 
