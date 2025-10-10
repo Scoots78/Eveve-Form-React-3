@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test showEventOnLoad Variable</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            background-color: #f9f9f9;
+        }
+        .test-section h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .code-block {
+            background-color: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+        }
+        .instruction {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 12px;
+            margin: 10px 0;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test: EventCarousel showEventOnLoad Variable</h1>
+    
+    <div class="instruction">
+        <strong>Instructions:</strong> This page allows you to test the new <code>window.showEventOnLoad</code> feature. 
+        Click the buttons below to set different values and see how they would affect the EventCarousel accordion.
+    </div>
+
+    <div class="test-section">
+        <h2>Test Scenario 1: Accordion Open (Default)</h2>
+        <p>When <code>window.showEventOnLoad = true</code> or is undefined, the EventCarousel should be expanded (open) when the form loads.</p>
+        
+        <div class="code-block">
+&lt;script&gt;window.showEventOnLoad = true;&lt;/script&gt;
+        </div>
+        
+        <button onclick="testScenario1()">Set showEventOnLoad = true</button>
+        
+        <div id="result1" style="margin-top: 10px;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Scenario 2: Accordion Closed</h2>
+        <p>When <code>window.showEventOnLoad = false</code>, the EventCarousel should be collapsed (closed) when the form loads.</p>
+        
+        <div class="code-block">
+&lt;script&gt;window.showEventOnLoad = false;&lt;/script&gt;
+        </div>
+        
+        <button onclick="testScenario2()">Set showEventOnLoad = false</button>
+        
+        <div id="result2" style="margin-top: 10px;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Scenario 3: String Values</h2>
+        <p>The implementation also supports string values for compatibility with various configuration systems.</p>
+        
+        <div class="code-block">
+&lt;script&gt;window.showEventOnLoad = "true";&lt;/script&gt;
+&lt;script&gt;window.showEventOnLoad = "false";&lt;/script&gt;
+        </div>
+        
+        <button onclick="testScenario3True()">Set showEventOnLoad = "true"</button>
+        <button onclick="testScenario3False()">Set showEventOnLoad = "false"</button>
+        
+        <div id="result3" style="margin-top: 10px;"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Scenario 4: Undefined (Default Behavior)</h2>
+        <p>When <code>window.showEventOnLoad</code> is undefined, the accordion should default to open.</p>
+        
+        <button onclick="testScenario4()">Clear showEventOnLoad (undefined)</button>
+        
+        <div id="result4" style="margin-top: 10px;"></div>
+    </div>
+
+    <div class="warning">
+        <strong>Note:</strong> This is a test page to verify the variable behavior. In the actual Eveve form, the script tag would be inserted by the customer into their web/form page, and the React widget would read this value to control the initial state of the EventCarousel accordion.
+    </div>
+
+    <div class="test-section">
+        <h2>Current Status</h2>
+        <p>Current value of <code>window.showEventOnLoad</code>: <span id="currentValue">undefined</span></p>
+        <p>Computed accordion state would be: <span id="computedState">true (open)</span></p>
+        
+        <button onclick="updateStatus()">Refresh Status</button>
+    </div>
+
+    <script>
+        // Function to simulate the logic from ReservationForm.jsx
+        function computeAccordionState() {
+            if (typeof window !== 'undefined' && typeof window.showEventOnLoad !== 'undefined') {
+                // Use window.showEventOnLoad if available (direct script injection)
+                return window.showEventOnLoad === true || window.showEventOnLoad === 'true';
+            }
+            
+            // Default behavior: accordion open
+            return true;
+        }
+
+        function updateStatus() {
+            const currentValue = document.getElementById('currentValue');
+            const computedState = document.getElementById('computedState');
+            
+            const value = typeof window.showEventOnLoad !== 'undefined' ? 
+                (typeof window.showEventOnLoad === 'string' ? `"${window.showEventOnLoad}"` : window.showEventOnLoad) : 
+                'undefined';
+            
+            currentValue.textContent = value;
+            
+            const state = computeAccordionState();
+            computedState.textContent = state ? 'true (open)' : 'false (closed)';
+        }
+
+        function testScenario1() {
+            window.showEventOnLoad = true;
+            document.getElementById('result1').innerHTML = 
+                '<strong>Result:</strong> window.showEventOnLoad = ' + window.showEventOnLoad + 
+                '<br><strong>Accordion State:</strong> ' + (computeAccordionState() ? 'OPEN' : 'CLOSED');
+            updateStatus();
+        }
+
+        function testScenario2() {
+            window.showEventOnLoad = false;
+            document.getElementById('result2').innerHTML = 
+                '<strong>Result:</strong> window.showEventOnLoad = ' + window.showEventOnLoad + 
+                '<br><strong>Accordion State:</strong> ' + (computeAccordionState() ? 'OPEN' : 'CLOSED');
+            updateStatus();
+        }
+
+        function testScenario3True() {
+            window.showEventOnLoad = "true";
+            document.getElementById('result3').innerHTML = 
+                '<strong>Result:</strong> window.showEventOnLoad = "' + window.showEventOnLoad + '"' + 
+                '<br><strong>Accordion State:</strong> ' + (computeAccordionState() ? 'OPEN' : 'CLOSED');
+            updateStatus();
+        }
+
+        function testScenario3False() {
+            window.showEventOnLoad = "false";
+            document.getElementById('result3').innerHTML = 
+                '<strong>Result:</strong> window.showEventOnLoad = "' + window.showEventOnLoad + '"' + 
+                '<br><strong>Accordion State:</strong> ' + (computeAccordionState() ? 'OPEN' : 'CLOSED');
+            updateStatus();
+        }
+
+        function testScenario4() {
+            delete window.showEventOnLoad;
+            document.getElementById('result4').innerHTML = 
+                '<strong>Result:</strong> window.showEventOnLoad is now undefined' + 
+                '<br><strong>Accordion State:</strong> ' + (computeAccordionState() ? 'OPEN' : 'CLOSED');
+            updateStatus();
+        }
+
+        // Initialize status on page load
+        updateStatus();
+    </script>
+</body>
+</html>

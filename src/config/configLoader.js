@@ -80,8 +80,15 @@ export async function loadAppConfig(estId) {
     // Helper function to extract variables. Only run if configScriptContent was found.
     // Handles strings, arrays, objects, numbers, booleans with improved error handling.
     const extractVar = (varName, scriptContent) => {
-      const regex = new RegExp(`(?:const|var|let)\\s+${varName}\\s*=\\s*([^;]+)(?:;|$)`, "m");
-      const match = scriptContent.match(regex);
+      // Try standard variable declarations first: const/var/let varName = value
+      let regex = new RegExp(`(?:const|var|let)\\s+${varName}\\s*=\\s*([^;]+)(?:;|$)`, "m");
+      let match = scriptContent.match(regex);
+      
+      // If not found, try window property assignments: window.varName = value
+      if (!match) {
+        regex = new RegExp(`window\\.${varName}\\s*=\\s*([^;]+)(?:;|$)`, "m");
+        match = scriptContent.match(regex);
+      }
 
       if (match && match[1]) {
         let value = match[1].trim();
@@ -158,7 +165,7 @@ export async function loadAppConfig(estId) {
       "fullName", "invoiceRequired", "limited", "loading", "loyal", "noStandby",
       "portal", "monthFirst", "monthName", "shoulder", "sisterLoads", "sistersLoading",
       "sisterName", "sisterTimes", "telLink", "timesAvail", "onTheHour", "vacateMsg",
-      "viewPrivacy", "viewTerms"
+      "viewPrivacy", "viewTerms", "showEventOnLoad"
       // "lng" is removed from this list as it's now sourced locally.
     ];
 
@@ -169,6 +176,21 @@ export async function loadAppConfig(estId) {
           if (varName === 'lng') continue; // Skip lng as it's handled locally
 
           let value = extractVar(varName, configScriptContent);
+          
+          // Special handling for showEventOnLoad - search all script blocks if not found in main config
+          if (value === null && varName === 'showEventOnLoad') {
+            // Search through ALL script blocks for showEventOnLoad
+            for (let script of scripts) {
+              const scriptText = script.textContent || script.innerText || "";
+              if (scriptText.includes('showEventOnLoad')) {
+                value = extractVar(varName, scriptText);
+                if (value !== null) {
+                  break;
+                }
+              }
+            }
+          }
+          
           if (value !== null) {
             extractedConfigs[varName] = value;
           } else {
