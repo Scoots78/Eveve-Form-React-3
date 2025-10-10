@@ -393,39 +393,24 @@ export default function ReservationForm() {
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   // State to control EventCarousel expanded state
-  // Initialize based on appConfig.showEventOnLoad with fallback to true (open by default)
+  // Initialize based on window.showEventOnLoad with fallback to true (open by default)
   const [isEventCarouselExpanded, setIsEventCarouselExpanded] = useState(() => {
     // Check for showEventOnLoad configuration variable
-    console.log('🎪 EventCarousel initialization - checking window.showEventOnLoad...');
-    console.log('🎪 window.showEventOnLoad:', window.showEventOnLoad);
-    console.log('🎪 typeof window.showEventOnLoad:', typeof window.showEventOnLoad);
-    
     if (typeof window !== 'undefined' && typeof window.showEventOnLoad !== 'undefined') {
       // Use window.showEventOnLoad if available (direct script injection)
-      const result = window.showEventOnLoad === true || window.showEventOnLoad === 'true';
-      console.log('🎪 Using window.showEventOnLoad, result:', result);
-      return result;
+      return window.showEventOnLoad === true || window.showEventOnLoad === 'true';
     }
     
     // Default behavior: accordion open
-    console.log('🎪 window.showEventOnLoad not found, defaulting to true (open)');
     return true;
   });
 
   // Update EventCarousel state when appConfig is loaded and showEventOnLoad is available
   useEffect(() => {
-    console.log('🎪 useEffect triggered for appConfig.showEventOnLoad');
-    console.log('🎪 appConfig:', appConfig);
-    console.log('🎪 appConfig.showEventOnLoad:', appConfig?.showEventOnLoad);
-    console.log('🎪 typeof appConfig.showEventOnLoad:', typeof appConfig?.showEventOnLoad);
-    
     if (appConfig && typeof appConfig.showEventOnLoad !== 'undefined') {
       // Use the showEventOnLoad from remote config (parsed from web/form page)
       const shouldShowExpanded = appConfig.showEventOnLoad === true || appConfig.showEventOnLoad === 'true';
       setIsEventCarouselExpanded(shouldShowExpanded);
-      console.log(`🎪 EventCarousel state updated from remote config: ${shouldShowExpanded} (appConfig.showEventOnLoad = ${appConfig.showEventOnLoad})`);
-    } else if (appConfig) {
-      console.log('🎪 appConfig loaded but no showEventOnLoad found - keeping current state');
     }
   }, [appConfig]);
 
