@@ -176,6 +176,24 @@ export async function loadAppConfig(estId) {
           if (varName === 'lng') continue; // Skip lng as it's handled locally
 
           let value = extractVar(varName, configScriptContent);
+          
+          // Special handling for showEventOnLoad - search all script blocks if not found in main config
+          if (value === null && varName === 'showEventOnLoad') {
+            console.log(`🎪 ${varName} not found in main config script, searching all script blocks...`);
+            
+            // Search through ALL script blocks for showEventOnLoad
+            for (let script of scripts) {
+              const scriptText = script.textContent || script.innerText || "";
+              if (scriptText.includes('showEventOnLoad')) {
+                value = extractVar(varName, scriptText);
+                if (value !== null) {
+                  console.log(`🎪 Found ${varName} in separate script block:`, value, `(type: ${typeof value})`);
+                  break;
+                }
+              }
+            }
+          }
+          
           if (value !== null) {
             extractedConfigs[varName] = value;
             // Special debug logging for showEventOnLoad
@@ -185,7 +203,7 @@ export async function loadAppConfig(estId) {
           } else {
             // Special debug logging for showEventOnLoad when not found
             if (varName === 'showEventOnLoad') {
-              console.log(`🎪 Variable ${varName} not found in remote config - will use window.showEventOnLoad or default to true`);
+              console.log(`🎪 Variable ${varName} not found in any script block - will use window.showEventOnLoad or default to true`);
             }
             //console.warn(`Variable ${varName} could not be extracted.`);
           }
