@@ -1553,48 +1553,11 @@ export default function ReservationForm() {
           {availabilityData.shifts && availabilityData.shifts.length > 0 ? (
             <div className="space-y-4">
               <h4 className="text-xl font-semibold text-base-content">{appConfig?.lng?.availableShiftsTitle || "Available Shifts:"}</h4>
-              {(() => {
-                // Filter shifts based on online booking availability
-                const filterShiftsForOnlineBooking = (shifts, allShifts) => {
-                  if (!shifts || !Array.isArray(shifts)) return [];
-                  
-                  console.log('🔍 Filtering shifts for online booking:', {
-                    totalShifts: shifts.length,
-                    allShifts: allShifts || 'not available'
-                  });
-                  
-                  const filtered = shifts.filter(shift => {
-                    // Rule 1: Always keep Event type shifts
-                    if (shift.type === "Event") {
-                      console.log(`✅ Keeping Event shift: ${shift.name} (type: ${shift.type})`);
-                      return true;
-                    }
-                    
-                    // Rule 2: For non-Event shifts, only keep if their name matches an allowed shift
-                    if (allShifts && Array.isArray(allShifts)) {
-                      const isAllowed = allShifts.some(allowedShift => allowedShift.name === shift.name);
-                      console.log(`${isAllowed ? '✅' : '❌'} ${shift.type} shift: ${shift.name} - ${isAllowed ? 'allowed' : 'filtered out'}`);
-                      return isAllowed;
-                    }
-                    
-                    // If no allShifts config available, default to showing all non-Event shifts
-                    console.log(`⚠️ No allShifts config available, showing all non-Event shifts. Keeping: ${shift.name}`);
-                    return true;
-                  });
-                  
-                  console.log(`🎯 Filtered ${shifts.length} shifts down to ${filtered.length} allowed shifts`);
-                  return filtered;
-                };
-                
-                const filteredShifts = filterShiftsForOnlineBooking(availabilityData.shifts, appConfig?.allShifts);
-                
-                return filteredShifts.map((shift, filteredIndex) => {
-                  // Find original index in availabilityData.shifts
-                  const originalIndex = availabilityData.shifts.findIndex(s => s === shift);
-                const currentShiftIdentifier = shift.uid || originalIndex;
+              {availabilityData.shifts.map((shift, index) => {
+                const currentShiftIdentifier = shift.uid || index;
                 const isExpanded = expandedShiftIdentifier === currentShiftIdentifier;
                 // Determine if the currently selected time belongs to this shift
-                const isSelectedShift = selectedShiftTime && (selectedShiftTime.uid ? selectedShiftTime.uid === shift.uid : selectedShiftTime.originalIndexInAvailabilityData === originalIndex);
+                const isSelectedShift = selectedShiftTime && (selectedShiftTime.uid ? selectedShiftTime.uid === shift.uid : selectedShiftTime.originalIndexInAvailabilityData === index);
 
                 return (
                   <div key={currentShiftIdentifier} className="border border-base-300 rounded-lg shadow-sm bg-base-100 overflow-hidden">
@@ -1690,7 +1653,7 @@ export default function ReservationForm() {
                                 .map((timeObj, timeIndex) => (
                                 <button
                                   key={timeIndex}
-                                  onClick={() => handleTimeSelection(shift, timeObj, originalIndex)} // Pass originalIndexInAvailabilityData
+                                  onClick={() => handleTimeSelection(shift, timeObj, index)} // Pass originalIndexInAvailabilityData
                                   data-selected={
                                     isSelectedShift &&
                                     selectedShiftTime.selectedTime ===
@@ -1830,8 +1793,7 @@ export default function ReservationForm() {
                     )}
                   </div>
                 );
-                });
-              })()}
+              })}
             </div>
           ) : (
              (!availabilityData.message && !apiError) &&
