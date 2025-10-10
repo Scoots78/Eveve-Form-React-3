@@ -1527,6 +1527,7 @@ export default function ReservationForm() {
               est={est}
               baseApiUrl={baseApiUrl}
               currentMonth={selectedDate || new Date()}
+              guestCount={guests}
             />
           )}
 

@@ -38,7 +38,8 @@ export default function EventCarousel({
   dateFormat = 'MMM d, yyyy',
   est,
   baseApiUrl,
-  currentMonth = new Date()
+  currentMonth = new Date(),
+  guestCount = 0
 }) {
   // Use external isExpanded control if onExpandedChange is provided, otherwise use internal state
   const [internalExpanded, setInternalExpanded] = useState(true);
@@ -208,6 +209,7 @@ export default function EventCarousel({
                   est={est}
                   baseApiUrl={baseApiUrl}
                   currentMonth={currentMonth}
+                  guestCount={guestCount}
                 />
               ))}
             </div>
@@ -251,7 +253,7 @@ export default function EventCarousel({
  * EventCard Component
  * Displays a single event card with all its details
  */
-function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, timeFormat, dateFormat, est, baseApiUrl, currentMonth }) {
+function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, timeFormat, dateFormat, est, baseApiUrl, currentMonth, guestCount }) {
   const [isDateListExpanded, setIsDateListExpanded] = useState(false);
   const [availabilityFetched, setAvailabilityFetched] = useState(false);
   const [isLoadingAvailability, setIsLoadingAvailability] = useState(false);
@@ -305,18 +307,18 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
   const needsTruncation = (desc) => {
     if (!desc) return false;
     const plainText = getPlainTextLength(desc);
-    return plainText.length > 60;
+    return plainText.length > 110;
   };
 
   // Function to truncate description
   const getTruncatedDescription = (desc) => {
     if (!desc) return '';
     const plainText = getPlainTextLength(desc);
-    if (plainText.length <= 60) return desc;
+    if (plainText.length <= 110) return desc;
     
-    // Find a safe truncation point by looking for the last space within 60 chars
-    const truncateAt = plainText.substring(0, 60).lastIndexOf(' ');
-    const cutPoint = truncateAt > 0 ? truncateAt : 60;
+    // Find a safe truncation point by looking for the last space within 110 chars
+    const truncateAt = plainText.substring(0, 110).lastIndexOf(' ');
+    const cutPoint = truncateAt > 0 ? truncateAt : 110;
     
     // For HTML descriptions, we need to be more careful to avoid breaking tags
     // For now, we'll use the plain text approach and let the user see full HTML in popup
@@ -332,15 +334,17 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
     
     try {
       const monthDate = `${year}-${String(month).padStart(2, '0')}-01`;
+      const numericGuests = parseInt(guestCount, 10) || 2; // Use actual guest count, fallback to 2
       
-      console.log(`🗓️ Fetching availability for ${event.name} in ${year}-${String(month).padStart(2, '0')}`);
+      console.log(`🗓️ Fetching availability for ${event.name} in ${year}-${String(month).padStart(2, '0')} with ${numericGuests} guests`);
       
-      // Fetch month availability for this event using the specified month
+      // Fetch month availability for this event using the specified month and guest count
       const monthAvailResponse = await fetchEventMonthAvailability(
         est, 
         event, 
         baseApiUrl, 
-        monthDate
+        monthDate,
+        numericGuests
       );
       
       // Parse available dates from response using the target month
@@ -375,6 +379,27 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
   // Function to fetch actual availability for this event (initial load)
   const handleShowAvailableDates = async () => {
     if (!est || !baseApiUrl || availabilityFetched) return;
+    
+    // Check guest count validation before making API call
+    const numericGuests = parseInt(guestCount, 10);
+    if (numericGuests > 0 && event.min && event.max) {
+      if (numericGuests < event.min || numericGuests > event.max) {
+        // Guest count doesn't qualify for this event - show validation message
+        const errorMessage = (languageStrings.eventGuestMismatch || 'You have selected {{guestCount}}, this event is for {{minGuests}} to {{maxGuests}}')
+          .replace('{{guestCount}}', `${numericGuests} guest${numericGuests > 1 ? 's' : ''}`)
+          .replace('{{minGuests}}', event.min.toString())
+          .replace('{{maxGuests}}', event.max.toString());
+        
+        setAvailabilityError(errorMessage);
+        setAvailabilityFetched(true);
+        setAvailableDates([]);
+        setViewedYear(null);
+        setViewedMonth(null);
+        
+        console.log(`❌ Guest count validation failed for event ${event.name}: ${numericGuests} guests not in range ${event.min}-${event.max}`);
+        return;
+      }
+    }
     
     setAvailabilityFetched(true);
     
@@ -476,12 +501,14 @@ function EventCard({ event, onDateClick, onAvailabilityUpdate, languageStrings, 
       
       try {
         const monthDate = `${currentSearchYear}-${String(currentSearchMonth).padStart(2, '0')}-01`;
+        const numericGuests = parseInt(guestCount, 10) || 2; // Use actual guest count, fallback to 2
         
         const monthAvailResponse = await fetchEventMonthAvailability(
           est, 
           event, 
           baseApiUrl, 
-          monthDate
+          monthDate,
+          numericGuests
         );
         
         const eventAvailableDates = parseEventAvailableDates(

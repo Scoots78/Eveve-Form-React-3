@@ -128,6 +128,8 @@
     "clickToBook":  "Click to book",
     "pastDate":  "Date has passed",
     "readMore":  "Read more",
-    "showAvailableDates":  "Show available dates",
-    "noAvailableDates":  "No dates available"
+    "showAvailableDates":  "Show Available Dates",
+    "noAvailableDates":  "No available dates found for this event.",
+    "eventGuestMismatch":  "You have selected {{guestCount}}, this event is for {{minGuests}} to {{maxGuests}}",
+    "loadingAvailability":  "Loading availability..."
 }
