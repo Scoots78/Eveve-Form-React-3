@@ -80,8 +80,15 @@ export async function loadAppConfig(estId) {
     // Helper function to extract variables. Only run if configScriptContent was found.
     // Handles strings, arrays, objects, numbers, booleans with improved error handling.
     const extractVar = (varName, scriptContent) => {
-      const regex = new RegExp(`(?:const|var|let)\\s+${varName}\\s*=\\s*([^;]+)(?:;|$)`, "m");
-      const match = scriptContent.match(regex);
+      // Try standard variable declarations first: const/var/let varName = value
+      let regex = new RegExp(`(?:const|var|let)\\s+${varName}\\s*=\\s*([^;]+)(?:;|$)`, "m");
+      let match = scriptContent.match(regex);
+      
+      // If not found, try window property assignments: window.varName = value
+      if (!match) {
+        regex = new RegExp(`window\\.${varName}\\s*=\\s*([^;]+)(?:;|$)`, "m");
+        match = scriptContent.match(regex);
+      }
 
       if (match && match[1]) {
         let value = match[1].trim();
