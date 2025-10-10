@@ -171,7 +171,15 @@ export async function loadAppConfig(estId) {
           let value = extractVar(varName, configScriptContent);
           if (value !== null) {
             extractedConfigs[varName] = value;
+            // Special debug logging for showEventOnLoad
+            if (varName === 'showEventOnLoad') {
+              console.log(`🎪 Successfully extracted ${varName}:`, value, `(type: ${typeof value})`);
+            }
           } else {
+            // Special debug logging for showEventOnLoad when not found
+            if (varName === 'showEventOnLoad') {
+              console.log(`🎪 Variable ${varName} not found in remote config - will use window.showEventOnLoad or default to true`);
+            }
             //console.warn(`Variable ${varName} could not be extracted.`);
           }
         }
