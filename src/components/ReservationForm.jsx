@@ -39,6 +39,7 @@ import { calculateTotalAddonCost } from "../utils/chargeDetection";
 // Import EventCarousel component and date utilities
 import EventCarousel from "./EventCarousel";
 import { generateDateRange } from "../utils/dateConversion";
+import { findEventUsageFromConfig } from "../utils/eventUsageFallback";
 
 /*  normalizeHold is now executed inside useHoldBooking.
     No additional normalization required in this component. */
@@ -692,7 +693,7 @@ export default function ReservationForm() {
     const processedAddons = (rawAddons || []).map((addon, index) => ({ ...addon, originalIndexInShift: index }));
     setCurrentShiftAddons(processedAddons);
 
-    const usagePolicy = (typeof timeObj === 'object' && timeObj?.usage !== undefined) ? timeObj.usage : newShift?.usage;
+    const usagePolicy = (typeof timeObj === 'object' && timeObj?.usage !== undefined) ? timeObj.usage : (newShift?.usage !== undefined ? newShift.usage : findEventUsageFromConfig(newShift, appConfig));
     setCurrentShiftUsagePolicy(usagePolicy === undefined ? null : Number(usagePolicy));
 
     // Update available areas for this time
@@ -758,7 +759,7 @@ export default function ReservationForm() {
       selectedTime: actualTime, // Add the specific time selected
       // If timeObject has its own addons/usage, prioritize them, else use shift's
       addons: timeObject?.addons || shift?.addons || [], // These are the raw addons for this time/shift
-      usage: timeObject?.usage !== undefined ? timeObject.usage : shift?.usage, // Usage policy for menus
+        usage: timeObject?.usage !== undefined ? timeObject.usage : (shift?.usage !== undefined ? shift.usage : findEventUsageFromConfig(shift, appConfig)), // Usage policy for menus
       originalIndexInAvailabilityData: shiftIndexInAvailabilityData // Store original index
       ,event: eventId // ← NEW: persist event id if present
     });
@@ -767,7 +768,7 @@ export default function ReservationForm() {
     // The README suggests addons and usage are typically on the shift object.
     // If a time slot can override this, timeObject might contain its own addons/usage.
     let rawAddons = timeObject?.addons || shift?.addons || [];
-    const usagePolicyForShift = timeObject?.usage !== undefined ? timeObject.usage : shift?.usage;
+    const usagePolicyForShift = timeObject?.usage !== undefined ? timeObject.usage : (shift?.usage !== undefined ? shift.usage : findEventUsageFromConfig(shift, appConfig));
 
     // Augment all addons with originalIndexInShift
     const processedAddons = rawAddons.map((addon, index) => {
