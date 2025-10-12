@@ -45,7 +45,8 @@ export const DAISY_THEMES = [
  * @returns {boolean} - True if theme is valid
  */
 export function isValidTheme(theme) {
-  return DAISY_THEMES.includes(theme);
+  // Accept any non-empty string to allow custom themes loaded via external CSS
+  return typeof theme === 'string' && theme.trim().length > 0;
 }
 
 /**
@@ -58,22 +59,15 @@ export function getTheme(defaultTheme = 'light') {
   // Check URL parameter first
   const urlParams = new URLSearchParams(window.location.search);
   const urlTheme = urlParams.get('theme');
-  
-  if (urlTheme && isValidTheme(urlTheme)) {
-    return urlTheme;
-  }
-  
+  if (urlTheme) return urlTheme;
+
   // Check data-theme attribute on widget container
   const widget = document.getElementById('eveve-widget');
-  if (widget) {
-    const dataTheme = widget.getAttribute('data-theme');
-    if (dataTheme && isValidTheme(dataTheme)) {
-      return dataTheme;
-    }
-  }
-  
-  // Fallback to default theme if valid, otherwise 'light'
-  return isValidTheme(defaultTheme) ? defaultTheme : 'light';
+  const dataTheme = widget?.getAttribute('data-theme');
+  if (dataTheme) return dataTheme;
+
+  // Fallback to default
+  return defaultTheme || 'light';
 }
 
 /**
@@ -82,17 +76,11 @@ export function getTheme(defaultTheme = 'light') {
  * @returns {boolean} - True if theme was applied successfully
  */
 export function applyTheme(theme) {
-  if (!isValidTheme(theme)) {
-    console.warn(`[themeUtils] Invalid theme: ${theme}. Using 'light' as fallback.`);
-    theme = 'light';
-  }
-  
   const widget = document.getElementById('eveve-widget');
   if (widget) {
-    widget.setAttribute('data-theme', theme);
+    widget.setAttribute('data-theme', theme || 'light');
     return true;
   }
-  
   console.error('[themeUtils] Widget container #eveve-widget not found');
   return false;
 }
