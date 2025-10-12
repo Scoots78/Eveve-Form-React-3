@@ -1,0 +1,35 @@
+/* Scoped DaisyUI theme: scott */
+#eveve-widget[data-theme="scott"] {
+  --b1: oklch(1.000 0.034 90.5);
+  --b2: #bdb79f;
+  --b3: oklch(0.656 0.108 95.5);
+  --bc: oklch(41% 0.112 45.904);
+
+  --p: oklch(82% 0.189 84.429);
+  --pc: oklch(39% 0.141 25.723);
+
+  --s: oklch(92% 0.084 155.995);
+  --sc: oklch(44% 0.119 151.328);
+
+  --a: oklch(68% 0.162 75.834);
+  --ac: oklch(41% 0.112 45.904);
+
+  --n: oklch(44% 0.011 73.639);
+  --nc: oklch(86% 0.005 56.366);
+
+  --in: oklch(58% 0.158 241.966);
+  --inc: oklch(96% 0.059 95.617);
+
+  --su: oklch(51% 0.096 186.391);
+  --suc: oklch(96% 0.059 95.617);
+
+  --wa: oklch(64% 0.222 41.116);
+  --wac: oklch(96% 0.059 95.617);
+
+  --er: oklch(27% 0.105 12.094);
+  --erc: oklch(96% 0.001 286.375);
+
+  --rounded-box: 0.5rem;
+  --rounded-btn: 0.25rem;
+  --border-btn: 1px;
+}
