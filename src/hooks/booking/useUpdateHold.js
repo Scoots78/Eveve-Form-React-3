@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { debugLog } from '../../utils/debug';
 
 /**
  * Custom hook for updating a held booking with customer details
@@ -121,7 +122,7 @@ export function useUpdateHold(baseUrl) {
         url.searchParams.append("paymentType", "noshow");
       }
       
-      console.log("Update Hold Request URL:", url.toString());
+      debugLog("Update Hold Request URL:", url.toString());
       
       const response = await fetch(url);
       

@@ -2,6 +2,8 @@
  * Utility functions for fetching and processing month availability data from Eveve API
  */
 
+import { debugLog } from './debug';
+
 // Default number of covers (guests) to use when checking month availability
 // This is kept constant regardless of actual guest selection
 export const defaultCoversForMonthAvail = 2;
@@ -20,7 +22,7 @@ export const fetchMonthAvailability = async (est, year, month, baseApiUrl = "htt
     // Format date as YYYY-MM-01 (first day of month)
     const formattedDate = `${year}-${month.toString().padStart(2, '0')}-01`;
     
-    console.log(`Fetching month availability for: ${formattedDate}`);
+    debugLog(`Fetching month availability for: ${formattedDate}`);
     
     // Make API request to month-avail endpoint
     const response = await fetch(
@@ -70,7 +72,7 @@ export const parseClosedDatesFromMonthResponse = (monthData, year, month) => {
     }
   });
   
-  console.log(`Found ${closedDates.length} closed dates for ${year}-${month}`);
+  debugLog(`Found ${closedDates.length} closed dates for ${year}-${month}`);
   return closedDates;
 };
 

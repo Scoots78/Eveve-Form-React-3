@@ -40,6 +40,7 @@ import { calculateTotalAddonCost } from "../utils/chargeDetection";
 import EventCarousel from "./EventCarousel";
 import { generateDateRange } from "../utils/dateConversion";
 import { findEventUsageFromConfig } from "../utils/eventUsageFallback";
+import { debugLog, debugGroupCollapsed, debugGroupEnd } from "../utils/debug";
 
 /*  normalizeHold is now executed inside useHoldBooking.
     No additional normalization required in this component. */
@@ -182,7 +183,7 @@ export default function ReservationForm() {
         
         const config = await loadAppConfig(est);
         setAppConfig(config);
-        console.log("App Config Loaded:", config); // For verification
+        debugLog("App Config Loaded:", config); // For verification
 
         if (config && !config.estFull) {
           console.error("Essential configuration missing: estFull is not defined in the loaded config.", config);
@@ -244,7 +245,7 @@ export default function ReservationForm() {
       initialMonthFetchedRef.current = true;
 
       try {
-        console.log(`Fetching initial month availability for current month: ${monthKey}`);
+        debugLog(`Fetching initial month availability for current month: ${monthKey}`);
         setIsMonthAvailLoading(true);
         
         const monthData = await fetchMonthAvailability(
@@ -260,7 +261,7 @@ export default function ReservationForm() {
             currentYear,
             currentMonth
           );
-          console.log(
+          debugLog(
             `Found ${closedDatesArr.length} closed dates for ${monthKey}`
           );
           // Cache month's closed dates
@@ -286,19 +287,19 @@ export default function ReservationForm() {
   // Handle calendar month navigation
   // -----------------------------------------------------------
   const handleMonthChange = useCallback(async (_selected, _dateStr, instance) => {
-    console.groupCollapsed(
+    debugGroupCollapsed(
       `%c[handleMonthChange] fired – yr:${instance.currentYear} m:${instance.currentMonth + 1}`,
       "color:orange;font-weight:bold"
     );
     if (!appConfig) {
-      console.log("%cNo appConfig – aborting", "color:red");
-      console.groupEnd();
+      debugLog("%cNo appConfig – aborting", "color:red");
+      debugGroupEnd();
       return;
     }
     // Avoid overlaps
     if (monthFetchInProgressRef.current || isUpdatingMonthDataRef.current) {
-      console.log("%cOverlap or React update in progress – aborting", "color:red");
-      console.groupEnd();
+      debugLog("%cOverlap or React update in progress – aborting", "color:red");
+      debugGroupEnd();
       return;
     }
     
@@ -440,7 +441,7 @@ export default function ReservationForm() {
      DEBUG: log whenever monthClosedDates or disabledDates change
   ------------------------------------------------------------------ */
   useEffect(() => {
-    console.log(
+    debugLog(
       `%c[monthClosedDates] updated – months cached: ${Object.keys(monthClosedDates).join(
         ", "
       )}`,
@@ -534,7 +535,7 @@ export default function ReservationForm() {
     // Use dapi from config if available, otherwise fallback to hardcoded domain
     const baseApiUrl = appConfig.dapi || "https://nz6.eveve.com";
     const apiUrl = `${baseApiUrl}/web/day-avail?est=${est}&covers=${numGuests}&date=${formattedDate}`;
-    console.log(`Fetching: ${apiUrl}`);
+    debugLog(`Fetching: ${apiUrl}`);
 
     try {
       const response = await fetch(apiUrl);
@@ -718,9 +719,9 @@ export default function ReservationForm() {
   const handleTimeSelection = (shift, timeObject, shiftIndexInAvailabilityData) => {
     // Assuming timeObject could be just the decimal time, or an object containing the time
     const actualTime = typeof timeObject === 'object' ? timeObject.time : timeObject;
-    console.log("Selected Shift (from availability data):", shift);
-    console.log("Selected Time Object:", timeObject);
-    console.log("Original index of shift in availability data:", shiftIndexInAvailabilityData);
+    debugLog("Selected Shift (from availability data):", shift);
+    debugLog("Selected Time Object:", timeObject);
+    debugLog("Original index of shift in availability data:", shiftIndexInAvailabilityData);
 
     // Auto-collapse EventCarousel when user clicks on time buttons
     // This indicates they're committed to booking regular availability vs events
@@ -775,8 +776,8 @@ export default function ReservationForm() {
       return { ...addon, originalIndexInShift: index };
     });
 
-    console.log("Processed addons for selected shift/time (with originalIndexInShift):", processedAddons);
-    console.log("Usage policy for selected shift/time (applies to Menus):", usagePolicyForShift);
+    debugLog("Processed addons for selected shift/time (with originalIndexInShift):", processedAddons);
+    debugLog("Usage policy for selected shift/time (applies to Menus):", usagePolicyForShift);
 
     setCurrentShiftAddons(processedAddons);
     setCurrentShiftUsagePolicy(usagePolicyForShift === undefined ? null : Number(usagePolicyForShift)); // Ensure it's a number or null
@@ -797,7 +798,7 @@ export default function ReservationForm() {
       return Array.isArray(area.times) && area.times.includes(actualTime);
     });
     
-    console.log(`Found ${filteredAreas.length} areas available for time ${actualTime}:`, filteredAreas);
+    debugLog(`[AreaValidation] Found ${filteredAreas.length} areas available for time ${actualTime}:`, filteredAreas);
     setAvailableAreas(filteredAreas);
 
     // Reset any previously selected addons
@@ -1079,7 +1080,7 @@ export default function ReservationForm() {
     try {
       setBookingState(prev => ({ ...prev, isHolding: true, holdError: null }));
       const holdResult = await holdBooking(bookingDataForHold);
-      console.log("Hold Result:", holdResult);
+      debugLog("Hold Result:", holdResult);
 
       // Open booking details modal after successful hold
       setIsBookingModalOpen(true);
@@ -1111,7 +1112,7 @@ export default function ReservationForm() {
 
       // Step 1: Update the hold with customer details + extras
       const updateResult = await updateHold(holdToken, enhancedCustomerData);
-      console.log("Update Result:", updateResult);
+      debugLog("Update Result:", updateResult);
 
       // Mark success only when appropriate:
       // - Non-card flow: modal calls once (no skipSuccess flag)
@@ -1306,7 +1307,7 @@ export default function ReservationForm() {
         }
       }
     }
-    console.log("Addon validation passed.");
+    debugLog("Addon validation passed.");
     return { isValid: true };
   };
 
@@ -1331,12 +1332,12 @@ export default function ReservationForm() {
     ---------------------------------------------------------- */
     // DEBUG: inspect the raw flag values coming from appConfig
     /* eslint-disable no-console */
-    console.log(
+    debugLog(
       "[AreaValidation] appConfig.arSelect →",
       appConfig?.arSelect,
       `(type: ${typeof appConfig?.arSelect})`
     );
-    console.log(
+    debugLog(
       "[AreaValidation] appConfig.areaAny  →",
       appConfig?.areaAny,
       `(type: ${typeof appConfig?.areaAny})`
@@ -1357,7 +1358,7 @@ export default function ReservationForm() {
       areaSelectEnabled && !areaAnyAllowed && availableAreas.length > 0;
 
     /* eslint-disable no-console */
-    console.log('[AreaValidation] computed flags:', {
+    debugLog('[AreaValidation] computed flags:', {
       areaSelectEnabled,
       areaAnyAllowed,
       areaRequired,

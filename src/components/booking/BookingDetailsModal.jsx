@@ -7,6 +7,7 @@ import StripeProvider from "./StripeProvider";
 import { useStripePayment } from "../../hooks/booking/useStripePayment";
 import { formatAddonsForDisplay } from "../../utils/apiFormatter";
 import { isPaymentRequired, debugChargeFactors, getChargeReason, getEffectiveHoldData } from "../../utils/chargeDetection";
+import { debugLog } from "../../utils/debug";
 
 /**
  * BookingDetailsModal - A modal dialog for collecting customer details and confirming the reservation
@@ -275,7 +276,7 @@ export default function BookingDetailsModal({
   // Reset form when modal opens with new hold data
   useEffect(() => {
     if (isOpen && holdData) {
-      logWithTimestamp('Modal opened with holdData:', {
+      debugLog('BookingDetailsModal opened with holdData:', {
         uid: holdData.uid,
         card: holdData.card,
         perHead: holdData.perHead,
@@ -715,7 +716,7 @@ export default function BookingDetailsModal({
     const timerLabel = `[BookingDetailsModal] handleSubmit-${submissionId}`;
     console.time(timerLabel);
     
-    logWithTimestamp(`Form submission started (${submissionId})`, {
+    debugLog(`[BookingDetailsModal] Form submission started (${submissionId})`, {
       isCardRequired,
       currentStep: currentStep,
       bookingUid: effectiveHoldData?.uid
@@ -725,7 +726,7 @@ export default function BookingDetailsModal({
     if (!isCardRequired) {
       if (validateForm()) {
         try {
-          logWithTimestamp('Submitting non-card booking');
+          debugLog('[BookingDetailsModal] Submitting non-card booking');
           await onSubmit(effectiveHoldData.uid, {
             ...customerData,
             bookopt: selectedBookOpts,

@@ -1,4 +1,5 @@
 import localLngData from '../i18n/en.json'; // Import the local JSON file
+import { debugLog } from '../utils/debug';
 
 // src/config/configLoader.js
 
@@ -14,7 +15,7 @@ export async function loadAppConfig(estId) {
   }
 
   const url = `https://nz.eveve.com/web/form?est=${estId}`;
-  console.log(`Fetching configuration from: ${url}`);
+  debugLog(`Fetching configuration from: ${url}`);
 
   try {
     const response = await fetch(url);
@@ -198,7 +199,7 @@ export async function loadAppConfig(estId) {
           }
         }
     }
-     console.log("Extracted Configs (excluding local lng):", extractedConfigs);
+     debugLog("Extracted Configs (excluding local lng):", extractedConfigs);
     return extractedConfigs;
 
   } catch (error) {

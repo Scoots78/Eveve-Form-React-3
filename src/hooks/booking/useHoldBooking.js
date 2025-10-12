@@ -1,6 +1,7 @@
 import { useState } from 'react';
 // Normalise legacy vs. new `card` formats so downstream code sees a consistent shape
 import { normalizeHold } from '../../utils/holdNormalize';
+import { debugLog } from '../../utils/debug';
 
 /**
  * Custom hook for holding a booking through the Eveve /web/hold API
@@ -54,11 +55,11 @@ export function useHoldBooking(baseUrl) {
 
       // Include event ID when present to correctly flag event bookings
       if (bookingData.event !== undefined && bookingData.event !== null) {
-        console.log(`Including event id ${bookingData.event} in hold request`);
+        debugLog(`Including event id ${bookingData.event} in hold request`);
         url.searchParams.append("event", bookingData.event);
       }
       
-      console.log("Hold Request URL:", url.toString());
+      debugLog("Hold Request URL:", url.toString());
       
       const response = await fetch(url);
       
@@ -79,8 +80,8 @@ export function useHoldBooking(baseUrl) {
       --------------------------------------------------------------- */
       const normalizedData = normalizeHold(data);
       /* eslint-disable no-console */
-      console.log('[useHoldBooking] Original hold data:', data);
-      console.log('[useHoldBooking] Normalized hold data:', normalizedData);
+      debugLog('[useHoldBooking] Original hold data:', data);
+      debugLog('[useHoldBooking] Normalized hold data:', normalizedData);
       /* eslint-enable no-console */
 
       // Store the normalised hold data

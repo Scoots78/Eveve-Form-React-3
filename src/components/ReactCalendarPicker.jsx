@@ -3,6 +3,7 @@ import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 // Override specific default styles (removes fixed width & border)
 import './calendar-override.css';
+import { debugLog, debugGroupCollapsed, debugGroupEnd } from '../utils/debug';
 
 /**
  * ReactCalendarPicker - A modern React calendar component using react-calendar
@@ -19,7 +20,7 @@ const ReactCalendarPicker = ({
 }) => {
   // Track when component renders for debugging
   useEffect(() => {
-    console.log(
+    debugLog(
       `%c[ReactCalendar] render – disabledDates length: ${disabledDates.length}, eventDates length: ${eventDates.length}`,
       "color:teal;font-weight:bold"
     );
@@ -27,7 +28,7 @@ const ReactCalendarPicker = ({
 
   // Track when disabledDates changes
   useEffect(() => {
-    console.log(
+    debugLog(
       `%c[ReactCalendar] disabledDates changed – new length: ${disabledDates.length}`,
       "color:purple;font-weight:bold"
     );
@@ -35,7 +36,7 @@ const ReactCalendarPicker = ({
 
   // Track when eventDates changes
   useEffect(() => {
-    console.log(
+    debugLog(
       `%c[ReactCalendar] eventDates changed – new length: ${eventDates.length}`,
       "color:orange;font-weight:bold"
     );
@@ -81,12 +82,12 @@ const ReactCalendarPicker = ({
   // Handle month navigation
   const handleActiveStartDateChange = ({ activeStartDate, view }) => {
     if (view === 'month' && onMonthChange) {
-      console.groupCollapsed(
+      debugGroupCollapsed(
         `%c[ReactCalendar] onMonthChange fired – yr:${activeStartDate.getFullYear()} m:${activeStartDate.getMonth() + 1}`,
         "color:orange;font-weight:bold"
       );
       
-      console.log(
+      debugLog(
         `%c[ReactCalendar] calling parent onMonthChange callback`,
         "color:blue"
       );
@@ -101,7 +102,7 @@ const ReactCalendarPicker = ({
         }
       );
       
-      console.groupEnd();
+      debugGroupEnd();
     }
   };
 

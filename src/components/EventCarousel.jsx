@@ -8,6 +8,7 @@ import {
   parseEventAvailableDates, 
   calculateEventMidpointTime 
 } from '../utils/eventMonthAvailability';
+import { debugLog } from '../utils/debug';
 
 /**
  * EventCarousel Component
@@ -99,7 +100,7 @@ export default function EventCarousel({
     });
 
     // Debug logging to verify sorting
-    console.log('📅 Events sorted by date:', sortedEvents.map(event => ({
+    debugLog('📅 Events sorted by date:', sortedEvents.map(event => ({
       name: event.name,
       from: event.from,
       convertedDate: new Date(1900, 0, event.from).toDateString()
