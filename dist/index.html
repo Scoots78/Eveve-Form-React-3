@@ -19,6 +19,7 @@
           const params = new URLSearchParams(window.location.search);
           const theme = params.get("theme");
           let themeCss = params.get("themeCss");
+          const debug = params.get("debug") === "true";
 
           /* ------------------------------------------------------------------
              Apply theme slug to the widget container
@@ -26,6 +27,7 @@
           const widget = document.getElementById("eveve-widget");
           if (widget && theme) {
             widget.setAttribute("data-theme", theme);
+            if (debug) console.log("[theme-loader] data-theme set on #eveve-widget:", theme);
           }
 
           /* ------------------------------------------------------------------
@@ -53,6 +55,7 @@
 
           if (!themeCss && theme) {
             themeCss = `${basePath}themes/${theme}.css`;
+            if (debug) console.log("[theme-loader] No themeCss param provided; defaulting to:", themeCss);
           }
 
           if (themeCss) {
@@ -73,7 +76,12 @@
               link.rel = "stylesheet";
               link.id = "external-theme-css";
               link.href = themeCss;
+              if (debug) console.log("[theme-loader] Injecting external theme CSS:", themeCss);
+              link.addEventListener("load", function(){ if (debug) console.log("[theme-loader] Theme CSS loaded:", themeCss); });
+              link.addEventListener("error", function(){ if (debug) console.error("[theme-loader] Failed to load theme CSS:", themeCss); });
               document.head.appendChild(link);
+            } else if (debug) {
+              console.log("[theme-loader] External theme CSS already present:", document.getElementById("external-theme-css").getAttribute("href"));
             }
           }
         } catch (err) {
