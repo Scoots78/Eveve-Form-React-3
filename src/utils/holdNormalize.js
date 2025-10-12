@@ -52,12 +52,27 @@ export function normalizeHold(hold) {
     msg: hold.msg || ''
   };
   
+  // Log the normalization process for debugging
+  if (typeof hold.card === 'object' && hold.card.msg) {
+    console.log('[holdNormalize] Extracting card message:', {
+      originalCardObject: hold.card,
+      extractedMessage: obj.msg
+    });
+  }
+  
   // Return a new object with normalized properties
-  return {
+  const normalized = {
     ...hold,                // Keep all original properties
     card: obj.code,         // Replace card with code value
     perHead: obj.perHead,   // Ensure perHead is available
     total: obj.total,       // Ensure total is available
     cardMessage: obj.msg    // Add cardMessage property for display
   };
+  
+  // Debug log when cardMessage is set
+  if (normalized.cardMessage) {
+    console.log('[holdNormalize] Result includes cardMessage:', normalized.cardMessage);
+  }
+  
+  return normalized;
 }

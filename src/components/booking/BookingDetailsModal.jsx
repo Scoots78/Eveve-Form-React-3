@@ -1136,9 +1136,16 @@ export default function BookingDetailsModal({
           <p className="text-sm text-blue-800">
             {isDepositRequired ? (
               <>
-                <span className="font-semibold">Deposit Required:</span>{' '}
-                ${(getDepositAmountCents() / 100).toFixed(2)}
-                <span className="block mt-1 text-xs">Your card will be charged immediately.</span>
+                {/* Use the message from the hold response if available, otherwise fallback to default */}
+                {effectiveHoldData?.cardMessage ? (
+                  <span dangerouslySetInnerHTML={{ __html: effectiveHoldData.cardMessage }} />
+                ) : (
+                  <>
+                    <span className="font-semibold">Deposit Required:</span>{' '}
+                    ${(getDepositAmountCents() / 100).toFixed(2)}
+                    <span className="block mt-1 text-xs">Your card will be charged immediately.</span>
+                  </>
+                )}
               </>
             ) : (
               <>
@@ -1258,9 +1265,15 @@ export default function BookingDetailsModal({
         {/* Payment type information for card-required bookings */}
         {isCardRequired && (
           <div className="mt-1 text-xs text-blue-700">
-            {isDepositRequired
-              ? "Your card will be charged immediately."
-              : getNoShowProtectionMessage()}
+            {isDepositRequired ? (
+              effectiveHoldData?.cardMessage ? (
+                <span dangerouslySetInnerHTML={{ __html: effectiveHoldData.cardMessage }} />
+              ) : (
+                "Your card will be charged immediately."
+              )
+            ) : (
+              getNoShowProtectionMessage()
+            )}
           </div>
         )}
 
