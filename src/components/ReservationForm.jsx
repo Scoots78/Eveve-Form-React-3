@@ -1522,7 +1522,7 @@ export default function ReservationForm() {
                   {selectedDateForSummary ? format(selectedDateForSummary, 'EEEE do MMMM') : 'Date not set'}
                   {selectedGuestsForSummary ? ` for ${selectedGuestsForSummary} Guest${selectedGuestsForSummary > 1 ? 's' : ''}` : ''}
                 </h3>
-                <p className="text-s p-3 italic text-base-content/60 mt-1">Click to change</p>
+                <p className="text-sm p-3 italic text-base-content/60 mt-1">Click to change</p>
               </div>
               {/* The availabilityData.message can still be relevant here */}
               {availabilityData.message && (

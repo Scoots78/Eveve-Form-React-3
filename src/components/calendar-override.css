@@ -243,26 +243,30 @@
 /*  Typography & visual tweaks (added last for highest precedence)    */
 /* ================================================================== */
 
-/* 1) Bigger nav arrows and buttons */
+
 .react-calendar-custom .react-calendar__navigation button {
-  font-size: 1.125rem; /* text-lg */
+  font-size: 1.225rem; /* text-lg */
 }
 
 /* 2) Month label: larger, bold & primary-coloured */
 .react-calendar-custom .react-calendar__navigation__label {
-  font-size: 1.25rem;        /* text-xl */
+  font-size: 2.25rem;        /* text-xl */
   font-weight: 700;
   color: var(--p-color, hsl(var(--p, 220 90% 56%)));
 }
 
 /* 3) Weekday header font size */
 .react-calendar-custom .react-calendar__month-view__weekdays {
-  font-size: 0.9rem; /* ~14.4px */
+  font-size: 0.8rem; /* ~14.4px */
 }
 
 /* 4) Day numbers */
 .react-calendar-custom .react-calendar__tile abbr {
-  font-size: 1rem; /* 16px */
+  font-size: 1.2rem; /* 16px */
+}
+/* 1) Bigger nav arrows and buttons */
+.react-calendar-custom .react-calendar__navigation button.react-calendar__navigation__arrow {
+  font-size: 2.5rem;
 }
 
 /* ================================================================== */
@@ -283,18 +287,18 @@
 .react-calendar-custom .react-calendar__tile:enabled:hover abbr,
 .react-calendar-custom .react-calendar__tile:enabled:focus abbr {
   /* fallback then theme – if second invalid, first stays */
-  background-color: rgba(59, 130, 246, 0.30) !important;
-  background-color: hsl(var(--p, 220 90% 56%) / 0.30) !important;
-  color: hsl(var(--bc));
-  border: 1px solid rgba(59, 130, 246, 0.60) !important;
-  border: 1px solid hsl(var(--p, 220 90% 56%) / 0.60) !important;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18) !important;
-  min-width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 9999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  /*//background-color: rgba(59, 130, 246, 0.30) !important;
+  //background-color: hsl(var(--p, 220 90% 56%) / 0.30) !important;
+  //color: hsl(var(--bc));
+  //border: 1px solid rgba(59, 130, 246, 0.60) !important;
+  //border: 1px solid hsl(var(--p, 220 90% 56%) / 0.60) !important;
+  //box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.18) !important;
+  //min-width: 2.25rem;
+  //height: 2.25rem;
+  //border-radius: 9999px;
+  //display: inline-flex;
+  //align-items: center;
+  justify-content: center;*/
 }/* Event date styling - Add to the end of calendar-override.css */
 
 /* ================================================================== */
@@ -303,7 +307,7 @@
 
 /* Event date tiles - add subtle highlight and icon indicator */
 .react-calendar-custom .react-calendar__tile.event-date {
-  position: relative;
+  /*position: relative;*/
 }
 
 /* Add star/event indicator to event dates */
@@ -312,7 +316,7 @@
   position: absolute;
   top: 2px;
   right: 2px;
-  font-size: 0.6rem;
+  font-size: .6rem;
   color: hsl(var(--s, 45 100% 51%)); /* secondary/success color */
   opacity: 0.9;
 }
