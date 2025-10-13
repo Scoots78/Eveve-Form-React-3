@@ -273,6 +273,31 @@ export default function BookingDetailsModal({
     }
   }, [success, localSuccess]);
 
+  // Handle iOS iframe scrolling when modal opens/closes
+  useEffect(() => {
+    // Detect if we're in an iframe and on iOS
+    const isInIframe = window.parent && window.parent !== window;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    if (isInIframe && isIOS) {
+      if (isOpen) {
+        // Modal opened - notify parent about potential iOS scrolling issues
+        window.parent.postMessage({ 
+          type: 'modal-state', 
+          modalOpen: true, 
+          needsScrollDelegation: true 
+        }, '*');
+      } else {
+        // Modal closed - restore normal scrolling
+        window.parent.postMessage({ 
+          type: 'modal-state', 
+          modalOpen: false, 
+          needsScrollDelegation: false 
+        }, '*');
+      }
+    }
+  }, [isOpen]);
+
   // Reset form when modal opens with new hold data
   useEffect(() => {
     if (isOpen && holdData) {

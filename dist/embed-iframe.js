@@ -68,6 +68,10 @@
         return r.bottom > 0 && r.top < (window.innerHeight || document.documentElement.clientHeight);
       };
 
+      // iOS detection
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      let iOSModalScrollHandler = null;
+
       window.addEventListener('message', function(event) {
         if (event.source === iframe.contentWindow) {
           // Height adjustments from inside app (when available)
@@ -87,6 +91,61 @@
                   window.scrollBy(0, delta);
                 }
               });
+            }
+          }
+
+          // Handle iOS modal scroll delegation
+          if (event.data && event.data.type === 'modal-state' && isIOS) {
+            if (event.data.modalOpen && event.data.needsScrollDelegation) {
+              // Modal opened on iOS - enable scroll delegation
+              if (!iOSModalScrollHandler) {
+                iOSModalScrollHandler = function(e) {
+                  // Capture touch events and delegate scrolling to the parent page
+                  // when the iframe content indicates a modal is open
+                  const touches = e.touches || e.changedTouches;
+                  if (touches && touches.length > 0) {
+                    const touch = touches[0];
+                    const deltaY = touch.clientY - (iOSModalScrollHandler._lastY || touch.clientY);
+                    
+                    // If the user is trying to scroll up/down significantly, 
+                    // scroll the parent page instead of the iframe content
+                    if (Math.abs(deltaY) > 5) {
+                      e.preventDefault();
+                      window.scrollBy(0, -deltaY * 2); // Amplify the scroll slightly
+                    }
+                    
+                    iOSModalScrollHandler._lastY = touch.clientY;
+                  }
+                };
+                
+                // Add touch event listeners to iframe for iOS scroll delegation
+                iframe.addEventListener('touchstart', function(e) {
+                  const touches = e.touches || e.changedTouches;
+                  if (touches && touches.length > 0) {
+                    iOSModalScrollHandler._lastY = touches[0].clientY;
+                  }
+                }, { passive: false });
+                
+                iframe.addEventListener('touchmove', iOSModalScrollHandler, { passive: false });
+              }
+              
+              // Also ensure the iframe height is sufficient to show the full modal
+              // by setting a minimum height when modal opens
+              iframe.style.minHeight = Math.max(iframe.offsetHeight, window.innerHeight * 0.9) + 'px';
+              
+              // Scroll to the top of the iframe when modal opens
+              iframe.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              
+            } else if (!event.data.modalOpen) {
+              // Modal closed - remove scroll delegation
+              if (iOSModalScrollHandler) {
+                iframe.removeEventListener('touchmove', iOSModalScrollHandler);
+                iframe.removeEventListener('touchstart', iOSModalScrollHandler);
+                iOSModalScrollHandler = null;
+              }
+              
+              // Reset iframe height constraints
+              iframe.style.minHeight = '';
             }
           }
 
