@@ -94,58 +94,37 @@
             }
           }
 
-          // Handle iOS modal scroll delegation
-          if (event.data && event.data.type === 'modal-state' && isIOS) {
-            if (event.data.modalOpen && event.data.needsScrollDelegation) {
-              // Modal opened on iOS - enable scroll delegation
-              if (!iOSModalScrollHandler) {
-                iOSModalScrollHandler = function(e) {
-                  // Capture touch events and delegate scrolling to the parent page
-                  // when the iframe content indicates a modal is open
-                  const touches = e.touches || e.changedTouches;
-                  if (touches && touches.length > 0) {
-                    const touch = touches[0];
-                    const deltaY = touch.clientY - (iOSModalScrollHandler._lastY || touch.clientY);
-                    
-                    // If the user is trying to scroll up/down significantly, 
-                    // scroll the parent page instead of the iframe content
-                    if (Math.abs(deltaY) > 5) {
-                      e.preventDefault();
-                      window.scrollBy(0, -deltaY * 2); // Amplify the scroll slightly
-                    }
-                    
-                    iOSModalScrollHandler._lastY = touch.clientY;
-                  }
-                };
-                
-                // Add touch event listeners to iframe for iOS scroll delegation
-                iframe.addEventListener('touchstart', function(e) {
-                  const touches = e.touches || e.changedTouches;
-                  if (touches && touches.length > 0) {
-                    iOSModalScrollHandler._lastY = touches[0].clientY;
-                  }
-                }, { passive: false });
-                
-                iframe.addEventListener('touchmove', iOSModalScrollHandler, { passive: false });
+          // Handle iOS modal fix
+          if (event.data && event.data.type === 'ios-modal-fix' && isIOS) {
+            if (event.data.action === 'expand-iframe') {
+              // Modal opened on iOS - expand iframe to full required height
+              const requiredHeight = Math.max(
+                event.data.requiredHeight || window.innerHeight, 
+                window.innerHeight
+              );
+              
+              // Store original iframe height for restoration later
+              if (!iframe.dataset.originalHeight) {
+                iframe.dataset.originalHeight = iframe.style.height || CONFIG.iframeHeight;
               }
               
-              // Also ensure the iframe height is sufficient to show the full modal
-              // by setting a minimum height when modal opens
-              iframe.style.minHeight = Math.max(iframe.offsetHeight, window.innerHeight * 0.9) + 'px';
+              // Expand iframe to accommodate full modal without internal scrolling
+              iframe.style.height = requiredHeight + 'px';
+              iframe.style.minHeight = requiredHeight + 'px';
               
-              // Scroll to the top of the iframe when modal opens
-              iframe.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              // Scroll the parent page to show the iframe from the top
+              setTimeout(() => {
+                iframe.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }, 100);
               
-            } else if (!event.data.modalOpen) {
-              // Modal closed - remove scroll delegation
-              if (iOSModalScrollHandler) {
-                iframe.removeEventListener('touchmove', iOSModalScrollHandler);
-                iframe.removeEventListener('touchstart', iOSModalScrollHandler);
-                iOSModalScrollHandler = null;
-              }
-              
-              // Reset iframe height constraints
+            } else if (event.data.action === 'restore-iframe') {
+              // Modal closed - restore original iframe dimensions
+              const originalHeight = iframe.dataset.originalHeight || CONFIG.iframeHeight;
+              iframe.style.height = originalHeight;
               iframe.style.minHeight = '';
+              
+              // Clear the stored original height
+              delete iframe.dataset.originalHeight;
             }
           }
 

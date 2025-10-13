@@ -281,19 +281,35 @@ export default function BookingDetailsModal({
     
     if (isInIframe && isIOS) {
       if (isOpen) {
-        // Modal opened - notify parent about potential iOS scrolling issues
+        // Calculate the required height for the modal
+        const modalElement = document.querySelector('.eveve-modal');
+        const requiredHeight = modalElement ? modalElement.scrollHeight + 200 : 1000;
+        
+        // Notify parent to expand iframe height to accommodate full modal
         window.parent.postMessage({ 
-          type: 'modal-state', 
-          modalOpen: true, 
-          needsScrollDelegation: true 
+          type: 'ios-modal-fix', 
+          action: 'expand-iframe',
+          requiredHeight: Math.max(requiredHeight, window.innerHeight + 400)
         }, '*');
+        
+        // Also disable body scrolling within the iframe to prevent internal scroll
+        document.body.style.overflow = 'hidden';
+        document.body.style.height = '100vh';
+        document.documentElement.style.overflow = 'hidden';
+        document.documentElement.style.height = '100vh';
+        
       } else {
-        // Modal closed - restore normal scrolling
+        // Modal closed - restore normal iframe behavior
         window.parent.postMessage({ 
-          type: 'modal-state', 
-          modalOpen: false, 
-          needsScrollDelegation: false 
+          type: 'ios-modal-fix', 
+          action: 'restore-iframe'
         }, '*');
+        
+        // Restore normal scrolling
+        document.body.style.overflow = '';
+        document.body.style.height = '';
+        document.documentElement.style.overflow = '';
+        document.documentElement.style.height = '';
       }
     }
   }, [isOpen]);
