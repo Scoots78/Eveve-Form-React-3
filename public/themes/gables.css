@@ -9,39 +9,42 @@
 
 #eveve-widget[data-theme="gables"] {
   color-scheme: light;
-  --b1: 0.897 0.018 94.2;
-  --b2: 0.775 0.035 96.0;
-  --b3: 0.675 0.048 97.8;
-  --bc: 41% 0.112 45.904;
-  --p: 0.411 0.015 286.1;
-  --pc: 0.777 0.025 67.9;
-  --s: 0.628 0.035 96.0;
-  --sc: 0.440 0.119 95.9;
-  --a: 70% 0.04 256.788;
-  --ac: 41% 0.112 45.904;
+  --b1: 0.922 0.021 94.6;
+  --b2: 0.885 0.021 94.6;
+  --b3: 0.849 0.021 94.6;
+  --bc: 0.256 0.055 140.2;
+  --p: 0.303 0.058 150.2;
+  --pc: 1.000 0.006 8.4;
+  --s: 92% 0.084 155.995;
+  --sc: 44% 0.119 151.328;
+  --a: 68% 0.162 75.834;
+  --ac: 0.265 0.058 150.2;
   --n: 44% 0.011 73.639;
-  --nc: 86% 0.005 56.366;
+  --nc: 1.000 0.000 0.0;
   --in: 58% 0.158 241.966;
-  --color-info-content: 96% 0.059 95.617;
-  --su: 51% 0.096 186.391;
-  --color-success-content: 96% 0.059 95.617;
-  --wa: 64% 0.222 41.116;
-  --color-warning-content: 96% 0.059 95.617;
-  --er: 56.113% 0.22805 27.022;
-  --color-error-content: 96% 0.001 286.375;
+  --inc: 96% 0.059 95.617;
+  --su: 0.703 0.255 142.5;
+  --suc: 0.960 0.000 95.6;
+  --wa: 0.931 0.222 89.1;
+  --wac: 0.006 0.059 95.6;
+  --er: 0.550 0.324 66.4;
+  --erc: 96% 0.001 286.375;
   --radius-selector: 0.25rem;
   --radius-field: 0.25rem;
   --radius-box: 0.5rem;
-  --size-selector: 0.281rem;
-  --size-field: 0.281rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
   --border: 1px;
-  --depth: 0;
+  --depth: 1;
   --noise: 0;
-  
-  /* Border radius */
+
   --rounded-box: 0.5rem;
   --rounded-btn: 0.25rem;
-  --rounded-badge: 0.25rem;
+  --border-btn: 1px;
+
+  --rounded-box: 0.5rem;
+  --rounded-btn: 0.25rem;
+  --border-btn: 1px;
   
   /* Animation */
   --animation-btn: 0.25s;
