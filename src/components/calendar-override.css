@@ -185,13 +185,15 @@
 }
 
 /* Circle on hover / focus */
+/*
 .react-calendar-custom .react-calendar__tile:enabled:hover abbr,
 .react-calendar-custom .react-calendar__tile:enabled:focus abbr {
-  /*background-color: oklch(var(--p, 220 90% 56%) / 0.18);
+  background-color: oklch(var(--p, 220 90% 56%) / 0.18);
   color: oklch(var(--bc));
   border: 1px solid oklch(var(--p, 220 90% 56%) / 0.4);
-  box-shadow: 0 0 0 2px oklch(var(--p, 220 90% 56%) / 0.08);*/
+  box-shadow: 0 0 0 2px oklch(var(--p, 220 90% 56%) / 0.08);
 }
+*/
 
 /* Active (selected) date – primary-coloured circle */
 .react-calendar-custom .react-calendar__tile--active {
