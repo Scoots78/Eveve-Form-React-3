@@ -1,0 +1,80 @@
+/* 
+ * olive-white Theme
+ * Custom theme with Playfair Display font
+ * No rebuild required - just add this file and update themes.json
+ */
+
+/* Import Playfair Display Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap');
+
+#eveve-widget[data-theme="olive-white"] {
+  color-scheme: light;
+  --b1: 98% 0.002 247.839;
+  --b2: 96% 0.003 264.542;
+  --b3: 92% 0.006 264.531;
+  --bc: 0.531 0.046 104.7;
+  --p: 0.538 0.046 104.7;
+  --pc: 1.000 0.000 0.0;
+  --s: 0.661 0.046 104.7;
+  --sc: 1.000 0.000 0.0;
+  --a: 0.423 0.046 104.7;
+  --ac: 1.000 0.000 0.0;
+  --n: 27% 0.033 256.848;
+  --nc: 98% 0.002 247.839;
+  --in: 70% 0.165 254.624;
+  --inc: 28% 0.091 267.935;
+  --su: 0.598 0.238 128.8;
+  --suc: 1.000 0.000 0.0;
+  --wa: 75% 0.183 55.934;
+  --wac: 26% 0.079 36.259;
+  --er: 71% 0.194 13.428;
+  --erc: 27% 0.105 12.094;
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.25rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 1;
+
+  --rounded-box: 0.5rem;
+  --rounded-btn: 0.25rem;
+  --border-btn: 1px;
+  
+  /* Animation */
+  --animation-btn: 0.25s;
+  --animation-input: 0.2s;
+  
+  /* Border */
+  --border-btn: 1px;
+  
+  /* Apply Playfair Display font */
+  --font-family: 'Roboto', sans-serif;
+}
+
+/* Apply font when this theme is active */
+#eveve-widget[data-theme="olive-white"] {
+  font-family: var(--font-family), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+}
+
+/* Ensure headings use the custom font with proper weight */
+#eveve-widget[data-theme="olive-white"] h1,
+#eveve-widget[data-theme="olive-white"] h2,
+#eveve-widget[data-theme="olive-white"] h3,
+#eveve-widget[data-theme="olive-white"] h4,
+#eveve-widget[data-theme="olive-white"] h5,
+#eveve-widget[data-theme="olive-white"] h6 {
+  font-family: var(--font-family), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  font-weight: 600;
+}
+
+/* Optional: Add elegant styling specific to this theme */
+#eveve-widget[data-theme="olive-white"] .btn {
+  font-weight: 500;
+  letter-spacing: 0.025em;
+}
+
+#eveve-widget[data-theme="olive-white"] .card {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
