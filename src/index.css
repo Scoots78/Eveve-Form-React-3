@@ -1,3 +1,16 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@media (max-width: 640px) {
+    .p-4.w-full.max-w-\[1000px\].mx-auto.bg-base-100.shadow-xl.rounded-lg.space-y-6 {
+    padding: 0.2rem !important;
+    }
+    .sm\:p-4 {
+        padding: 0.2rem !important;
+    }
+    #root.p-4 {
+        padding: 0.5rem !important;
+    }
+    
+}

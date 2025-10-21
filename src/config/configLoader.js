@@ -49,6 +49,13 @@ export async function loadAppConfig(estId) {
 
     const extractedConfigs = {};
 
+    // Track critical parse failures so we can alert only once per var
+    const CRITICAL_CONFIGS = new Set(['eventsB', 'eventMessages']);
+    const IGNORED_ALERT_VARS = new Set(['currSym', 'count']);
+    const alertedVars = new Set();
+    // Remove escaped/newline tokens that can break parsing for these vars
+    const SANITIZE_NEWLINES = new Set(['eventsB', 'eventMessages']);
+
     // Use the imported local language data
     let localLng = localLngData; // Assign imported data
     try {
@@ -78,23 +85,92 @@ export async function loadAppConfig(estId) {
       });
     }
 
-    // Helper function to extract variables. Only run if configScriptContent was found.
-    // Handles strings, arrays, objects, numbers, booleans with improved error handling.
+    // Helper function to extract variables using a safe scanner that respects quotes/brackets.
+    // This avoids breaking on semicolons inside HTML entities (e.g., '&#36;') within strings.
     const extractVar = (varName, scriptContent) => {
-      // Try standard variable declarations first: const/var/let varName = value
-      let regex = new RegExp(`(?:const|var|let)\\s+${varName}\\s*=\\s*([^;]+)(?:;|$)`, "m");
-      let match = scriptContent.match(regex);
-      
-      // If not found, try window property assignments: window.varName = value
-      if (!match) {
-        regex = new RegExp(`window\\.${varName}\\s*=\\s*([^;]+)(?:;|$)`, "m");
-        match = scriptContent.match(regex);
+      const declRegexes = [
+        new RegExp(`(?:const|var|let)\\s+${varName}\\s*=`, 'm'),
+        new RegExp(`window\\.${varName}\\s*=`, 'm')
+      ];
+
+      let startIndex = -1;
+      for (const r of declRegexes) {
+        const m = r.exec(scriptContent);
+        if (m) {
+          startIndex = scriptContent.indexOf('=', m.index) + 1;
+          break;
+        }
       }
 
-      if (match && match[1]) {
-        let value = match[1].trim();
-        if (value.endsWith(',')) {
-          value = value.substring(0, value.length -1);
+      if (startIndex === -1) return null;
+
+      // Scan forward until we hit a top-level semicolon not inside quotes/brackets
+      let i = startIndex;
+      let depthCurly = 0, depthSquare = 0, depthParen = 0;
+      let inString = false, stringQuote = null, escapeNext = false, inTemplate = false;
+
+      while (i < scriptContent.length) {
+        const ch = scriptContent[i];
+
+        if (inString) {
+          if (escapeNext) { escapeNext = false; i++; continue; }
+          if (ch === '\\') { escapeNext = true; i++; continue; }
+          if (ch === stringQuote) { inString = false; stringQuote = null; i++; continue; }
+          i++; continue;
+        }
+        if (inTemplate) {
+          if (escapeNext) { escapeNext = false; i++; continue; }
+          if (ch === '\\') { escapeNext = true; i++; continue; }
+          if (ch === '`') { inTemplate = false; i++; continue; }
+          i++; continue;
+        }
+        // Handle comments
+        if (ch === '/') {
+          const next = scriptContent[i+1];
+          if (next === '/') { // line comment
+            const nl = scriptContent.indexOf('\n', i+2);
+            i = nl === -1 ? scriptContent.length : nl + 1;
+            continue;
+          }
+          if (next === '*') { // block comment
+            const end = scriptContent.indexOf('*/', i+2);
+            i = end === -1 ? scriptContent.length : end + 2;
+            continue;
+          }
+        }
+
+        if (ch === '"' || ch === "'") { inString = true; stringQuote = ch; i++; continue; }
+        if (ch === '`') { inTemplate = true; i++; continue; }
+        if (ch === '{') { depthCurly++; i++; continue; }
+        if (ch === '}') { depthCurly = Math.max(0, depthCurly-1); i++; continue; }
+        if (ch === '[') { depthSquare++; i++; continue; }
+        if (ch === ']') { depthSquare = Math.max(0, depthSquare-1); i++; continue; }
+        if (ch === '(') { depthParen++; i++; continue; }
+        if (ch === ')') { depthParen = Math.max(0, depthParen-1); i++; continue; }
+
+        if (ch === ';' && depthCurly === 0 && depthSquare === 0 && depthParen === 0) {
+          break;
+        }
+        i++;
+      }
+
+      if (i <= startIndex) return null;
+
+      let value = scriptContent.slice(startIndex, i).trim();
+      if (value.endsWith(',')) {
+        value = value.substring(0, value.length -1);
+      }
+
+        // Sanitize newline sequences that have previously caused parse failures
+        if (SANITIZE_NEWLINES.has(varName)) {
+          // Replace both escaped sequences and literal CR/LF characters
+          value = value
+            .replace(/\\r\\n/g, ' ')
+            .replace(/\\n/g, ' ')
+            .replace(/\\r/g, ' ')
+            .replace(/[\r\n]+/g, ' ')
+            // Also guard against literal Unicode line separators if present
+            .replace(/[\u2028\u2029]/g, ' ');
         }
 
         // Handle simple string values first (most common case)
@@ -127,6 +203,16 @@ export async function loadAppConfig(estId) {
           return new Function(`return ${value}`)();
         } catch (e) {
           console.warn(`Could not parse value for ${varName}: ${value.substring(0, 100)}${value.length > 100 ? '...' : ''}. Error: ${e.message}. Falling back to string.`);
+          // Alert only for critical vars, and only once per var
+          if (CRITICAL_CONFIGS.has(varName) && !alertedVars.has(varName) && typeof window !== 'undefined' && typeof window.alert === 'function') {
+            alertedVars.add(varName);
+            const msg = [
+              `Critical configuration failed to parse: ${varName}.`,
+              `This often indicates invalid HTML/entities in the Eveve settings for est "${estId}" (e.g. stray \\\n or malformed '&#' codes).`,
+              `The form may not function correctly until this is fixed.`
+            ].join('\n');
+            try { window.alert(msg); } catch (_) {}
+          }
           
           // Better fallback handling for malformed strings
           if (value.startsWith("'")) {
@@ -147,7 +233,6 @@ export async function loadAppConfig(estId) {
           // If all else fails, return the raw value as string
           return value;
         }
-      }
       return null;
     };
 
@@ -198,6 +283,27 @@ export async function loadAppConfig(estId) {
             //console.warn(`Variable ${varName} could not be extracted.`);
           }
         }
+    }
+    // Post-parse validation for critical variables (missing or wrong type)
+    const missingOrInvalidCritical = [];
+    if (!(Array.isArray(extractedConfigs.eventsB))) {
+      missingOrInvalidCritical.push('eventsB');
+    }
+    if (!(Array.isArray(extractedConfigs.eventMessages))) {
+      missingOrInvalidCritical.push('eventMessages');
+    }
+    if (missingOrInvalidCritical.length && typeof window !== 'undefined' && typeof window.alert === 'function') {
+      // Avoid duplicate alerts if we already alerted in parse step for the same var(s)
+      const varsToAlert = missingOrInvalidCritical.filter(v => CRITICAL_CONFIGS.has(v) && !IGNORED_ALERT_VARS.has(v) && !alertedVars.has(v));
+      if (varsToAlert.length) {
+        varsToAlert.forEach(v => alertedVars.add(v));
+        const msg = [
+          `Missing or invalid critical configuration: ${varsToAlert.join(', ')}.`,
+          `This likely indicates invalid HTML/entities in the Eveve settings for est "${estId}".`,
+          `Please correct the source data; event features may not work until fixed.`
+        ].join('\n');
+        try { window.alert(msg); } catch (_) {}
+      }
     }
      debugLog("Extracted Configs (excluding local lng):", extractedConfigs);
     return extractedConfigs;

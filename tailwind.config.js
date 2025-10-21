@@ -7,12 +7,12 @@ export default {
   theme: {
     extend: {
       fontSize: {
-        'xs': '0.75rem',    // 12px - make smaller
-        'sm': '1rem',   // 14px - keep default
-        'base': '1.125rem', // 18px - increase base size
-        'lg': '1.25rem',    // 20px - keep default
+        'xs': '0.85rem',    // 12px - make smaller
+        'sm': '0.9rem',   // 14px - keep default
+        'base': '1.1rem', // 18px - increase base size
+        'lg': '1.15rem',    // 20px - keep default
         // Or add custom sizes
-        'body': '1.1rem',   // Custom body size
+        'body': '1rem',   // Custom body size
         'caption': '0.8rem' // Custom caption size
       }
 

@@ -1,42 +1,46 @@
 /* 
- * Gables Theme
+ * reignandpour Theme
  * Custom theme with Playfair Display font
  * No rebuild required - just add this file and update themes.json
  */
 
 /* Import Playfair Display Google Font */
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Text:ital@0;1&family=Sorts+Mill+Goudy:ital@0;1&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap');
 
-#eveve-widget[data-theme="gables"] {
+#eveve-widget[data-theme="reignandpour"] {
   color-scheme: light;
   --b1: 0.922 0.021 94.6;
   --b2: 0.885 0.021 94.6;
   --b3: 0.849 0.021 94.6;
-  --bc: 0.256 0.055 140.2;
-  --p: 0.303 0.058 150.2;
-  --pc: 1.000 0.006 8.4;
-  --s: 92% 0.084 155.995;
-  --sc: 44% 0.119 151.328;
-  --a: 68% 0.162 75.834;
-  --ac: 0.265 0.058 150.2;
-  --n: 44% 0.011 73.639;
-  --nc: 1.000 0.000 0.0;
-  --in: 58% 0.158 241.966;
-  --inc: 96% 0.059 95.617;
-  --su: 0.703 0.255 142.5;
-  --suc: 0.960 0.000 95.6;
-  --wa: 0.931 0.222 89.1;
-  --wac: 0.006 0.059 95.6;
-  --er: 0.550 0.324 66.4;
-  --erc: 96% 0.001 286.375;
+  --bc: 0.271 0.040 248.0;
+  --p: 0.282 0.040 249.1;
+  --pc: 0.980 0.008 155.8;
+  --s: 55% 0 0;
+  --sc: 98% 0 0;
+  --a: 55% 0.046 257.417;
+  --ac: 98% 0.003 247.858;
+  --n: 12% 0.042 264.695;
+  --nc: 98% 0.003 247.858;
+  --in: 60% 0.126 221.723;
+  --inc: 98% 0.019 200.873;
+  --su: 64% 0.2 131.684;
+  --suc: 98% 0.031 120.757;
+  --wa: 0.905 0.222 65.3;
+  --wac: 98% 0.016 73.684;
+  --er: 0.412 0.370 31.4;
+  --erc: 97% 0.014 343.198;
   --radius-selector: 0.25rem;
-  --radius-field: 0.25rem;
+  --radius-field: 1rem;
   --radius-box: 0.5rem;
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
   --border: 1px;
   --depth: 1;
   --noise: 0;
+
+  --rounded-box: 0.5rem;
+  --rounded-btn: 0.25rem;
+  --border-btn: 1px;
 
   --rounded-box: 0.5rem;
   --rounded-btn: 0.25rem;
@@ -54,31 +58,31 @@
   --border-btn: 1px;
   
   /* Apply Playfair Display font */
-  --font-family: 'Sorts Mill Goudy', serif;
+  --font-family: 'Barlow Semi Condensed', sans-serif;
 }
 
 /* Apply font when this theme is active */
-#eveve-widget[data-theme="gables"] {
+#eveve-widget[data-theme="reignandpour"] {
   font-family: var(--font-family), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 }
 
 /* Ensure headings use the custom font with proper weight */
-#eveve-widget[data-theme="gables"] h1,
-#eveve-widget[data-theme="gables"] h2,
-#eveve-widget[data-theme="gables"] h3,
-#eveve-widget[data-theme="gables"] h4,
-#eveve-widget[data-theme="gables"] h5,
-#eveve-widget[data-theme="gables"] h6 {
+#eveve-widget[data-theme="reignandpour"] h1,
+#eveve-widget[data-theme="reignandpour"] h2,
+#eveve-widget[data-theme="reignandpour"] h3,
+#eveve-widget[data-theme="reignandpour"] h4,
+#eveve-widget[data-theme="reignandpour"] h5,
+#eveve-widget[data-theme="reignandpour"] h6 {
   font-family: var(--font-family), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   font-weight: 600;
 }
 
 /* Optional: Add elegant styling specific to this theme */
-#eveve-widget[data-theme="gables"] .btn {
+#eveve-widget[data-theme="reignandpour"] .btn {
   font-weight: 500;
   letter-spacing: 0.025em;
 }
 
-#eveve-widget[data-theme="gables"] .card {
+#eveve-widget[data-theme="reignandpour"] .card {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }

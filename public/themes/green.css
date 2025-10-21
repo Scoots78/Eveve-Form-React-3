@@ -1,0 +1,80 @@
+/* 
+ * green Theme
+ * Custom theme with Playfair Display font
+ * No rebuild required - just add this file and update themes.json
+ */
+
+/* Import Playfair Display Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap');
+
+#eveve-widget[data-theme="green"] {
+  color-scheme: light;
+  --b1: 0.673 0.047 186.7;
+  --b2: 0.624 0.047 186.7;
+  --b3: 0.467 0.047 186.7;
+  --bc: 0.000 0.000 0.0;
+  --p: 0.843 0.048 186.8;
+  --pc: 0.000 0.000 0.0;
+  --s: 0.626 0.048 186.8;
+  --sc: 1.000 0.000 0.0;
+  --a: 0.828 0.048 186.8;
+  --ac: 0.000 0.000 0.0;
+  --n: 0.901 0.048 186.8;
+  --nc: 0.057 0.065 274.0;
+  --in: 74% 0.16 232.661;
+  --inc: 1.000 0.000 0.0;
+  --su: 0.566 0.180 160.9;
+  --suc: 1.000 0.000 0.0;
+  --wa: 90% 0.182 98.111;
+  --wac: 0.000 0.095 57.7;
+  --er: 0.498 0.319 32.6;
+  --erc: 1.000 0.000 0.0;
+  --radius-selector: 1rem;
+  --radius-field: 0.5rem;
+  --radius-box: 0.25rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+
+  --rounded-box: 0.5rem;
+  --rounded-btn: 0.25rem;
+  --border-btn: 1px;
+  
+  /* Animation */
+  --animation-btn: 0.25s;
+  --animation-input: 0.2s;
+  
+  /* Border */
+  --border-btn: 1px;
+  
+  /* Apply Playfair Display font */
+  --font-family: 'Roboto', sans-serif;
+}
+
+/* Apply font when this theme is active */
+#eveve-widget[data-theme="green"] {
+  font-family: var(--font-family), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+}
+
+/* Ensure headings use the custom font with proper weight */
+#eveve-widget[data-theme="green"] h1,
+#eveve-widget[data-theme="green"] h2,
+#eveve-widget[data-theme="green"] h3,
+#eveve-widget[data-theme="green"] h4,
+#eveve-widget[data-theme="green"] h5,
+#eveve-widget[data-theme="green"] h6 {
+  font-family: var(--font-family), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  font-weight: 600;
+}
+
+/* Optional: Add elegant styling specific to this theme */
+#eveve-widget[data-theme="green"] .btn {
+  font-weight: 500;
+  letter-spacing: 0.025em;
+}
+
+#eveve-widget[data-theme="green"] .card {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}

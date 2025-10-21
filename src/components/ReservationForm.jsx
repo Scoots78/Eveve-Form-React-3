@@ -1535,7 +1535,7 @@ export default function ReservationForm() {
           )}
 
           {/* Event Carousel Section - appears after date/guest summary in availability view */}
-          {selectedDate && guests && appConfig?.eventsB && appConfig.eventsB.length > 0 && (
+          {selectedDate && guests && Array.isArray(appConfig?.eventsB) && appConfig.eventsB.length > 0 && (
             <EventCarousel
               events={appConfig.eventsB}
               onDateSelect={handleEventDateSelect}
