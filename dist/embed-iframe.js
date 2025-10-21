@@ -1,6 +1,6 @@
 /**
  * Eveve Booking Widget IFRAME Embed Script
- * Version 1.0.2
+ * Version 1.0.3
  *
  * Use this script to embed the Eveve booking widget in an iframe.
  * Designed for production hosting at the domain root, e.g.:
@@ -68,9 +68,8 @@
         return r.bottom > 0 && r.top < (window.innerHeight || document.documentElement.clientHeight);
       };
 
-      // iOS detection
+      // Platform detection (used only for minor behavior tweaks if needed)
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      let iOSModalScrollHandler = null;
 
       window.addEventListener('message', function(event) {
         if (event.source === iframe.contentWindow) {
@@ -94,35 +93,34 @@
             }
           }
 
-          // Handle iOS modal fix
-          if (event.data && event.data.type === 'ios-modal-fix' && isIOS) {
+          // Handle modal-related height adjustments (cross-platform)
+          // Back-compat: accept both 'modal-fix' and legacy 'ios-modal-fix'
+          if (event.data && (event.data.type === 'modal-fix' || event.data.type === 'ios-modal-fix')) {
             if (event.data.action === 'expand-iframe') {
-              // Modal opened on iOS - expand iframe to full required height
-              const requiredHeight = Math.max(
-                event.data.requiredHeight || window.innerHeight, 
-                window.innerHeight
-              );
-              
+              // Expand iframe to accommodate the popup height on any platform
+              const fallback = Math.max(window.innerHeight || 0, 700);
+              const requiredHeight = Math.max(Number(event.data.requiredHeight) || 0, fallback);
+
               // Store original iframe height for restoration later
               if (!iframe.dataset.originalHeight) {
                 iframe.dataset.originalHeight = iframe.style.height || CONFIG.iframeHeight;
               }
-              
-              // Expand iframe to accommodate full modal without internal scrolling
+
+              // Apply expanded height
               iframe.style.height = requiredHeight + 'px';
               iframe.style.minHeight = requiredHeight + 'px';
-              
-              // Scroll the parent page to show the iframe from the top
+
+              // Ensure the iframe is fully brought into view (helpful on iOS and small screens)
               setTimeout(() => {
-                iframe.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                try { iframe.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
               }, 100);
-              
+
             } else if (event.data.action === 'restore-iframe') {
-              // Modal closed - restore original iframe dimensions
+              // Restore original iframe dimensions
               const originalHeight = iframe.dataset.originalHeight || CONFIG.iframeHeight;
               iframe.style.height = originalHeight;
               iframe.style.minHeight = '';
-              
+
               // Clear the stored original height
               delete iframe.dataset.originalHeight;
             }

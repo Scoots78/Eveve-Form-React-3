@@ -273,39 +273,40 @@ export default function BookingDetailsModal({
     }
   }, [success, localSuccess]);
 
-  // Handle iOS iframe scrolling when modal opens/closes
+  // Handle iframe height when modal opens/closes (all platforms)
   useEffect(() => {
-    // Detect if we're in an iframe and on iOS
-    const isInIframe = window.parent && window.parent !== window;
+    const isInIframe = typeof window !== 'undefined' && window.parent && window.parent !== window;
+    if (!isInIframe) return;
+
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    
-    if (isInIframe && isIOS) {
-      if (isOpen) {
-        // Calculate the required height for the modal
-        const modalElement = document.querySelector('.eveve-modal');
-        const requiredHeight = modalElement ? modalElement.scrollHeight + 200 : 1000;
-        
-        // Notify parent to expand iframe height to accommodate full modal
-        window.parent.postMessage({ 
-          type: 'ios-modal-fix', 
-          action: 'expand-iframe',
-          requiredHeight: Math.max(requiredHeight, window.innerHeight + 400)
-        }, '*');
-        
-        // Also disable body scrolling within the iframe to prevent internal scroll
+
+    if (isOpen) {
+      // Calculate the required height for the modal content
+      const modalElement = document.querySelector('.eveve-modal');
+      const doc = document.documentElement;
+      const modalHeight = modalElement ? modalElement.scrollHeight : 0;
+      const docHeight = Math.max(doc.scrollHeight, document.body ? document.body.scrollHeight : 0);
+      // Add safe margin to prevent immediate reflows from clipping
+      const requiredHeight = Math.max(modalHeight + 200, docHeight, window.innerHeight + 200);
+
+      // Notify parent to expand iframe height (new cross-platform + legacy iOS message)
+      const payload = { type: 'modal-fix', action: 'expand-iframe', requiredHeight };
+      window.parent.postMessage(payload, '*');
+      window.parent.postMessage({ ...payload, type: 'ios-modal-fix' }, '*');
+
+      // iOS-only: prevent inner scrolling to avoid double-scroll bug
+      if (isIOS) {
         document.body.style.overflow = 'hidden';
         document.body.style.height = '100vh';
         document.documentElement.style.overflow = 'hidden';
         document.documentElement.style.height = '100vh';
-        
-      } else {
-        // Modal closed - restore normal iframe behavior
-        window.parent.postMessage({ 
-          type: 'ios-modal-fix', 
-          action: 'restore-iframe'
-        }, '*');
-        
-        // Restore normal scrolling
+      }
+    } else {
+      // Restore iframe height on close
+      window.parent.postMessage({ type: 'modal-fix', action: 'restore-iframe' }, '*');
+      window.parent.postMessage({ type: 'ios-modal-fix', action: 'restore-iframe' }, '*');
+
+      if (isIOS) {
         document.body.style.overflow = '';
         document.body.style.height = '';
         document.documentElement.style.overflow = '';
