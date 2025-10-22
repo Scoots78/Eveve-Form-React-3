@@ -278,8 +278,6 @@ export default function BookingDetailsModal({
     const isInIframe = typeof window !== 'undefined' && window.parent && window.parent !== window;
     if (!isInIframe) return;
 
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-
     if (isOpen) {
       // Calculate the required height for the modal content
       const modalElement = document.querySelector('.eveve-modal');
@@ -293,25 +291,10 @@ export default function BookingDetailsModal({
       const payload = { type: 'modal-fix', action: 'expand-iframe', requiredHeight };
       window.parent.postMessage(payload, '*');
       window.parent.postMessage({ ...payload, type: 'ios-modal-fix' }, '*');
-
-      // iOS-only: prevent inner scrolling to avoid double-scroll bug
-      if (isIOS) {
-        document.body.style.overflow = 'hidden';
-        document.body.style.height = '100vh';
-        document.documentElement.style.overflow = 'hidden';
-        document.documentElement.style.height = '100vh';
-      }
     } else {
       // Restore iframe height on close
       window.parent.postMessage({ type: 'modal-fix', action: 'restore-iframe' }, '*');
       window.parent.postMessage({ type: 'ios-modal-fix', action: 'restore-iframe' }, '*');
-
-      if (isIOS) {
-        document.body.style.overflow = '';
-        document.body.style.height = '';
-        document.documentElement.style.overflow = '';
-        document.documentElement.style.height = '';
-      }
     }
   }, [isOpen]);
 
@@ -1526,7 +1509,7 @@ export default function BookingDetailsModal({
     <Transition show={isOpen} as={React.Fragment}>
       <Dialog
         as="div"
-        className="fixed inset-0 z-10 overflow-y-auto"
+        className="absolute inset-0 z-10"
         onClose={() => {
           // Only allow closing if not in loading state
           if (!isLoading && !paymentProcessing && !isInitializingStripe) {
@@ -1544,7 +1527,7 @@ export default function BookingDetailsModal({
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <Dialog.Overlay className="fixed inset-0 bg-black opacity-30" />
+            <Dialog.Overlay className="absolute inset-0 bg-black opacity-30" />
           </Transition.Child>
 
           {/* This element is to trick the browser into centering the modal contents. */}
