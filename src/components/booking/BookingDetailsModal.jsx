@@ -315,6 +315,50 @@ export default function BookingDetailsModal({
     }
   }, [isOpen]);
 
+  // Forward vertical drag gestures to parent page when in iframe on iOS
+  useEffect(() => {
+    const isInIframe = typeof window !== 'undefined' && window.parent && window.parent !== window;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (!(isOpen && isInIframe && isIOS)) return;
+
+    const modalEl = document.querySelector('.eveve-modal');
+    if (!modalEl) return;
+
+    let lastY = null;
+    const isInteractive = (target) => !!(target && target.closest && target.closest('input, textarea, select, [contenteditable], .StripeElement'));
+
+    const onTouchStart = (e) => {
+      if (e.touches && e.touches.length === 1 && !isInteractive(e.target)) {
+        lastY = e.touches[0].clientY;
+      }
+    };
+
+    const onTouchMove = (e) => {
+      if (lastY == null || isInteractive(e.target)) return;
+      const y = e.touches[0].clientY;
+      const deltaY = lastY - y; // positive when swiping up
+      lastY = y;
+      // Prevent the iframe from scrolling; delegate to parent instead
+      try { e.preventDefault(); } catch (_) {}
+      try { window.parent.postMessage({ type: 'modal-scroll', deltaY }, '*'); } catch (_) {}
+    };
+
+    const onTouchEnd = () => { lastY = null; };
+
+    // Use passive: false so preventDefault works on iOS Safari
+    modalEl.addEventListener('touchstart', onTouchStart, { passive: false });
+    modalEl.addEventListener('touchmove', onTouchMove, { passive: false });
+    modalEl.addEventListener('touchend', onTouchEnd, { passive: true });
+    modalEl.addEventListener('touchcancel', onTouchEnd, { passive: true });
+
+    return () => {
+      modalEl.removeEventListener('touchstart', onTouchStart);
+      modalEl.removeEventListener('touchmove', onTouchMove);
+      modalEl.removeEventListener('touchend', onTouchEnd);
+      modalEl.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [isOpen]);
+
   // Reset form when modal opens with new hold data
   useEffect(() => {
     if (isOpen && holdData) {
@@ -1564,7 +1608,7 @@ export default function BookingDetailsModal({
             leaveFrom="opacity-100 scale-100"
             leaveTo="opacity-0 scale-95"
           >
-            <div className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl eveve-modal">
+            <div className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl eveve-modal" style={{ touchAction: 'none' }}>
               {/* Loading overlay */}
               {(isLoading || paymentProcessing || isInitializingStripe) && (
                 <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">

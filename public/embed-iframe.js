@@ -93,6 +93,15 @@
             }
           }
 
+          // Parent scroll handler initiated from iframe (e.g., iOS modal dragging)
+          if (event.data && event.data.type === 'modal-scroll') {
+            const deltaY = Number(event.data.deltaY) || 0;
+            try {
+              // Scroll the parent page by the requested delta
+              window.scrollBy(0, deltaY);
+            } catch (_) {}
+          }
+
           // Handle modal-related height adjustments (cross-platform)
           // Back-compat: accept both 'modal-fix' and legacy 'ios-modal-fix'
           if (event.data && (event.data.type === 'modal-fix' || event.data.type === 'ios-modal-fix')) {
