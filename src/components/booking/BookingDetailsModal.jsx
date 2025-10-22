@@ -278,8 +278,6 @@ export default function BookingDetailsModal({
     const isInIframe = typeof window !== 'undefined' && window.parent && window.parent !== window;
     if (!isInIframe) return;
 
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-
     if (isOpen) {
       // Calculate the required height for the modal content
       const modalElement = document.querySelector('.eveve-modal');
@@ -293,70 +291,11 @@ export default function BookingDetailsModal({
       const payload = { type: 'modal-fix', action: 'expand-iframe', requiredHeight };
       window.parent.postMessage(payload, '*');
       window.parent.postMessage({ ...payload, type: 'ios-modal-fix' }, '*');
-
-      // iOS-only: prevent inner scrolling to avoid double-scroll bug
-      if (isIOS) {
-        document.body.style.overflow = 'hidden';
-        document.body.style.height = '100vh';
-        document.documentElement.style.overflow = 'hidden';
-        document.documentElement.style.height = '100vh';
-      }
     } else {
       // Restore iframe height on close
       window.parent.postMessage({ type: 'modal-fix', action: 'restore-iframe' }, '*');
       window.parent.postMessage({ type: 'ios-modal-fix', action: 'restore-iframe' }, '*');
-
-      if (isIOS) {
-        document.body.style.overflow = '';
-        document.body.style.height = '';
-        document.documentElement.style.overflow = '';
-        document.documentElement.style.height = '';
-      }
     }
-  }, [isOpen]);
-
-  // Forward vertical drag gestures to parent page when in iframe on iOS
-  useEffect(() => {
-    const isInIframe = typeof window !== 'undefined' && window.parent && window.parent !== window;
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    if (!(isOpen && isInIframe && isIOS)) return;
-
-    const modalEl = document.querySelector('.eveve-modal');
-    if (!modalEl) return;
-
-    let lastY = null;
-    const isInteractive = (target) => !!(target && target.closest && target.closest('input, textarea, select, [contenteditable], .StripeElement'));
-
-    const onTouchStart = (e) => {
-      if (e.touches && e.touches.length === 1 && !isInteractive(e.target)) {
-        lastY = e.touches[0].clientY;
-      }
-    };
-
-    const onTouchMove = (e) => {
-      if (lastY == null || isInteractive(e.target)) return;
-      const y = e.touches[0].clientY;
-      const deltaY = lastY - y; // positive when swiping up
-      lastY = y;
-      // Prevent the iframe from scrolling; delegate to parent instead
-      try { e.preventDefault(); } catch (_) {}
-      try { window.parent.postMessage({ type: 'modal-scroll', deltaY }, '*'); } catch (_) {}
-    };
-
-    const onTouchEnd = () => { lastY = null; };
-
-    // Use passive: false so preventDefault works on iOS Safari
-    modalEl.addEventListener('touchstart', onTouchStart, { passive: false });
-    modalEl.addEventListener('touchmove', onTouchMove, { passive: false });
-    modalEl.addEventListener('touchend', onTouchEnd, { passive: true });
-    modalEl.addEventListener('touchcancel', onTouchEnd, { passive: true });
-
-    return () => {
-      modalEl.removeEventListener('touchstart', onTouchStart);
-      modalEl.removeEventListener('touchmove', onTouchMove);
-      modalEl.removeEventListener('touchend', onTouchEnd);
-      modalEl.removeEventListener('touchcancel', onTouchEnd);
-    };
   }, [isOpen]);
 
   // Reset form when modal opens with new hold data
@@ -1570,7 +1509,7 @@ export default function BookingDetailsModal({
     <Transition show={isOpen} as={React.Fragment}>
       <Dialog
         as="div"
-        className="fixed inset-0 z-10 overflow-y-auto"
+        className="absolute inset-0 z-10"
         onClose={() => {
           // Only allow closing if not in loading state
           if (!isLoading && !paymentProcessing && !isInitializingStripe) {
@@ -1588,7 +1527,7 @@ export default function BookingDetailsModal({
             leaveFrom="opacity-100"
             leaveTo="opacity-0"
           >
-            <Dialog.Overlay className="fixed inset-0 bg-black opacity-30" />
+            <Dialog.Overlay className="absolute inset-0 bg-black opacity-30" />
           </Transition.Child>
 
           {/* This element is to trick the browser into centering the modal contents. */}
@@ -1608,7 +1547,7 @@ export default function BookingDetailsModal({
             leaveFrom="opacity-100 scale-100"
             leaveTo="opacity-0 scale-95"
           >
-            <div className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl eveve-modal" style={{ touchAction: 'none' }}>
+            <div className="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl eveve-modal">
               {/* Loading overlay */}
               {(isLoading || paymentProcessing || isInitializingStripe) && (
                 <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
